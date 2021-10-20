@@ -1,4 +1,9 @@
+# R stuff
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+
+# Don't share the data!
+data/
+*.csv
