@@ -2,18 +2,18 @@
 
 get_model_parameters <- function() {
   
-  age_labels <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", 
+  covariates_age <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", 
                   "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+")
   
-  vacc_labels <- c("none", "az1", "az2", "pf1", "pf2")
+  covariates_vaccine_status <- c("none", "az1", "az2", "pf1", "pf2")
   
   make_morbidity_lookup <- function(age_probability, vaccine_rel_probability, VOC_rel_probability) {
     matrix(
       age_probability * VOC_rel_probability,
-      ncol = 5, nrow = length(age_labels)
+      ncol = 5, nrow = length(covariates_age)
     ) %>%
-      `colnames<-`(vacc_labels) %>%
-      `row.names<-`(age_labels) %>%
+      `colnames<-`(covariates_vaccine_status) %>%
+      `row.names<-`(covariates_age) %>%
       sweep(MARGIN = 2, vaccine_rel_probability, FUN = "*")
   }
   
@@ -22,13 +22,13 @@ get_model_parameters <- function() {
   
   prob_death_ward <- 0.46 * c(0.039, 0.037, 0.035, 0.035, 0.036, 0.039, 0.045, 0.055,
                               0.074, 0.107, 0.157, 0.238, 0.353, 0.502, 0.675, 0.832, 1) %>%
-    `names<-`(age_labels)
+    `names<-`(covariates_age)
   
   
   rel_prob_death_ward_VOC <- 0.35
   
   rel_prob_death_ward_vaccine <- 1 - c(0, 0.69, 0.9, 0.71, 0.92) %>%
-    `names<-`(vacc_labels)
+    `names<-`(covariates_vaccine_status)
   
   prob_death_ward_lookup <- make_morbidity_lookup(prob_death_ward,
                                                   rel_prob_death_ward_vaccine,
@@ -36,13 +36,13 @@ get_model_parameters <- function() {
   
   prob_death_ICU <- 0.67 * c(0.282, 0.286, 0.291, 0.299, 0.310, 0.328, 0.353, 0.390, 
                              0.446, 0.520, 0.604, 0.705, 0.806, 0.899, 0.969, 1.0, 0.918) %>%
-    `names<-`(age_labels)
+    `names<-`(covariates_age)
   
   
   rel_prob_death_ICU_VOC <- 0.35
   
   rel_prob_death_ICU_vaccine <- 1 - c(0, 0.69, 0.9, 0.71, 0.92) %>%
-    `names<-`(vacc_labels)
+    `names<-`(covariates_vaccine_status)
   
   prob_death_ICU_lookup <- make_morbidity_lookup(prob_death_ICU,
                                                  rel_prob_death_ICU_vaccine,
@@ -52,13 +52,13 @@ get_model_parameters <- function() {
   
   prob_death_post_ICU <- 0.35 * c(0.091, 0.083, 0.077, 0.074, 0.074, 0.076, 0.08, 0.086,
                                   0.093, 0.102, 0.117, 0.148, 0.211, 0.332, 0.526, 0.753, 1.0) %>%
-    `names<-`(age_labels)
+    `names<-`(covariates_age)
   
   
   rel_prob_death_post_ICU_VOC <- 0.35
   
   rel_prob_death_post_ICU_vaccine <- 1 - c(0, 0.69, 0.9, 0.71, 0.92) %>%
-    `names<-`(vacc_labels)
+    `names<-`(covariates_vaccine_status)
   
   prob_death_post_ICU_lookup <- make_morbidity_lookup(prob_death_post_ICU,
                                                       rel_prob_death_post_ICU_vaccine,
@@ -99,7 +99,7 @@ get_model_parameters <- function() {
                             4.21, 7.4, 9.7,  1.3, 9.55,  5.74, 6.75, 6.64,  8.64) %>%
     matrix(ncol = 9, byrow = TRUE) %>%
     `colnames<-`(compartment_labels) %>%
-    `rownames<-`(age_labels)
+    `rownames<-`(covariates_age)
   
   
   compartment_LoS_upper <- c(25,  2.2, 15.9, 1.2, 22.9, 10.7, 5.7,  12.3,  7.3, 
@@ -121,12 +121,12 @@ get_model_parameters <- function() {
                              25,  8.1, 11.2, 1.6, 14.8, 6.9,  10.6, 8.0,   13.5) %>%
     matrix(ncol = 9, byrow = TRUE) %>%
     `colnames<-`(compartment_labels) %>%
-    `rownames<-`(age_labels)
+    `rownames<-`(covariates_age)
   
   compartment_LoS_shape <- c(0, 2, 2, 1, 2, 2, 2, 2, 2) %>%
-    matrix(ncol = 9, nrow = length(age_labels), byrow = TRUE) %>%
+    matrix(ncol = 9, nrow = length(covariates_age), byrow = TRUE) %>%
     `colnames<-`(compartment_labels) %>%
-    `rownames<-`(age_labels)
+    `rownames<-`(covariates_age)
   
   compartment_LoS_shape[, 1] <- c(1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7,
                                   1.7, 1.9, 1.9, 1.9, 1.9, 1.3, 1.3, 1.3)
@@ -144,6 +144,9 @@ get_model_parameters <- function() {
   
   list(
     morbidity_params = morbidity_params,
-    delay_params = delay_params
+    delay_params = delay_params,
+    
+    covariates_vaccine_status = covariates_vaccine_status,
+    covariates_age = covariates_age
   )
 }
