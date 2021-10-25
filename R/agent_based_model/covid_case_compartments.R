@@ -32,5 +32,6 @@ initialize_symptomatic <- function() {
 transition_symptomatic <- function() {
   private$current_compartment <- compartment_indices["ward"]
   
+  private$compartment_threshold_time <- NA
   return(private$current_compartment)
 }

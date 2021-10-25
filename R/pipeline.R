@@ -31,3 +31,14 @@ process_vaccination_data()
 
 source("R/model_parameters.R")
 model_parameters <- get_model_parameters()
+
+
+source("R/compartment_model/define_compartment_model.R")
+compartment_model_definition <- get_compartment_model_definition(model_parameters)
+
+
+
+
+
+
+
