@@ -74,6 +74,7 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-15")) {
     select(state = STATE,
            date_onset,
            age = AGE_AT_ONSET,
+           age_class,
            status_hospital,
            status_ICU,
            status_DIED = DIED) %>%
