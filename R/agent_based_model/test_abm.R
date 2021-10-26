@@ -6,15 +6,9 @@ model_params <- get_model_parameters()
 
 
 local_cases <- read_csv("data/input/local_cases_input.csv") %>%
-  mutate(t = as.numeric(365 - (lubridate::today() - date_onset))) %>%
-  filter(state == "VIC", date_onset >= lubridate::today() - 365)
+  mutate(t = as.numeric(60 - (lubridate::today() - date_onset))) %>%
+  filter(state == "NSW", date_onset >= lubridate::today() - 60)
 
-
-compartment_indices <- c(
-  "susceptible" = 1,
-  "symptomatic" = 2,
-  "ward" = 3
-)
 
 n_cases <- sum(local_cases$count)
 
@@ -44,5 +38,22 @@ for(i in 1:nrow(local_cases)) {
 Rcpp::sourceCpp("R/agent_based_model/abm_loop.cpp")
 
 a <- Sys.time()
-process_loop(case_list, case_timings[, "threshold_time"])
+results <- process_loop(case_list, case_timings[, "threshold_time"])
 print(Sys.time() - a)
+
+
+plot_results <- do.call(rbind, results) %>%
+  `colnames<-`(c("case_index", "t", "new_comp")) %>%
+  as_tibble() %>%
+  mutate(new_comp = names(compartment_indices)[new_comp]) %>%
+  group_by(t, new_comp) %>%
+  summarise(n = n())
+
+ggplot(plot_results) +
+  geom_line(aes(x = t / 10, y = n, color = new_comp)) +
+  
+  geom_point(aes(x = t, y = count),
+             local_cases)
+
+
+

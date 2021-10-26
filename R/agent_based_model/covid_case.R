@@ -6,7 +6,10 @@ source("R/agent_based_model/covid_case_compartments.R")
 compartment_indices <- c(
   "susceptible" = 1,
   "symptomatic" = 2,
-  "ward" = 3
+  "ward" = 3,
+  "ward_died" = 4,
+  "ward_discharged" = 5,
+  "ICU" = 6
   )
 
 CovidCase <- R6Class(
@@ -22,6 +25,8 @@ CovidCase <- R6Class(
     
     initialize_symptomatic = initialize_symptomatic,
     transition_symptomatic = transition_symptomatic,
+    
+    initialize_ward = initialize_ward,
     
     model_params = list(),
     
@@ -59,10 +64,14 @@ CovidCase <- R6Class(
     
     get_compartment_threshold_time = function() {
       private$compartment_threshold_time
+    },
+    get_current_compartment = function() {
+      private$next_compartment
     }
   ),
   private = list(
     current_compartment = NA_integer_,
+    next_compartment = NA_character_,
     
     compartment_threshold_time = NA_real_
   ))
