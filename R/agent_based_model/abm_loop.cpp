@@ -1,5 +1,6 @@
-
 #include <Rcpp.h>
+#include "modules/CovidCase.h"
+
 using namespace Rcpp;
 
 
@@ -12,46 +13,62 @@ std::array<double, 3> create_plot_datapoint(int case_index, double t, int new_co
   return result;
 }
 
-// [[Rcpp::plugins("cpp11")]]
 // [[Rcpp::export]]
-std::vector<std::array<double, 3>> process_loop(List case_list, NumericVector initial_trigger_times) {
-  int n_cases = case_list.size();
+List process_loop(NumericMatrix case_parameter_samples,
+                  int n_days, double dt) {
+  int n_cases = case_parameter_samples.nrow();
+  CovidCase* case_array[n_cases];
   
-  std::vector<double> time_in_compartment(n_cases);
-  std::vector<double> trigger_time(n_cases);
+  double time_in_compartment[n_cases];
+  double next_compartment_trigger_time[n_cases];
+  
+  NumericMatrix compartment_counts(n_days, 11);
   
   for(int i = 0; i < n_cases; i++) {
+    CaseParameterSamples case_param_samples = CaseParameterSamples();
+    case_param_samples.time_of_infection = case_parameter_samples(i, 0);
+    case_param_samples.LoS_symptomatic_to_ED = case_parameter_samples(i, 1);
+    case_param_samples.LoS_ward_to_discharge = case_parameter_samples(i, 2);
+    
+    case_array[i] = new CovidCase("0-4", "none", case_param_samples);
+    
     time_in_compartment[i] = 0;
-    trigger_time[i] = initial_trigger_times[i];
+    next_compartment_trigger_time[i] = case_array[i]->GetNextCompartmentTriggerTime();
+    
+    compartment_counts(0, 0) += 1;
   }
   
   std::vector<std::array<double, 3>> transitions(0);
   
-  double dt = 0.1;
+  int steps_per_day = (int)(1 / dt);
   
-  for(int t = 0; t < 60*10; t++) {
+  for(int t = 0; t < n_days * steps_per_day; t++) {
     for(int i = 0; i < n_cases; i++) {
       time_in_compartment[i] += dt;
       
-      if(time_in_compartment[i] >= trigger_time[i]) {
-        Environment case_i = case_list[i];
+      if(time_in_compartment[i] >= next_compartment_trigger_time[i]) {
+        CovidCase* i_case = case_array[i];
         
-        Function trigger_transition_fn = case_i["trigger_transition"];
-        int new_compartment = as<int>(trigger_transition_fn());
+        int old_compartment = static_cast<int>(i_case->GetCurrentCompartment());
         
-        // Reset the timer and determine the new trigger time
+        i_case->TriggerNextCompartment();
+        
+        int new_compartment = static_cast<int>(i_case->GetCurrentCompartment());
+        
         time_in_compartment[i] = 0;
-        Function get_compartment_threshold_time_fn = case_i["get_compartment_threshold_time"];
-        trigger_time[i] = as<double>(get_compartment_threshold_time_fn());
+        next_compartment_trigger_time[i] = i_case->GetNextCompartmentTriggerTime();
         
-        transitions.push_back(create_plot_datapoint(i, t, new_compartment));
+        
+        compartment_counts(t / steps_per_day, old_compartment) -= 1;
+        compartment_counts(t / steps_per_day, new_compartment) += 1;
+        transitions.push_back(create_plot_datapoint(i, (double)t * dt, new_compartment));
       }
     }
   }
   
-  
-  
-  return transitions;
+  return List::create(
+    _["transitions"] = transitions, 
+    _["compartment_counts"] = compartment_counts
+  );
 }
-
 

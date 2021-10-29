@@ -32,6 +32,49 @@ process_vaccination_data <- function() {
   
   write_rds(daily_dose_data, "data/processed/daily_dose_data.rds")
   
+  
+  age_dist_by_state <- read_csv("data/demographics/age_distribution_by_state.csv")
+  
+  empty_probability_table <- expand_grid(
+    date = seq(ymd("2020-01-01"), ymd("2022-01-01"), by = "day"),
+    state = unique(daily_dose_data$state),
+    age_class = unique(daily_dose_data$age_class),
+    name = c("none", "az1", "az2", "pf1", "pf2")
+  )
+  
+  probability_table <- expand_grid(
+    date = seq(min(daily_dose_data$date), max(daily_dose_data$date), by = "day"),
+    state = unique(daily_dose_data$state),
+    age_class = unique(daily_dose_data$age_class),
+    dose_number = c(1,2),
+    vaccine = c("pf", "az")
+  ) %>%
+    left_join(daily_dose_data) %>%
+    left_join(age_dist_by_state) %>%
+    mutate(proportion = pmin(effective_doses / population, 1),
+           name = str_c(vaccine, dose_number)) %>%
+    
+    right_join(empty_probability_table) %>%
+    
+    group_by(state, name, age_class) %>%
+    arrange(date) %>%
+    fill(proportion, .direction = 'updown') %>%
+    
+    ungroup() %>%
+    
+    select(state, date, age_class, name, proportion) %>%
+    
+    group_by(state, date, age_class) %>%
+    mutate(total_prop = sum(proportion, na.rm = TRUE)) %>%
+    mutate(proportion = case_when(name == "none" ~ max(0, 1 - total_prop),
+                                TRUE ~ proportion)) %>%
+    
+    select(-total_prop)
+  
+  
+  
+  write_rds(probability_table, "data/processed/vaccination_probability_table.rds")
+  
   daily_dose_data
 }
 

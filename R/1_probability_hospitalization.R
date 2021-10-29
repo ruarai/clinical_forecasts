@@ -3,11 +3,6 @@
 # Handles maximum-likelihood estimation of P_hosp and P_ICU
 # Calculating these estimates over a moving window
 
-
-library(future.callr)
-library(furrr)
-plan(callr)
-
 source("R/model_parameters.R")
 model_params <- get_model_parameters()
 
@@ -27,29 +22,39 @@ date_last_onset_50 <- read_csv("data/input/local_cases_input.csv") %>%
 
 clinical_linelist <- read_rds("data/processed/clinical_linelist.rds") %>%
   filter(state == "VIC",
-         date_onset <= date_last_onset_50)
+         date_onset <= date_last_onset_50,
+         date_onset >= ymd("2021-Jun-01"))
 
 
 
 
 
-calculation_jobs <- expand_grid(
-  date_start = seq(min(clinical_linelist$date_onset), max(clinical_linelist$date_onset), by = 'days')
-)
 
 # Put more thought into this
 data_date <- read_rds("data/processed/clinical_linelist.rds") %>%
   pull(date_onset) %>% max() - 1
 
-get_linelist_subset <- function(date_start, n_days_forward) {
-  clinical_linelist %>%
-    filter(date_onset >= date_start, date_onset <= date_start + n_days_forward)
+get_linelist_subset <- function(date_start, n_days_forward, age_class) {
+  if(is.null(age_class)) {
+    return(clinical_linelist %>%
+             filter(date_onset >= date_start, date_onset <= date_start + n_days_forward))
+  }
+  else{
+    return(clinical_linelist %>%
+             filter(date_onset >= date_start, date_onset <= date_start + n_days_forward,
+                    age_class == !!age_class))
+  }
 }
 
 moving_window_hospitalisation <- function(date_start) {
   
   n_days_forward <- 14
   linelist_subset <- get_linelist_subset(date_start, n_days_forward)
+  
+  while(nrow(linelist_subset) <= 50 | n_days_forward >= 120) {
+    n_days_forward <- n_days_forward + 1
+    linelist_subset <- get_linelist_subset(date_start, n_days_forward)
+  }
   
   num_hospitalised <- linelist_subset %>%
     filter(status_hospital == 1) %>%
@@ -60,10 +65,10 @@ moving_window_hospitalisation <- function(date_start) {
   
   days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
   
-  delay_shape <- model_params$delay_params$mean_delay_by_age[cases_not_hospitalised$age_class]
-  delay_mean <- model_params$delay_params$shape_delay_by_age[cases_not_hospitalised$age_class]
+  delay_shape <- model_params$delay_params$compartment_LoS_mean[cases_not_hospitalised$age_class, "symptomatic_to_ED"]
+  delay_mean <- model_params$delay_params$compartment_LoS_shape[cases_not_hospitalised$age_class, "symptomatic_to_ED"]
   
-  if(nrow(linelist_subset) == 1 | num_hospitalised == 0 | nrow(cases_not_hospitalised) == 0){
+  if(nrow(linelist_subset) <= 50 | num_hospitalised == 0 | nrow(cases_not_hospitalised) == 0){
     return(tibble_row(prob_naive = -1, prob_MLE = - 1))
   } 
   
@@ -80,24 +85,41 @@ moving_window_hospitalisation <- function(date_start) {
   )
 }
 
+calculation_jobs <- expand_grid(
+  date_start = seq(min(clinical_linelist$date_onset), max(clinical_linelist$date_onset), by = 'days')
+)
+
 results <- pmap_dfr(calculation_jobs, moving_window_hospitalisation) %>%
   bind_cols(calculation_jobs, .)  %>%
   mutate(date_onset = date_start + window_size / 2)
 
 
+cutoff_date <- max(results$date_onset) - 35
+
+
 results_forecast <- results %>%
+  
+  filter(prob_MLE != -1,
+         date_onset <= cutoff_date) %>%
+  
   select(date_onset, prob_hosp = prob_MLE) %>%
-  bind_rows(
-    tibble(date_onset = seq(max(results$date_onset) + 1, max(results$date_onset) + 28, by = 'days'))
+  right_join(
+    tibble(date_onset = seq(min(results$date_onset), max(results$date_onset) + 28, by = 'days'))
     ) %>%
-  fill(prob_hosp, .direction = "down")
+  arrange(date_onset) %>%
+  mutate(prob_hosp = zoo::na.approx(prob_hosp, na.rm = FALSE))
 
 ggplot() +
   geom_line(aes(x = date_onset, y = prob_hosp),
             results_forecast) +
   geom_line(aes(x = date_start + window_size / 2, y = prob_naive),
-            results,
-            linetype = 'dotted')
+            results %>% filter(prob_naive != -1),
+            linetype = 'dotted') +
+  
+  geom_vline(xintercept = cutoff_date) +
+  
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, 0.3))
 
 
 results_forecast %>%

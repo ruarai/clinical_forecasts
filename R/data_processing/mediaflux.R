@@ -115,9 +115,9 @@ download_mediaflux_files <- function(mf_files) {
     
     system(mediaflux_call)
     
-    
     file.copy(paste0("data/mediaflux_syncing/download_files/", basename(mf_path_remote)),
-              mf_file$local_file)
+              mf_file$local_file,
+              overwrite = TRUE)
   }
   
   

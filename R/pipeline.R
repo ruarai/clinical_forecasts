@@ -21,11 +21,13 @@ download_files(tibble(remote_file = "/covid_output/local_cases_input.csv",
 
 
 
+covid19data_url <- "https://github.com/M3IT/COVID-19_Data/raw/master/Data/COVID_AU_state.csv"
+read_csv(covid19data_url) %>% write_rds("data/covid19data.rds")
 
 
 
 source("R/data_processing/read_NNDSS.R")
-process_NNDSS_linelist()
+process_NNDSS_linelist(minimum_case_date = ymd("2020-01-01"))
 process_vaccination_data()
 
 

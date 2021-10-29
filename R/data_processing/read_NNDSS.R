@@ -61,7 +61,7 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-15")) {
     
     mutate(date_onset = case_when(!is.na(TRUE_ONSET_DATE)           ~ TRUE_ONSET_DATE,
                                   !is.na(NOTIFICATION_DATE)         ~ NOTIFICATION_DATE,
-                                  !is.na(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE) %>% date(),
+                                  !is.na(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE) %>% lubridate::date(),
            
            status_ICU = case_when(is.na(CV_ICU) ~ 0,
                                   TRUE          ~ CV_ICU),
@@ -77,9 +77,7 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-15")) {
            age_class,
            status_hospital,
            status_ICU,
-           status_DIED = DIED) %>%
-    
-    filter(date_onset >= minimum_case_date)
+           status_DIED = DIED)
   
   
   
