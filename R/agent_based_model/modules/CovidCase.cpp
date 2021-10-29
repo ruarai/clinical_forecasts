@@ -35,7 +35,20 @@ void CovidCase::TriggerNextCompartment() {
     break;
     
   case CaseCompartment::Ward:
-    next_compartment_trigger_time = 100000;
+    transitionWardNext();
+    break;
+    
+  case CaseCompartment::ICU:
+    transitionICUNext();
+    break;
+    
+  case CaseCompartment::PostICU_to_Death:
+  case CaseCompartment::PostICU_to_Discharge:
+    transitionPostICUNext();
+    break;
+    
+  default:
+    Rcout << "TriggerNextCompartment was called with no valid transition available\n";
     break;
   }
 }
@@ -50,16 +63,136 @@ void CovidCase::transitionSusceptibleSymptomatic() {
 void CovidCase::transitionSymptomaticWard() {
   compartment = CaseCompartment::Ward;
   
-  //next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_discharge;
-  
   double pr_ward_to_death = 0.1;
   double pr_ward_to_ICU = 0.3;
   
   double pr_ward_to_discharge = 1 - pr_ward_to_death - pr_ward_to_ICU;
   
+  if(pr_ward_to_discharge < 0) {
+    Rcout << "invalid pr_ward_to_discharge\n"; 
+  }
   
+  double prob_sample = R::runif(0, 1);
+  
+  if(prob_sample <= pr_ward_to_death) {
+    
+    next_compartment = CaseCompartment::Ward_Died;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_death;
+    
+  } else if(prob_sample <= pr_ward_to_death + pr_ward_to_discharge) {
+    
+    next_compartment = CaseCompartment::Ward_Discharged;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_discharge;
+    
+  } else {
+    
+    next_compartment = CaseCompartment::ICU;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_ICU;
+    
+  }
   
 }
 
+void CovidCase::transitionWardNext() {
+  
+  switch(next_compartment) {
+  case CaseCompartment::Ward_Died:
+  case CaseCompartment::Ward_Discharged:
+    compartment = next_compartment;
+    next_compartment_trigger_time = std::numeric_limits<double>::infinity();
+    
+    break;
+    
+  case CaseCompartment::ICU:
+    transitionWardICU();
+    break;
+    
+  default:
+    Rcout << "invalid next_compartment from Ward\n"; 
+    break;
+    
+  }
+}
+
+void CovidCase::transitionWardICU() {
+  compartment = CaseCompartment::ICU;
+  
+  double pr_ICU_to_death = 0.1;
+  double pr_ICU_to_postICU_discharge = 0.3;
+  double pr_ICU_to_postICU_death = 1 - pr_ICU_to_death - pr_ICU_to_postICU_discharge;
+  
+  if(pr_ICU_to_postICU_death < 0) {
+    Rcout << "invalid pr_ICU_to_postICU_death\n"; 
+  }
+  
+  
+  double prob_sample = R::runif(0, 1);
+  
+  if(prob_sample <= pr_ICU_to_death) {
+    
+    next_compartment = CaseCompartment::ICU_Died;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_death;
+    
+  } else if(prob_sample <= pr_ICU_to_death + pr_ICU_to_postICU_discharge) {
+    
+    next_compartment = CaseCompartment::PostICU_to_Discharge;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_postICU_discharge;
+    
+    
+  } else {
+    
+    next_compartment = CaseCompartment::PostICU_to_Death;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_postICU_death;
+    
+  }
+}
 
 
+void CovidCase::transitionICUNext() {
+  
+  switch(next_compartment) {
+  case CaseCompartment::ICU_Died:
+    compartment = CaseCompartment::ICU_Died;
+    next_compartment_trigger_time = std::numeric_limits<double>::infinity();
+    
+    break;
+    
+  case CaseCompartment::PostICU_to_Death:
+  case CaseCompartment::PostICU_to_Discharge:
+    transitionICUPostICU();
+    break;
+    
+  default:
+    Rcout << "invalid next_compartment from ICU\n"; 
+  break;
+  
+  }
+}
+
+void CovidCase::transitionICUPostICU() {
+  switch(next_compartment) {
+  
+  case CaseCompartment::PostICU_to_Death:
+    compartment = CaseCompartment::PostICU_to_Death;
+    next_compartment = CaseCompartment::PostICU_Died;
+    
+    next_compartment_trigger_time = case_parameter_samples.LoS_postICU_to_death;
+    
+    break;
+  case CaseCompartment::PostICU_to_Discharge:
+    compartment = CaseCompartment::PostICU_to_Discharge;
+    next_compartment = CaseCompartment::PostICU_Discharged;
+    
+    next_compartment_trigger_time = case_parameter_samples.LoS_postICU_to_discharge;
+    
+    break;
+    
+  default:
+    Rcout << "invalid next_compartment within ICUPostICU transition\n";
+  }
+}
+
+void CovidCase::transitionPostICUNext() {
+  compartment = next_compartment;
+  next_compartment_trigger_time = std::numeric_limits<double>::infinity();
+}

@@ -4,14 +4,36 @@
 
 #include <string>
 
-enum class CaseCompartment {Susceptible, Symptomatic, Ward};
+enum class CaseCompartment {Susceptible,
+                            Symptomatic,
+                            
+                            Ward,
+                            Ward_Died, Ward_Discharged,
+                            
+                            ICU,
+                            ICU_Died,
+                            
+                            PostICU_to_Death,
+                            PostICU_to_Discharge,
+                            
+                            PostICU_Died,
+                            PostICU_Discharged};
 
 struct CaseParameterSamples {
   double time_of_infection;
+  
   double LoS_symptomatic_to_ED;
+  
   double LoS_ward_to_discharge;
   double LoS_ward_to_death;
   double LoS_ward_to_ICU;
+  
+  double LoS_ICU_to_death;
+  double LoS_ICU_to_postICU_death;
+  double LoS_ICU_to_postICU_discharge;
+  
+  double LoS_postICU_to_death;
+  double LoS_postICU_to_discharge;
 };
 
 class CovidCase
@@ -38,9 +60,21 @@ private:
   CaseParameterSamples case_parameter_samples;
   
   CaseCompartment compartment;
+  CaseCompartment next_compartment;
   
   void transitionSusceptibleSymptomatic();
+  
   void transitionSymptomaticWard();
+  
+  void transitionWardNext();
+  void transitionWardICU();
+  
+  void transitionICUNext();
+  void transitionICUPostICU();
+  
+  void transitionPostICUNext();
+  
+  
 };
 
 #endif

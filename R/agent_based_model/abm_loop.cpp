@@ -29,6 +29,13 @@ List process_loop(NumericMatrix case_parameter_samples,
     case_param_samples.time_of_infection = case_parameter_samples(i, 0);
     case_param_samples.LoS_symptomatic_to_ED = case_parameter_samples(i, 1);
     case_param_samples.LoS_ward_to_discharge = case_parameter_samples(i, 2);
+    case_param_samples.LoS_ward_to_death = case_parameter_samples(i, 3);
+    case_param_samples.LoS_ward_to_ICU = case_parameter_samples(i, 4);
+    case_param_samples.LoS_ICU_to_death = case_parameter_samples(i, 5);
+    case_param_samples.LoS_ICU_to_postICU_death = case_parameter_samples(i, 6);
+    case_param_samples.LoS_ICU_to_postICU_discharge = case_parameter_samples(i, 7);
+    case_param_samples.LoS_postICU_to_death = case_parameter_samples(i, 8);
+    case_param_samples.LoS_postICU_to_discharge = case_parameter_samples(i, 9);
     
     case_array[i] = new CovidCase("0-4", "none", case_param_samples);
     
