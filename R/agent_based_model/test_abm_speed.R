@@ -48,7 +48,7 @@ case_delay_shapes <- model_params$delay_params$
   compartment_LoS_shape[case_linelist$age_class,]
 
 case_delay_means <- model_params$delay_params$
-  compartment_LoS_mean[case_linelist$age_class,] * c(1, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5)
+  compartment_LoS_mean[case_linelist$age_class,]
 
 case_delay_samples <- rgamma(length(case_delay_shapes),
                              shape = case_delay_shapes, rate = case_delay_shapes / case_delay_means) %>%
@@ -75,7 +75,7 @@ case_parameter_samples = tibble(
 ) %>%
   as.matrix()
 
-Rcpp::sourceCpp("R/agent_based_model/abm_loop.cpp")
+Rcpp::sourceCpp("cpp/abm_loop.cpp")
 
 a <- Sys.time()
 results <- process_loop(case_parameter_samples, days_sim, 0.1)

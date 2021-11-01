@@ -1,5 +1,5 @@
 #include <Rcpp.h>
-#include "modules/CovidCase.h"
+#include "CovidCase.h"
 
 using namespace Rcpp;
 
