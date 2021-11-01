@@ -63,8 +63,8 @@ void CovidCase::transitionSusceptibleSymptomatic() {
 void CovidCase::transitionSymptomaticWard() {
   compartment = CaseCompartment::Ward;
   
-  double pr_ward_to_death = 0.1;
-  double pr_ward_to_ICU = 0.3;
+  double pr_ward_to_death = case_parameter_samples.pr_death_ward;
+  double pr_ward_to_ICU = case_parameter_samples.pr_ICU;
   
   double pr_ward_to_discharge = 1 - pr_ward_to_death - pr_ward_to_ICU;
   
@@ -117,12 +117,12 @@ void CovidCase::transitionWardNext() {
 void CovidCase::transitionWardICU() {
   compartment = CaseCompartment::ICU;
   
-  double pr_ICU_to_death = 0.1;
-  double pr_ICU_to_postICU_discharge = 0.3;
-  double pr_ICU_to_postICU_death = 1 - pr_ICU_to_death - pr_ICU_to_postICU_discharge;
+  double pr_ICU_to_death = case_parameter_samples.pr_death_ICU;
+  double pr_ICU_to_postICU_death = case_parameter_samples.pr_death_postICU;
+  double pr_ICU_to_postICU_discharge = 1 - pr_ICU_to_death - pr_ICU_to_postICU_discharge;
   
-  if(pr_ICU_to_postICU_death < 0) {
-    Rcout << "invalid pr_ICU_to_postICU_death\n"; 
+  if(pr_ICU_to_postICU_discharge < 0) {
+    Rcout << "invalid pr_ICU_to_postICU_discharge\n"; 
   }
   
   

@@ -34,6 +34,12 @@ struct CaseParameterSamples {
   
   double LoS_postICU_to_death;
   double LoS_postICU_to_discharge;
+  
+  double pr_ICU;
+  
+  double pr_death_ward;
+  double pr_death_ICU;
+  double pr_death_postICU;
 };
 
 class CovidCase
