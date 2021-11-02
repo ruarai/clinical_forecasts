@@ -14,6 +14,7 @@ days_sim <- as.numeric(lubridate::today() - date_0)
 vaccination_prob_table <- read_rds("data/processed/vaccination_probability_table.rds")
 
 vaccination_prob_table_adj <- vaccination_prob_table %>%
+  filter(state == state_modelled) %>%
   group_by(state, date, age_class) %>%
   mutate(proportion = case_when(name == "none" ~ 0.9,
                                 TRUE ~ 0.1 * proportion),
@@ -78,26 +79,33 @@ case_parameter_samples = tibble(
 Rcpp::sourceCpp("cpp/abm_loop.cpp")
 
 a <- Sys.time()
-results <- process_loop(case_parameter_samples, days_sim, 0.1)
+results <- process_loop(case_parameter_samples, days_sim,
+                        dt = 0.1,
+                        ED_queue_capacity = 10000)
 print(Sys.time() - a)
 
+compartment_names_true <- c("susceptible", "symptomatic", "ED_queue", "ward",
+                            "ward_died", "ward_discharged", "ICU", "ICU_died",
+                            "postICU_to_death", "postICU_to_discharge", "postICU_died",
+                            "postICU_discharged")
 
 results_plot <- do.call(rbind, results$transitions) %>%
   `colnames<-`(c("case_index", "t", "new_comp")) %>%
   as_tibble() %>%
-  mutate(new_comp = as.character(new_comp),
-         t = round(t),
+  mutate(new_comp = compartment_names_true[new_comp + 1],
+         t = floor(t),
          date = date_0 + t) %>%
   group_by(date, new_comp) %>%
   summarise(n = n(), .groups = "drop")
 
 ggplot(results_plot) +
-  geom_point(aes(x = date, y = n, color = new_comp))
+  geom_linerange(aes(x = date, ymin = 0, ymax = n)) +
+  
+  facet_wrap(~new_comp,
+             scales = "free_y") +
+  
+  ggtitle("Transitions (into)")
 
-compartment_names_true <- c("susceptible", "symptomatic", "ward",
-                            "ward_died", "ward_discharged", "ICU", "ICU_died",
-                            "postICU_to_death", "postICU_to_discharge", "postICU_died",
-                            "postICU_discharged")
 
 tbl_count <- apply(results$compartment_counts, MARGIN = 2, cumsum)[,1:length(compartment_names_true)] %>%
   `colnames<-`(compartment_names_true) %>%
@@ -115,6 +123,7 @@ ggplot(tbl_count) +
 
 
 summary_groups <- list("ward" = c("ward", "postICU_to_death", "postICU_to_discharge"), 
+                       "queue" = c("ED_queue"),
                        "ICU" = c("ICU"),
                        "died" = c("ward_died", "ICU_died", "postICU_died"),
                        "discharged" = c("ward_discharged", "postICU_discharged")) %>%

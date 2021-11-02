@@ -5,8 +5,12 @@ using namespace Rcpp;
 // Constructor
 
 CovidCase::CovidCase() { }
-CovidCase::CovidCase(std::string age_class, std::string vaccine_status,
-                     CaseParameterSamples case_parameter_samples){
+CovidCase::CovidCase(int ix,
+                     std::string age_class, std::string vaccine_status,
+                     CaseParameterSamples case_parameter_samples,
+                     ClinicalQueue *ED_queue){
+  this->ix = ix;
+  
   this->age_class = age_class;
   this->vaccine_status = vaccine_status;
   
@@ -14,7 +18,12 @@ CovidCase::CovidCase(std::string age_class, std::string vaccine_status,
   
   this->case_parameter_samples = case_parameter_samples;
   this->next_compartment_trigger_time = case_parameter_samples.time_of_infection;
+  
+  
+  this->ED_queue = ED_queue;
 }
+
+int CovidCase::GetIndex() { return(ix); }
 
 double CovidCase::GetNextCompartmentTriggerTime() {
   return(next_compartment_trigger_time);
@@ -23,7 +32,6 @@ CaseCompartment CovidCase::GetCurrentCompartment() {
   return(compartment);
 }
 
-
 void CovidCase::TriggerNextCompartment() {
   switch(compartment) {
   case CaseCompartment::Susceptible:
@@ -31,7 +39,11 @@ void CovidCase::TriggerNextCompartment() {
     break;
     
   case CaseCompartment::Symptomatic:
-    transitionSymptomaticWard();
+    transitionSymptomaticWardQueue();
+    break;
+    
+  case CaseCompartment::Symptomatic_WardQueue:
+    transitionWardQueueWard();
     break;
     
   case CaseCompartment::Ward:
@@ -60,7 +72,14 @@ void CovidCase::transitionSusceptibleSymptomatic() {
   next_compartment_trigger_time = case_parameter_samples.LoS_symptomatic_to_ED;
 }
 
-void CovidCase::transitionSymptomaticWard() {
+void CovidCase::transitionSymptomaticWardQueue() {
+  compartment = CaseCompartment::Symptomatic_WardQueue;
+  
+  ED_queue->EnterQueue(this);
+  next_compartment_trigger_time = std::numeric_limits<double>::infinity();
+}
+
+void CovidCase::transitionWardQueueWard() {
   compartment = CaseCompartment::Ward;
   
   double pr_ward_to_death = case_parameter_samples.pr_death_ward;
