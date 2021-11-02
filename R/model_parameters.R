@@ -134,6 +134,33 @@ get_model_parameters <- function() {
   
   # TODO We need something here about "post_los_maxes"
   
+  
+  LoS_params <- read_csv("../covid19_los_estimations/output/test/gamma_LoS_by_compartment.csv")
+  
+  
+  # THIS IS ALL VERY FRAGILE, needs improving!
+  compartment_LoS_mean_param <- LoS_params %>%
+    select(age_class, compartment, value = mean) %>%
+    pivot_wider(names_from = compartment, values_from = value) %>%
+    slice(1:17) %>%
+    select(-age_class) %>%
+    as.matrix() %>%
+    `rownames<-`(covariates_age)
+  
+  compartment_LoS_shape_param <- LoS_params %>%
+    select(age_class, compartment, value = shape) %>%
+    pivot_wider(names_from = compartment, values_from = value) %>%
+    slice(1:17) %>%
+    select(-age_class) %>%
+    as.matrix() %>%
+    `rownames<-`(covariates_age)
+  
+  compartments_selected <- c(2, 4, 5, 7, 9)
+  
+  
+  compartment_LoS_mean[,compartments_selected] <- compartment_LoS_mean_param[,compartments_selected - 1]
+  compartment_LoS_shape[,compartments_selected] <- compartment_LoS_shape_param[,compartments_selected - 1]
+  
   delay_params <- list(
     compartment_LoS_mean = compartment_LoS_mean,
     compartment_LoS_upper = compartment_LoS_upper,

@@ -1,4 +1,6 @@
 
+setwd("/usr/local/forecasting/source/covid19_aus_clinical_forecasting/")
+
 source("R/data_processing/mediaflux.R")
 
 sync_latest_mediaflux_vacc()
