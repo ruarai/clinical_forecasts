@@ -72,7 +72,8 @@ case_parameter_samples = tibble(
   
   pr_death_ward = case_pr_death_ward,
   pr_death_ICU = case_pr_death_ICU,
-  pr_death_postICU = case_pr_death_postICU
+  pr_death_postICU = case_pr_death_postICU,
+  bad = 2
 ) %>%
   as.matrix()
 

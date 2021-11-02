@@ -5,6 +5,24 @@
 using namespace Rcpp;
 
 
+void validate_case_param_matrix(NumericMatrix &case_param_matrix){
+  CharacterVector col_names = colnames(case_param_matrix);
+  
+  CharacterVector expect_col_names = CharacterVector(
+    {"time_of_infection", "LoS_symptomatic_to_ED", "LoS_ward_to_discharge", 
+     "LoS_ward_to_death", "LoS_ward_to_ICU", "LoS_ICU_to_death", "LoS_ICU_to_postICU_death", 
+     "LoS_ICU_to_postICU_discharge", "LoS_postICU_to_death", "LoS_postICU_to_discharge", 
+     "pr_ICU", "pr_death_ward", "pr_death_ICU", "pr_death_postICU"}
+  );
+  
+  bool is_correct = is_true(all(col_names == expect_col_names));
+  
+  if(!is_correct) {
+    Rcout << "invalid case_param_matrix input\n";
+  }
+}
+
+
 std::array<double, 3> create_plot_datapoint(int case_index, double t, int new_compartment) {
   std::array<double, 3> result;
   result[0] = case_index;
@@ -66,6 +84,9 @@ CaseParameterSamples create_case_params(NumericMatrix case_parameter_samples, in
 // [[Rcpp::export]]
 List process_loop(NumericMatrix case_param_matrix,
                   int n_days, double dt, int ED_queue_capacity) {
+  validate_case_param_matrix(case_param_matrix);
+  
+  
   int n_cases = case_param_matrix.nrow();
   CovidCase* case_array[n_cases];
   
