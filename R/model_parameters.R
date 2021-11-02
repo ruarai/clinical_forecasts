@@ -157,10 +157,10 @@ get_model_parameters <- function() {
   
   compartments_selected <- c(2, 4, 5, 7, 9)
   
-  
-  compartment_LoS_mean[,compartments_selected] <- compartment_LoS_mean_param[,compartments_selected - 1]
-  compartment_LoS_shape[,compartments_selected] <- compartment_LoS_shape_param[,compartments_selected - 1]
-  
+  # 
+  # compartment_LoS_mean[,compartments_selected] <- compartment_LoS_mean_param[,compartments_selected - 1]
+  # compartment_LoS_shape[,compartments_selected] <- compartment_LoS_shape_param[,compartments_selected - 1]
+  # 
   delay_params <- list(
     compartment_LoS_mean = compartment_LoS_mean,
     compartment_LoS_upper = compartment_LoS_upper,
