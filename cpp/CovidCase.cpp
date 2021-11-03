@@ -82,32 +82,32 @@ void CovidCase::transitionSymptomaticWardQueue() {
 void CovidCase::transitionWardQueueWard() {
   compartment = CaseCompartment::Ward;
   
-  double pr_ward_to_death = case_parameter_samples.pr_death_ward;
   double pr_ward_to_ICU = case_parameter_samples.pr_ICU;
+  double pr_ward_to_death = case_parameter_samples.pr_death_ward;
   
   double pr_ward_to_discharge = 1 - pr_ward_to_death - pr_ward_to_ICU;
   
-  if(pr_ward_to_discharge < 0) {
+  // Ignoring the case where pr_ward_to_ICU is 1 as this means
+  // we've manually passed in the value here
+  if(pr_ward_to_discharge < 0 & pr_ward_to_ICU != 1) {
     Rcout << "invalid pr_ward_to_discharge\n"; 
   }
   
   double prob_sample = R::runif(0, 1);
   
-  if(prob_sample <= pr_ward_to_death) {
+  if(prob_sample <= pr_ward_to_ICU) {
+    next_compartment = CaseCompartment::ICU;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_ICU;
     
-    next_compartment = CaseCompartment::Ward_Died;
-    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_death;
-    
-  } else if(prob_sample <= pr_ward_to_death + pr_ward_to_discharge) {
+  } else if(prob_sample <= pr_ward_to_ICU + pr_ward_to_discharge) {
     
     next_compartment = CaseCompartment::Ward_Discharged;
     next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_discharge;
     
   } else {
     
-    next_compartment = CaseCompartment::ICU;
-    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_ICU;
-    
+    next_compartment = CaseCompartment::Ward_Died;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ward_to_death;
   }
   
 }

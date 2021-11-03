@@ -41,10 +41,10 @@ our_results <- read_csv("results/test_1_VIC.csv") %>%
          quant = factor(quant, levels = unique(quant)))
 
 
-# 
-# their_results <- read_csv("data/old_forecasts_JW_model/cp_dataframe_VIC_forecast_22-Oct-2021.csv") %>%
-#   group_by(date, bed_type) %>%
-#   summarise(across(starts_with("occupancy_"), ~ sum(.)))
+
+their_results <- read_csv("data/old_forecasts_JW_model/cp_dataframe_VIC_forecast_22-Oct-2021.csv") %>%
+  group_by(date, bed_type) %>%
+  summarise(across(starts_with("occupancy_"), ~ sum(.)))
 
 their_quants <- their_results %>%
   

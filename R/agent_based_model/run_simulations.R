@@ -14,7 +14,7 @@ state_modelled <- "NSW"
 
 date_0 <- lubridate::ymd("2021-06-01")
 
-days_sim <- as.numeric(lubridate::today() - date_0)
+days_sim <- as.numeric(lubridate::today() - date_0) + 60
 
 vaccination_prob_table <- read_rds("data/processed/vaccination_probability_table.rds")
 
@@ -34,16 +34,16 @@ clinical_linelist <- read_rds("data/processed/clinical_linelist_NSW.rds") %>%
          date_onset = date(dt_onset)) # No onset date in NSW data
 
 case_linelist_with_vacc_prob <- clinical_linelist %>%
-  mutate(t_onset = days_sim - (lubridate::now() - dt_onset) / ddays(1),
+  mutate(state = state_modelled) %>%
+  mutate(t_onset = (dt_onset - as.POSIXct(date_0)) / ddays(1),
          
          delay_onset_to_hospital = (dt_hosp_admission - dt_onset) / ddays(1),
-         
          delay_ward_to_ICU = (dt_first_icu - dt_hosp_admission) / ddays(1),
          
          ix = row_number()) %>%
   filter(t_onset >= 0) %>%
   
-  left_join(vaccination_prob_table, by = c("age_class", "date_onset" = "date")) %>%
+  left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
   left_join(clinical_prob_table) %>%
   
   mutate(pr_ICU = if_else(ever_in_icu, 1, 0))
