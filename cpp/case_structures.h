@@ -33,6 +33,7 @@ struct CaseParameterSamples {
   double LoS_postICU_to_death;
   double LoS_postICU_to_discharge;
   
+  double pr_hosp;
   double pr_ICU;
   
   double pr_death_ward;

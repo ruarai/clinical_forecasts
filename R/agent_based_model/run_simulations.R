@@ -46,7 +46,8 @@ case_linelist_with_vacc_prob <- clinical_linelist %>%
   left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
   left_join(clinical_prob_table) %>%
   
-  mutate(pr_ICU = if_else(ever_in_icu, 1, 0))
+  mutate(pr_ICU = if_else(ever_in_icu, 1, 0),
+         pr_hosp = 1)
 
 
 # Could be repeated
@@ -90,6 +91,8 @@ run_single_simulation <- function(i){
   case_parameter_samples = cbind(
     time_of_infection = case_linelist$t_onset,
     case_delay_samples,
+    
+    pr_hosp = case_linelist$pr_hosp,
     pr_ICU = case_linelist$pr_ICU,
     
     pr_death_ward = case_pr_death_ward,
