@@ -137,22 +137,4 @@ tbl_count_grouped <- tbl_count %>%
   summarise(count = sum(count), .groups = "drop")
 
 
-plot_c19data_cumulative <- read_rds("data/covid19data.rds") %>%
-  filter(state_abbrev == state_modelled,
-         date >= date_0) %>%
-  
-  mutate(ward = hosp_cum - icu_cum,
-         deaths_cum = deaths_cum - min(deaths_cum)) %>%
-  select(date, ward, ICU = icu_cum, died = deaths_cum) %>%
-  pivot_longer(cols = c(ward, ICU, died),
-               names_to = "group", values_to = "count")
-
-ggplot(tbl_count_grouped) +
-  geom_point(aes(x = date, y = count)) +
-  
-  geom_line(aes(x = date, y = count),
-            plot_c19data_cumulative,
-            size = 0.5) +
-  
-  facet_wrap(~group, scales = "free_y")
 

@@ -135,7 +135,7 @@ get_model_parameters <- function() {
   # TODO We need something here about "post_los_maxes"
   
   
-  LoS_params <- read_csv("../covid19_los_estimations/output/test/gamma_LoS_by_compartment.csv")
+  LoS_params <- read_csv("../covid19_los_estimations/output/NSW/2021-11-01/parameter_estimates.csv")
   
   
   # THIS IS ALL VERY FRAGILE, needs improving!

@@ -1,26 +1,6 @@
 
 process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-15")) {
-  
-  assign_age_class <- function(age) {
-    case_when(age < 5 ~ "0-4",
-              age < 10 ~ "5-9",
-              age < 15 ~ "10-14",
-              age < 20 ~ "15-19",
-              age < 25 ~ "20-24",
-              age < 30 ~ "25-29",
-              age < 35 ~ "30-34",
-              age < 40 ~ "35-39",
-              age < 45 ~ "40-44",
-              age < 50 ~ "45-49",
-              age < 55 ~ "50-54",
-              age < 60 ~ "55-59",
-              age < 65 ~ "60-64",
-              age < 70 ~ "65-69",
-              age < 75 ~ "70-74",
-              age < 80 ~ "75-79",
-              age >= 80 ~ "80+")
-  }
-  
+  source("R/data_processing/fn_age_classes.R")
   
   # Taken from the Curtin model
   nndss_col_types <- c(

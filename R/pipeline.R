@@ -29,7 +29,12 @@ read_csv(covid19data_url) %>% write_rds("data/covid19data.rds")
 
 
 source("R/data_processing/read_NNDSS.R")
+source("R/data_processing/read_vaccination.R")
 process_NNDSS_linelist(minimum_case_date = ymd("2020-01-01"))
+
+NSW_linelist <- read_NSW_linelist("/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_011121.xlsx")
+write_rds(NSW_linelist, "data/processed/clinical_linelist_NSW.rds")
+
 process_vaccination_data()
 
 

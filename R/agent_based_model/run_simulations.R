@@ -1,7 +1,7 @@
 
 
 
-n_simulation <- 1000
+n_simulation <- 10
 
 
 
@@ -10,7 +10,7 @@ setwd("/usr/local/forecasting/source/covid19_aus_clinical_forecasting/")
 source("R/model_parameters.R")
 model_params <- get_model_parameters()
 
-state_modelled <- "VIC"
+state_modelled <- "NSW"
 
 date_0 <- lubridate::ymd("2021-06-01")
 
@@ -18,7 +18,7 @@ days_sim <- as.numeric(lubridate::today() - date_0)
 
 vaccination_prob_table <- read_rds("data/processed/vaccination_probability_table.rds")
 
-vaccination_prob_table_adj <- vaccination_prob_table %>%
+vaccination_prob_table <- vaccination_prob_table %>%
   filter(state == state_modelled) %>%
   group_by(state, date, age_class) %>%
   mutate(proportion = case_when(name == "none" ~ 0.9,
@@ -29,15 +29,24 @@ vaccination_prob_table_adj <- vaccination_prob_table %>%
 
 clinical_prob_table <- read_rds("data/processed/clinical_probabilities.rds")
 
-case_linelist_with_vacc_prob <- read_rds("data/processed/clinical_linelist.rds") %>%
-  mutate(t = as.numeric(days_sim - (lubridate::today() - date_onset)),
+clinical_linelist <- read_rds("data/processed/clinical_linelist_NSW.rds") %>%
+  mutate(dt_onset = dt_hosp_admission - ddays(6),
+         date_onset = date(dt_onset)) # No onset date in NSW data
+
+case_linelist_with_vacc_prob <- clinical_linelist %>%
+  mutate(t_onset = days_sim - (lubridate::now() - dt_onset) / ddays(1),
+         
+         delay_onset_to_hospital = (dt_hosp_admission - dt_onset) / ddays(1),
+         
+         delay_ward_to_ICU = (dt_first_icu - dt_hosp_admission) / ddays(1),
+         
          ix = row_number()) %>%
-  filter(state == state_modelled, t >= 0) %>%
+  filter(t_onset >= 0) %>%
   
-  filter(status_hospital == 1) %>%
+  left_join(vaccination_prob_table, by = c("age_class", "date_onset" = "date")) %>%
+  left_join(clinical_prob_table) %>%
   
-  left_join(vaccination_prob_table_adj, by = c("state", "age_class", "date_onset" = "date")) %>%
-  left_join(clinical_prob_table)
+  mutate(pr_ICU = if_else(ever_in_icu, 1, 0))
 
 
 # Could be repeated
@@ -59,8 +68,10 @@ case_delay_means <- model_params$delay_params$
 
 case_pr_death_ward <- model_params$morbidity_params$
   prob_death_ward_lookup[cbind(case_linelist$age_class, case_linelist$vaccine)]
+
 case_pr_death_ICU <- model_params$morbidity_params$
   prob_death_ICU_lookup[cbind(case_linelist$age_class, case_linelist$vaccine)]
+
 case_pr_death_postICU <- model_params$morbidity_params$
   prob_death_post_ICU_lookup[cbind(case_linelist$age_class, case_linelist$vaccine)]
 
@@ -71,10 +82,13 @@ run_single_simulation <- function(i){
     matrix(ncol = ncol(case_delay_shapes)) %>%
     `colnames<-`(str_c("LoS_", delay_compartment_names))
   
+  case_delay_samples[, "LoS_symptomatic_to_ED"] <- case_linelist$delay_onset_to_hospital
+  case_delay_samples[, "LoS_ward_to_ICU"] <- case_linelist$delay_ward_to_ICU
+  
   
   
   case_parameter_samples = cbind(
-    time_of_infection = case_linelist$t,
+    time_of_infection = case_linelist$t_onset,
     case_delay_samples,
     pr_ICU = case_linelist$pr_ICU,
     
@@ -88,7 +102,7 @@ run_single_simulation <- function(i){
   
   results <- process_loop(case_parameter_samples, days_sim,
                           dt = 0.1,
-                          ED_queue_capacity = 10000)
+                          ED_queue_capacity = 5000)
   
   
   compartment_names_true <- c("susceptible", "symptomatic", "ED_queue", "ward",
@@ -248,7 +262,7 @@ ggplot(quant_count_grouped) +
   #           size = 0.5) +
   # 
   geom_line(aes(x = date, y = count),
-            color = '#e34a33',
+            color = 'black',
             plot_c19data_cumulative ,
             size = 0.5) +
   
@@ -258,4 +272,8 @@ ggplot(quant_count_grouped) +
                     palette = 5) +
   
   theme_minimal()
+
+
+quant_count_grouped %>%
+  write_csv(paste0("results/test_1_", state_modelled, ".csv"))
 
