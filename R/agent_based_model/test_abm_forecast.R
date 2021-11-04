@@ -20,28 +20,29 @@ run_single_simulation <- function(case_linelist) {
     prob_death_post_ICU_lookup[cbind(case_linelist$age_class, case_linelist$vaccine)]
   
   
-  
-  case_delay_samples <- rgamma(length(case_delay_shapes),
-                               shape = case_delay_shapes, rate = case_delay_shapes / case_delay_means) %>%
-    matrix(ncol = ncol(case_delay_shapes)) %>%
-    `colnames<-`(str_c("LoS_", delay_compartment_names))
-  
-  
-  case_linelist$t_onset <- as.numeric(case_linelist$date_onset - min(case_linelist$date_onset))
-  case_parameter_samples = cbind(
-    time_of_infection = case_linelist$t_onset,
-    case_delay_samples,
-    
-    pr_hosp = case_linelist$pr_hosp,
-    pr_ICU = case_linelist$pr_ICU,
-    
-    pr_death_ward = case_pr_death_ward,
-    pr_death_ICU = case_pr_death_ICU,
-    pr_death_postICU = case_pr_death_postICU
-  )
+  Rcpp::sourceCpp("cpp/abm_loop.cpp")
   
   run_sim_sample <- function(i) {
-    Rcpp::sourceCpp("cpp/abm_loop.cpp")
+    
+    
+    case_delay_samples <- rgamma(length(case_delay_shapes),
+                                 shape = case_delay_shapes, rate = case_delay_shapes / case_delay_means) %>%
+      matrix(ncol = ncol(case_delay_shapes)) %>%
+      `colnames<-`(str_c("LoS_", delay_compartment_names))
+    
+    
+    case_linelist$t_onset <- as.numeric(case_linelist$date_onset - min(case_linelist$date_onset))
+    case_parameter_samples = cbind(
+      time_of_infection = case_linelist$t_onset,
+      case_delay_samples,
+      
+      pr_hosp = case_linelist$pr_hosp,
+      pr_ICU = case_linelist$pr_ICU,
+      
+      pr_death_ward = case_pr_death_ward,
+      pr_death_ICU = case_pr_death_ICU,
+      pr_death_postICU = case_pr_death_postICU
+    )
     
     t_forecast_horizon <- as.numeric(forecast_dates$date_forecast_horizon - date_0)
     
@@ -126,7 +127,8 @@ with_progress({
     results_all <- future_map(assembled_linelists, function(linelist) {
       p()
       run_single_simulation(linelist)
-    })
+    },
+    .options = furrr_options(seed = TRUE))
   } else {
     results_all <- map(assembled_linelists, function(linelist) {
       p()

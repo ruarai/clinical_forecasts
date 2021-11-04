@@ -1,5 +1,5 @@
 
-
+# Move this eventually
 get_forecast_dates <- function(local_cases_file, state_modelled) {
   local_cases <- read_csv(local_cases_file) %>%
     filter(state == state_modelled)
@@ -33,7 +33,7 @@ state_modelled <- "NSW"
 forecast_dates <- get_forecast_dates("data/input/local_cases_input.csv", state_modelled)
 date_0 <- lubridate::ymd("2021-06-01")
 n_days_forward <- 28
-n_simulation <- 50
+n_simulation <- 250
 
 
 ## Building the backcast case linelist:
@@ -56,17 +56,18 @@ clinical_linelist <- read_rds("data/processed/clinical_linelist_NSW.rds") %>%
   mutate(dt_onset = dt_hosp_admission - ddays(6),
          date_onset = date(dt_onset)) # No onset date in NSW data
 
+full_linelist <- read_rds("data/processed/linelist_NNDSS.rds") %>%
+  filter(state == state_modelled)
+
+# Produce a backcast linelist over the period (date_0, date_last_infection_50 - 5)
+# Assigning pr_hosp, pr_ICU according to known values
 case_linelist_with_vacc_prob <- clinical_linelist %>%
   
   filter(date_onset <= forecast_dates$date_last_infection_50 - 5) %>%
   
   mutate(state = state_modelled) %>%
   mutate(t_onset = (dt_onset - as.POSIXct(date_0)) / ddays(1),
-         
-         delay_onset_to_hospital = (dt_hosp_admission - dt_onset) / ddays(1),
-         delay_ward_to_ICU = (dt_first_icu - dt_hosp_admission) / ddays(1),
-         
-         ix = row_number()) %>%
+         case_ix = row_number()) %>%
   filter(t_onset >= 0) %>%
   
   left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
@@ -74,8 +75,10 @@ case_linelist_with_vacc_prob <- clinical_linelist %>%
   mutate(pr_ICU = if_else(ever_in_icu, 1, 0),
          pr_hosp = 1)
 
+# Use slice_sample across our vaccination options to produce
+# a vaccination status. To be replaced by actual vaccine status eventually
 backcast_case_linelist <- case_linelist_with_vacc_prob %>%
-  group_by(ix) %>%
+  group_by(case_ix) %>%
   
   slice_sample(n = 1, weight_by = proportion) %>%
   ungroup() %>%
@@ -110,14 +113,19 @@ sample_hospitalisation <- function(n_onset, pr_hosp) {
   rbinom(n_onset, n_onset, pr_hosp)
 }
 
-forecast_age_class_samples <- clinical_linelist %>%
+# Create a table of age_class samples over recent cases (and not just clinical cases)
+# to be sampled from for forecasted cases
+forecast_age_class_samples <- full_linelist %>%
   filter(date_onset >= forecast_dates$date_last_onset_50 - 14) %>%
   pull(age_class) %>%
   table()
 
+# The forecast vaccination table
 forecast_vacc_prob <- vaccination_prob_table %>%
   ungroup() %>% filter(date == max(date))
 
+# Create a table of vaccination status for each age_class to be sampled from
+# for forecasted cases
 forecast_vaccine_status_samples <- model_params$covariates_age %>%
   map(function(age_class) {
     age_class_probs <- forecast_vacc_prob %>% filter(age_class == !!age_class)
@@ -128,34 +136,38 @@ forecast_vaccine_status_samples <- model_params$covariates_age %>%
 
 
 
-
+# Select some trajectories for our state
 ensemble_trajectories <- ensembles_wide %>%
   filter(state == state_modelled,
          date <= forecast_dates$date_forecast_horizon) %>%
   select(date_onset = date, sample(3:ncol(.), size = n_simulation))
 
 assembled_linelists <- map(1:n_simulation, function(i_sim) {
+  
+  # Sampling cases over the nowcast period according to observed count
+  # and detection_probability, using a nbinom parameterisation with dispersion=10
   # This formulation might be wrong, to be clarified
   nowcast_traj <- local_cases %>%
     select(date_onset, count, detection_probability) %>%
-    mutate(count = rnbinom(count, 10, mu = count / detection_probability),
-           t_onset = as.numeric(date_onset - date_0)) %>%
-    select(date_onset, t_onset, count) %>%
+    mutate(count = rnbinom(count, 10, mu = count / detection_probability)) %>%
+    select(date_onset, count) %>%
     uncount(count, .remove = TRUE)
   
   
   
-  
+  # Select the ith ensemble_trajectory for this linelist
   ensemble_traj <- ensemble_trajectories %>%
     select(date_onset, !!(i_sim + 1)) %>%
     `colnames<-`(c("date_onset", "sim")) %>%
-    mutate(sim = round(sim),
-           t_onset = as.numeric(date_onset - date_0)) %>%
+    mutate(sim = round(sim)) %>%
     uncount(sim, .remove = TRUE)
   
+  # Combine our nowcast and forecast trajectories
+  # then fill them with sampled age_class and vaccination status
   joined_trajs_filled <- bind_rows(nowcast_traj, ensemble_traj)  %>%
     
-    mutate(age_class = sample(names(forecast_age_class_samples), nrow(.),
+    mutate(t_onset = as.numeric(date_onset - date_0),
+           age_class = sample(names(forecast_age_class_samples), nrow(.),
                               prob = forecast_age_class_samples, replace = TRUE),
            
            state = state_modelled) %>%
@@ -169,6 +181,7 @@ assembled_linelists <- map(1:n_simulation, function(i_sim) {
     
     ungroup()
   
+  # Finally return a linelist with backcast, nowcast and forecast
   bind_rows(backcast_case_linelist, joined_trajs_filled)
 })
 

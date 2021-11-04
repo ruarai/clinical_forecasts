@@ -1,5 +1,5 @@
 
-process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-15")) {
+process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-01")) {
   source("R/data_processing/fn_age_classes.R")
   
   # Taken from the Curtin model
@@ -61,7 +61,7 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-15")) {
   
   
   
-  write_rds(linelist_data, "data/processed/clinical_linelist.rds")
+  write_rds(linelist_data, "data/processed/linelist_NNDSS.rds")
   
   
   
