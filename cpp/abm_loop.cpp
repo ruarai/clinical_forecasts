@@ -94,7 +94,7 @@ List process_loop(NumericMatrix case_param_matrix,
   double time_in_compartment[n_cases];
   double next_compartment_trigger_time[n_cases];
   
-  NumericMatrix compartment_counts(n_days, 12);
+  NumericMatrix compartment_counts(n_days, 13);
   ClinicalQueue* ED_queue = new ClinicalQueue(ED_queue_capacity, CaseCompartment::Ward);
   
   for(int i = 0; i < n_cases; i++) {

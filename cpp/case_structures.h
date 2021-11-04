@@ -3,6 +3,7 @@
 enum class CaseCompartment {Susceptible,
                             Symptomatic,
                             
+                            Symptomatic_NonClinical,
                             Symptomatic_WardQueue,
                             
                             Ward,

@@ -68,12 +68,13 @@ void CovidCase::TriggerNextCompartment() {
 
 
 void CovidCase::transitionSusceptibleSymptomatic() {
-  compartment = CaseCompartment::Symptomatic;
   
   if(case_parameter_samples.pr_hosp == 1 ||
      R::runif(0, 1) <= case_parameter_samples.pr_hosp) {
+    compartment = CaseCompartment::Symptomatic;
     next_compartment_trigger_time = case_parameter_samples.LoS_symptomatic_to_ED;
   } else{
+    compartment = CaseCompartment::Symptomatic_NonClinical;
     next_compartment_trigger_time = std::numeric_limits<double>::infinity();
   }
   

@@ -8,7 +8,7 @@ source("R/model_parameters.R")
 model_params <- get_model_parameters()
 
 date_start <- ymd("2021-06-01")
-state_modelled <- "VIC"
+state_modelled <- "NSW"
 
 
 
