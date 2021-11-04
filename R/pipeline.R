@@ -42,8 +42,32 @@ source("R/model_parameters.R")
 model_parameters <- get_model_parameters()
 
 
-source("R/compartment_model/define_compartment_model.R")
-compartment_model_definition <- get_compartment_model_definition(model_parameters)
+## NSW
+simulation_options <- list(
+  n_trajectories = 10,
+  n_samples_per_trajectory = 4,
+  
+  date_simulation_start = ymd("2021-06-01"),
+  n_days_forward = 28,
+  
+  state_modelled = "NSW",
+  
+  files = list(
+    local_cases = "data/input/local_cases_input.csv",
+    
+    vacc_prob_table = "data/processed/vaccination_probability_table.rds",
+    clinical_prob_table = "data/processed/clinical_probabilities.rds",
+    
+    clinical_linelist = "data/processed/clinical_linelist_NSW.rds",
+    NNDSS_linelist = "data/processed/linelist_NNDSS.rds",
+    
+    ensemble_samples = "data/input/ensemble_samples.csv"
+  )
+)
+source("R/produce_input_trajectories.R")
+
+input_trajectories <- produce_input_trajectories(simulation_options,
+                                                 model_parameters)
 
 
 
