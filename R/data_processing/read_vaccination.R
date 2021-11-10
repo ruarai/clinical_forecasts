@@ -1,6 +1,6 @@
 
-process_vaccination_data <- function() {
-  effective_dose_data <- read_csv("data/input/effective_dose_data.csv") %>%
+process_vaccination_data <- function(simulation_options) {
+  effective_dose_data <- read_csv(simulation_options$files$vacc_raw) %>%
     
     drop_na(effective_doses)  %>%
     
@@ -30,7 +30,7 @@ process_vaccination_data <- function() {
     
     select(-doses)
   
-  write_rds(daily_dose_data, "data/processed/daily_dose_data.rds")
+  #write_rds(daily_dose_data, "data/processed/daily_dose_data.rds")
   
   
   age_dist_by_state <- read_csv("data/demographics/age_distribution_by_state.csv")
@@ -73,9 +73,8 @@ process_vaccination_data <- function() {
   
   
   
-  write_rds(probability_table, "data/processed/vaccination_probability_table.rds")
-  
-  daily_dose_data
+  write_rds(probability_table,
+            simulation_options$files$vacc_prob_table)
 }
 
   

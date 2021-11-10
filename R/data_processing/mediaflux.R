@@ -22,7 +22,7 @@ get_latest_file_path <- function(mediaflux_dir,
   
   
   suppressWarnings(file.remove(file_listing_csv))
-  system(mediaflux_call)
+  system(mediaflux_call, ignore.stdout = TRUE)
   
   file_listing <- read_csv(file_listing_csv) %>%
     select(source = SRC_PATH) %>%
@@ -50,8 +50,11 @@ get_latest_file_path <- function(mediaflux_dir,
   print(paste0("Using the most likely ensemble CSV '", likely_file$source, "'"))
   print(paste0("Which is dated ", likely_file$date, 
                " (", today() - ymd(likely_file$date), " days ago)"))
+  print("Is this correct?")
   
-  likely_file$source
+  readline(prompt="Press [enter] to continue")
+  
+  tibble(file = likely_file$source, date = likely_file$date)
 }
 
 
@@ -75,6 +78,37 @@ download_mediaflux_files <- function(mf_files) {
               mf_file$local_file,
               overwrite = TRUE)
   }
+}
+
+download_latest_mediaflux_files <- function(simulation_options) {
   
+  latest_ensemble_file <- get_latest_file_path(
+    "forecast-outputs",
+    "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd) %>%
+    mutate(file = paste0("forecast-outputs/", file),
+           type = "ensemble")
   
+  latest_nndss_file <- get_latest_file_path(
+    "Health Uploads",
+    "COVID-19 UoM", "\\ \\d{1,2}\\D{3}\\d{4}", dmy) %>%
+    mutate(file = paste0("Health Uploads/", file),
+           type = "NNDSS")
+  
+  latest_vacc_file <- get_latest_file_path(
+    "vaccine_allocation/vaccine_cumulative_medicare/tabular",
+    "effective_dose_data", "\\d{4}-\\d{2}-\\d{2}", ymd) %>%
+    mutate(file = paste0("vaccine_allocation/vaccine_cumulative_medicare/tabular/", file),
+           type = "effective_dose_data")
+  
+  mf_files <- tribble(
+    ~remote_file, ~local_file,
+    latest_ensemble_file$file, simulation_options$files$ensemble_samples,
+    latest_nndss_file$file,    simulation_options$files$NNDSS_raw,
+    latest_vacc_file$file,     simulation_options$files$vacc_raw,
+  )
+  download_mediaflux_files(mf_files)
+  
+  bind_rows(latest_ensemble_file,
+            latest_nndss_file,
+            latest_vacc_file)
 }

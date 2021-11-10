@@ -10,12 +10,11 @@ plot_abm_results <- function(results_all,
   
   forecast_date_lines <- list(
     geom_vline(xintercept = simulation_options$dates$last_infection_50 - 5, linetype = 'dashed'),
-    geom_vline(xintercept = simulation_options$dates$last_onset_50, linetype = 'dashed'),
-    geom_vline(xintercept = simulation_options$dates$forecast_horizon, linetype = 'dotted')
+    geom_vline(xintercept = simulation_options$dates$last_onset_50, linetype = 'dashed')
   )
   
   p1 <- ggplot(tbl_transitions %>%
-           filter(str_detect(ix, "-1"))) +
+           filter(str_detect(ix, "1-"))) +
     geom_line(aes(x = date, y = n, group = ix),
               size = 0.1) +
     
@@ -23,11 +22,12 @@ plot_abm_results <- function(results_all,
     forecast_date_lines +
     
     theme_minimal() +
-    ggtitle("Transitions into compartment") + xlab("")
+    ggtitle("Transitions into compartment",
+            simulation_options$run_name) + xlab("")
   
   
   p2 <- ggplot(tbl_count %>%
-           filter(str_detect(ix, "-1"),
+           filter(str_detect(ix, "1-"),
                   compartment %in% unique(tbl_transitions$new_comp))) +
     geom_line(aes(x = date, y = count, group = ix),
               size = 0.1) +
@@ -44,7 +44,7 @@ plot_abm_results <- function(results_all,
   
   
   ggplot(tbl_count_grouped %>%
-           filter(str_detect(ix, "-1"),
+           filter(str_detect(ix, "1-"),
                   !is.na(group))) +
     geom_line(aes(x = date, y = count, group = ix),
               size = 0.1) +
@@ -52,14 +52,18 @@ plot_abm_results <- function(results_all,
     facet_wrap(~group, scales = "free_y", ncol = 3) +
     forecast_date_lines +
     
-    theme_minimal()
+    theme_minimal() +
+    
+    ggtitle("Trace counts (by group)",
+            simulation_options$run_name)
+  
   ggsave(paste0(simulation_options$dirs$plots, "/trace_count_grouped.png"),
          height = 6, width = 8, bg = 'white')
   
   
   ggplot(tbl_transitions %>%
            filter(new_comp == "symptomatic_clinical",
-                  str_detect(ix, "-1"))) +
+                  str_detect(ix, "1-"))) +
     geom_line(aes(x = date, y = n, group = ix),
                size = 0.5) +
     forecast_date_lines +
@@ -67,7 +71,10 @@ plot_abm_results <- function(results_all,
     coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - 30,
                              simulation_options$dates$last_onset_50 + 28)) +
     
-    theme_minimal()
+    theme_minimal() +
+    ggtitle("Trace onset counts",
+            simulation_options$run_name)
+  
   ggsave(paste0(simulation_options$dirs$plots, "/trace_onset.png"),
          height = 6, width = 8, bg = 'white')
   
@@ -128,7 +135,8 @@ plot_group_counts <- function(sim_results, simulation_options,
     pivot_longer(cols = -c(date),
                  values_to = "count", names_to = "group")
   
-  ggplot(sim_results$tbl_count_grouped_quants) +
+  ggplot(sim_results$tbl_count_grouped_quants %>%
+           filter(group != "other")) +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
     
     geom_line(aes(x = date, y = count, linetype = 'public data'),
@@ -137,20 +145,25 @@ plot_group_counts <- function(sim_results, simulation_options,
     geom_line(aes(x = date, y = count, linetype = 'clinical linelist data'),
               linelist_data_counts) +
     
-    facet_wrap(~group, scales = "free_y") +
+    facet_grid(rows = vars(group), scales = "free_y") +
     forecast_date_lines +
     
     scale_fill_brewer(type = 'seq',
                       palette = 5) +
     
     theme_minimal() +
-    theme(legend.position = 'bottom')
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    ggtitle("Grouped compartment counts",
+            simulation_options$run_name)
+  
   ggsave(paste0(simulation_options$dirs$plots, "/quants_grouped_backcast.png"),
-         height = 6, width = 9, bg = 'white')
+         height = 9, width = 8, bg = 'white')
   
   
   
-  ggplot(sim_results$tbl_count_grouped_quants) +
+  ggplot(sim_results$tbl_count_grouped_quants %>%
+           filter(group != "other")) +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
     
     geom_line(aes(x = date, y = count, linetype = 'public data'),
@@ -159,7 +172,7 @@ plot_group_counts <- function(sim_results, simulation_options,
     geom_line(aes(x = date, y = count, linetype = 'clinical linelist data'),
               linelist_data_counts) +
     
-    facet_wrap(~group, scales = "free_y") +
+    facet_grid(rows = vars(group), scales = "free_y") +
     
     scale_fill_brewer(type = 'seq',
                       palette = 5) +
@@ -169,9 +182,13 @@ plot_group_counts <- function(sim_results, simulation_options,
                              simulation_options$dates$last_onset_50 + 28)) +
     
     theme_minimal() +
-    theme(legend.position = 'bottom')
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    ggtitle("Grouped compartment counts",
+            simulation_options$run_name)
+  
   ggsave(paste0(simulation_options$dirs$plots, "/quants_grouped_forecast.png"),
-         height = 6, width = 9, bg = 'white')
+         height = 9, width = 8, bg = 'white')
   
   filter_grp <- . %>% filter(group %in% c("ICU", "ward", "died"))
   ggplot(sim_results$tbl_count_grouped_quants %>% filter_grp) +
@@ -183,7 +200,7 @@ plot_group_counts <- function(sim_results, simulation_options,
     geom_line(aes(x = date, y = count, linetype = 'clinical linelist data'),
               linelist_data_counts) +
     
-    facet_wrap(~group, scales = "free_y") +
+    facet_grid(rows = vars(group), scales = "free_y") +
     
     scale_fill_brewer(type = 'seq',
                       palette = 5) +
@@ -193,9 +210,13 @@ plot_group_counts <- function(sim_results, simulation_options,
                              simulation_options$dates$last_onset_50 + 28)) +
     
     theme_minimal() +
-    theme(legend.position = 'bottom')
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    ggtitle("Grouped compartment counts",
+            simulation_options$run_name)
+  
   ggsave(paste0(simulation_options$dirs$plots, "/quants_key_groups.png"),
-         height = 6, width = 9, bg = 'white')
+         height = 6, width = 8, bg = 'white')
   
 }
 
@@ -247,7 +268,7 @@ plot_group_transitions <- function(sim_results, simulation_options,
     geom_line(aes(x = date, y = value),
               linelist_data) +
     
-    facet_wrap(~group, scales = "free_y") +
+    facet_grid(rows = vars(group), scales = "free_y") +
     
     forecast_date_lines +
     
@@ -255,8 +276,11 @@ plot_group_transitions <- function(sim_results, simulation_options,
                       palette = 5) +
     
     theme_minimal() +
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
     
-    ggtitle("Transitions into compartment groups")
+    ggtitle("Grouped transition counts",
+            simulation_options$run_name)
 }
 
 

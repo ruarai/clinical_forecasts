@@ -1,5 +1,5 @@
 
-process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-01")) {
+process_NNDSS_linelist <- function(simulation_options) {
   source("R/data_processing/fn_age_classes.R")
   
   # Taken from the Curtin model
@@ -34,7 +34,8 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-01")) {
     CV_DATE_ENTERED_QUARANTINE = "date"
   )
   
-  nndss_data <- readxl::read_xlsx("data/input/NNDSS.xlsx", col_types = nndss_col_types)
+  nndss_data <- readxl::read_xlsx(simulation_options$files$NNDSS_raw, 
+                                  col_types = nndss_col_types)
   
   
   
@@ -55,6 +56,8 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-01")) {
            
            age_class = assign_age_class(AGE_AT_ONSET)) %>%
     
+    filter(date_onset >= simulation_options$dates$simulation_start) %>%
+    
     select(state = STATE,
            date_onset,
            age = AGE_AT_ONSET,
@@ -65,8 +68,6 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-01")) {
   
   
   
-  write_rds(linelist_data, "data/processed/linelist_NNDSS.rds")
-  
-  
-  
+  write_rds(linelist_data,
+            simulation_options$files$NNDSS_linelist)
 }

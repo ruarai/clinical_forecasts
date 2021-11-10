@@ -21,9 +21,7 @@ produce_input_trajectories <- function(simulation_options,
   
   
   
-  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist) %>%
-    mutate(dt_onset = dt_hosp_admission - ddays(6),
-           date_onset = date(dt_onset)) # No onset date in NSW data
+  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
   
   full_linelist <- read_rds(simulation_options$files$NNDSS_linelist) %>%
     filter(state == simulation_options$state_modelled)
@@ -31,6 +29,7 @@ produce_input_trajectories <- function(simulation_options,
   # Produce a backcast linelist over the period (simulation_options$dates$simulation_start, date_last_infection_50 - 5)
   # Assigning pr_hosp, pr_ICU according to known values
   case_linelist_with_vacc_prob <- clinical_linelist %>%
+    mutate(date_onset = date(dt_onset)) %>%
     
     filter(date_onset <= simulation_options$dates$last_infection_50 - 5) %>%
     
