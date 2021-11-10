@@ -11,9 +11,9 @@ enum class CaseCompartment {Susceptible,
                             
                             ICU,
                             ICU_Died,
+                            ICU_Discharged,
                             
-                            PostICU_to_Death,
-                            PostICU_to_Discharge,
+                            PostICU,
                             
                             PostICU_Died,
                             PostICU_Discharged};
@@ -27,9 +27,9 @@ struct CaseParameterSamples {
   double LoS_ward_to_death;
   double LoS_ward_to_ICU;
   
+  double LoS_ICU_to_postICU;
+  double LoS_ICU_to_discharge;
   double LoS_ICU_to_death;
-  double LoS_ICU_to_postICU_death;
-  double LoS_ICU_to_postICU_discharge;
   
   double LoS_postICU_to_death;
   double LoS_postICU_to_discharge;
@@ -37,7 +37,9 @@ struct CaseParameterSamples {
   double pr_hosp;
   double pr_ICU;
   
-  double pr_death_ward;
-  double pr_death_ICU;
-  double pr_death_postICU;
+  double pr_ward_to_discharge;
+  double pr_ward_to_ICU;
+  double pr_ICU_to_discharge;
+  double pr_ICU_to_postICU;
+  double pr_postICU_to_death;
 };

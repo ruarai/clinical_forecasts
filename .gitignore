@@ -9,6 +9,11 @@ data/
 *.csv
 *.rds
 
+#or results,
+results/
+*.png
+*.pdf
+
 # C++ stuff
 
 # Compiled Object files

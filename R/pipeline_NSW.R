@@ -1,4 +1,3 @@
-
 setwd("/usr/local/forecasting/source/covid19_aus_clinical_forecasting/")
 
 source("R/data_processing/mediaflux.R")
@@ -30,10 +29,12 @@ read_csv(covid19data_url) %>% write_rds("data/covid19data.rds")
 
 source("R/data_processing/read_NNDSS.R")
 source("R/data_processing/read_vaccination.R")
-process_NNDSS_linelist(minimum_case_date = ymd("2020-01-01"))
+process_NNDSS_linelist(minimum_case_date = ymd("2021-06-01"))
 
-NSW_linelist <- read_NSW_linelist("/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_011121.xlsx")
+source("R/linelist_processing/read_NSW_linelist.R")
+NSW_linelist <- read_NSW_linelist("/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_201021.xlsx")
 write_rds(NSW_linelist, "data/processed/clinical_linelist_NSW.rds")
+
 
 process_vaccination_data()
 
@@ -44,11 +45,13 @@ model_parameters <- get_model_parameters()
 
 ## NSW
 simulation_options <- list(
-  n_trajectories = 10,
+  n_trajectories = 50,
   n_samples_per_trajectory = 4,
   
   date_simulation_start = ymd("2021-06-01"),
   n_days_forward = 28,
+  
+  run_name = "NSW-test-2021-10-20",
   
   state_modelled = "NSW",
   
@@ -64,14 +67,34 @@ simulation_options <- list(
     ensemble_samples = "data/input/ensemble_samples.csv"
   )
 )
+
+simulation_options$dirs = list(
+  plots = paste0("results/",simulation_options$run_name, "/plots"),
+  data = paste0("results/",simulation_options$run_name, "/data")
+)
+
+map(simulation_options$dirs, function(d) dir.create(d, recursive = TRUE, showWarnings = FALSE))
+
+source("R/data_processing/data_fns.R")
+
+forecast_dates <- get_forecast_dates(simulation_options$files$local_cases,
+                                     simulation_options$state_modelled,
+                                     simulation_options$n_days_forward)
+
 source("R/produce_input_trajectories.R")
 
 input_trajectories <- produce_input_trajectories(simulation_options,
-                                                 model_parameters)
+                                                 model_parameters,
+                                                 forecast_dates)
 
+source("R/agent_based_model/run_simulations.R")
 
+sim_results <- run_simulations(input_trajectories,
+                               simulation_options,
+                               model_parameters,
+                               forecast_dates)
 
+source("R/agent_based_model/plot_abm_results.R")
 
-
-
+plot_abm_results(sim_results, simulation_options, forecast_dates)
 

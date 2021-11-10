@@ -1,14 +1,10 @@
 
 
 produce_input_trajectories <- function(simulation_options,
-                                       model_params) {
-  source("R/data_processing/data_fns.R")
+                                       model_params,
+                                       forecast_dates) {
   require(tidyverse)
   require(lubridate)
-  
-  forecast_dates <- get_forecast_dates(simulation_options$files$local_cases,
-                                       simulation_options$state_modelled,
-                                       simulation_options$n_days_forward)
   
   ### Backcast linelist creation:
   
@@ -84,12 +80,6 @@ produce_input_trajectories <- function(simulation_options,
     select(-forecast_origin) %>%
     pivot_wider(names_from = ".model", values_from = starts_with("sim"))
   
-  sample_hospitalisation <- function(n_onset, pr_hosp) {
-    n_onset <- round(n_onset)
-    
-    rbinom(n_onset, n_onset, pr_hosp)
-  }
-  
   # Create a table of age_class samples over recent cases (and not just clinical cases)
   # to be sampled from for forecasted cases
   forecast_age_class_samples <- full_linelist %>%
@@ -117,8 +107,8 @@ produce_input_trajectories <- function(simulation_options,
   ensemble_trajectories <- ensembles_wide %>%
     filter(state == simulation_options$state_modelled,
            date <= forecast_dates$date_forecast_horizon) %>%
-    select(date_onset = date, sample(3:ncol(.),
-                                     size = simulation_options$n_trajectories))
+    select(date_onset = date,
+           sample(3:ncol(.), size = simulation_options$n_trajectories))
   
   assembled_linelists <- map(1:simulation_options$n_trajectories, function(i_sim) {
     

@@ -54,8 +54,7 @@ void CovidCase::TriggerNextCompartment() {
     transitionICUNext();
     break;
     
-  case CaseCompartment::PostICU_to_Death:
-  case CaseCompartment::PostICU_to_Discharge:
+  case CaseCompartment::PostICU:
     transitionPostICUNext();
     break;
     
@@ -91,15 +90,15 @@ void CovidCase::transitionSymptomaticWardQueue() {
 void CovidCase::transitionWardQueueWard() {
   compartment = CaseCompartment::Ward;
   
-  double pr_ward_to_ICU = case_parameter_samples.pr_ICU;
-  double pr_ward_to_death = case_parameter_samples.pr_death_ward;
+  double pr_ward_to_ICU = case_parameter_samples.pr_ward_to_ICU;
+  double pr_ward_to_discharge = case_parameter_samples.pr_ward_to_discharge;
   
-  double pr_ward_to_discharge = 1 - pr_ward_to_death - pr_ward_to_ICU;
+  double pr_ward_to_death = 1 - pr_ward_to_ICU - pr_ward_to_discharge;
   
   // Ignoring the case where pr_ward_to_ICU is 1 as this means
   // we've manually passed in the value here
-  if(pr_ward_to_discharge < 0 & pr_ward_to_ICU != 1) {
-    Rcout << "invalid pr_ward_to_discharge\n"; 
+  if(pr_ward_to_death < 0 & pr_ward_to_ICU != 1) {
+    Rcout << "invalid pr_ward_to_death\n"; 
   }
   
   double prob_sample = R::runif(0, 1);
@@ -145,12 +144,12 @@ void CovidCase::transitionWardNext() {
 void CovidCase::transitionWardICU() {
   compartment = CaseCompartment::ICU;
   
-  double pr_ICU_to_death = case_parameter_samples.pr_death_ICU;
-  double pr_ICU_to_postICU_death = case_parameter_samples.pr_death_postICU;
-  double pr_ICU_to_postICU_discharge = 1 - pr_ICU_to_death - pr_ICU_to_postICU_discharge;
+  double pr_ICU_to_discharge = case_parameter_samples.pr_ICU_to_discharge;
+  double pr_ICU_to_postICU = case_parameter_samples.pr_ICU_to_postICU;
+  double pr_ICU_to_death = 1 - pr_ICU_to_discharge - pr_ICU_to_postICU;
   
-  if(pr_ICU_to_postICU_discharge < 0) {
-    Rcout << "invalid pr_ICU_to_postICU_discharge\n"; 
+  if(pr_ICU_to_death < 0) {
+    Rcout << "invalid pr_ICU_to_death\n"; 
   }
   
   
@@ -161,16 +160,16 @@ void CovidCase::transitionWardICU() {
     next_compartment = CaseCompartment::ICU_Died;
     next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_death;
     
-  } else if(prob_sample <= pr_ICU_to_death + pr_ICU_to_postICU_discharge) {
+  } else if(prob_sample <= pr_ICU_to_death + pr_ICU_to_postICU) {
     
-    next_compartment = CaseCompartment::PostICU_to_Discharge;
-    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_postICU_discharge;
+    next_compartment = CaseCompartment::PostICU;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_postICU;
     
     
   } else {
     
-    next_compartment = CaseCompartment::PostICU_to_Death;
-    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_postICU_death;
+    next_compartment = CaseCompartment::ICU_Discharged;
+    next_compartment_trigger_time = case_parameter_samples.LoS_ICU_to_discharge;
     
   }
 }
@@ -180,13 +179,13 @@ void CovidCase::transitionICUNext() {
   
   switch(next_compartment) {
   case CaseCompartment::ICU_Died:
-    compartment = CaseCompartment::ICU_Died;
+  case CaseCompartment::ICU_Discharged:
+    compartment = next_compartment;
     next_compartment_trigger_time = std::numeric_limits<double>::infinity();
     
     break;
     
-  case CaseCompartment::PostICU_to_Death:
-  case CaseCompartment::PostICU_to_Discharge:
+  case CaseCompartment::PostICU:
     transitionICUPostICU();
     break;
     
@@ -198,25 +197,17 @@ void CovidCase::transitionICUNext() {
 }
 
 void CovidCase::transitionICUPostICU() {
-  switch(next_compartment) {
+  compartment = CaseCompartment::PostICU;
   
-  case CaseCompartment::PostICU_to_Death:
-    compartment = CaseCompartment::PostICU_to_Death;
+  double pr_postICU_to_death = case_parameter_samples.pr_postICU_to_death;
+  
+  
+  if(R::runif(0, 1) < pr_postICU_to_death) {
     next_compartment = CaseCompartment::PostICU_Died;
-    
     next_compartment_trigger_time = case_parameter_samples.LoS_postICU_to_death;
-    
-    break;
-  case CaseCompartment::PostICU_to_Discharge:
-    compartment = CaseCompartment::PostICU_to_Discharge;
+  } else{
     next_compartment = CaseCompartment::PostICU_Discharged;
-    
     next_compartment_trigger_time = case_parameter_samples.LoS_postICU_to_discharge;
-    
-    break;
-    
-  default:
-    Rcout << "invalid next_compartment within ICUPostICU transition\n";
   }
 }
 

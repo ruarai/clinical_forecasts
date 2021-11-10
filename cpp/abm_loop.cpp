@@ -10,9 +10,12 @@ void validate_case_param_matrix(NumericMatrix &case_param_matrix){
   
   CharacterVector expect_col_names = CharacterVector(
     {"time_of_infection", "LoS_symptomatic_to_ED", "LoS_ward_to_discharge", 
-     "LoS_ward_to_death", "LoS_ward_to_ICU", "LoS_ICU_to_death", "LoS_ICU_to_postICU_death", 
-     "LoS_ICU_to_postICU_discharge", "LoS_postICU_to_death", "LoS_postICU_to_discharge", 
-     "pr_hosp", "pr_ICU", "pr_death_ward", "pr_death_ICU", "pr_death_postICU"}
+     "LoS_ward_to_death", "LoS_ward_to_ICU", "LoS_ICU_to_postICU", 
+     "LoS_ICU_to_discharge", "LoS_ICU_to_death", "LoS_postICU_to_death", 
+     "LoS_postICU_to_discharge", "pr_hosp", "pr_ICU", 
+     
+     "pr_ward_to_discharge", "pr_ward_to_ICU", "pr_ICU_to_discharge", "pr_ICU_to_postICU",
+     "pr_postICU_to_death"}
   );
   
   bool is_correct = is_true(all(col_names == expect_col_names));
@@ -67,17 +70,20 @@ CaseParameterSamples create_case_params(NumericMatrix case_parameter_samples, in
   case_param_samples.LoS_ward_to_discharge = case_parameter_samples(i, 2);
   case_param_samples.LoS_ward_to_death = case_parameter_samples(i, 3);
   case_param_samples.LoS_ward_to_ICU = case_parameter_samples(i, 4);
-  case_param_samples.LoS_ICU_to_death = case_parameter_samples(i, 5);
-  case_param_samples.LoS_ICU_to_postICU_death = case_parameter_samples(i, 6);
-  case_param_samples.LoS_ICU_to_postICU_discharge = case_parameter_samples(i, 7);
+  case_param_samples.LoS_ICU_to_postICU = case_parameter_samples(i, 5);
+  case_param_samples.LoS_ICU_to_discharge = case_parameter_samples(i, 6);
+  case_param_samples.LoS_ICU_to_death = case_parameter_samples(i, 7);
   case_param_samples.LoS_postICU_to_death = case_parameter_samples(i, 8);
   case_param_samples.LoS_postICU_to_discharge = case_parameter_samples(i, 9);
   
   case_param_samples.pr_hosp = case_parameter_samples(i, 10);
   case_param_samples.pr_ICU = case_parameter_samples(i, 11);
-  case_param_samples.pr_death_ward = case_parameter_samples(i, 12);
-  case_param_samples.pr_death_ICU = case_parameter_samples(i, 13);
-  case_param_samples.pr_death_postICU = case_parameter_samples(i, 14);
+  
+  case_param_samples.pr_ward_to_discharge = case_parameter_samples(i, 12);
+  case_param_samples.pr_ward_to_ICU = case_parameter_samples(i, 13);
+  case_param_samples.pr_ICU_to_discharge = case_parameter_samples(i, 14);
+  case_param_samples.pr_ICU_to_postICU = case_parameter_samples(i, 15);
+  case_param_samples.pr_postICU_to_death = case_parameter_samples(i, 16);
   
   return case_param_samples;
 }
@@ -94,7 +100,7 @@ List process_loop(NumericMatrix case_param_matrix,
   double time_in_compartment[n_cases];
   double next_compartment_trigger_time[n_cases];
   
-  NumericMatrix compartment_counts(n_days, 13);
+  NumericMatrix compartment_counts(n_days, 14);
   ClinicalQueue* ED_queue = new ClinicalQueue(ED_queue_capacity, CaseCompartment::Ward);
   
   for(int i = 0; i < n_cases; i++) {
