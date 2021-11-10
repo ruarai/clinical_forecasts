@@ -26,3 +26,8 @@ get_forecast_dates <- function(local_cases_file,
     simulation_start = date_simulation_start
   )
 }
+
+update_c19data <- function() {
+  covid19data_url <- "https://github.com/M3IT/COVID-19_Data/raw/master/Data/COVID_AU_state.csv"
+  read_csv(covid19data_url) %>% write_rds("data/covid19data.rds")
+}

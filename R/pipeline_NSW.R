@@ -1,17 +1,62 @@
 setwd("/usr/local/forecasting/source/covid19_aus_clinical_forecasting/")
 
+
+## NSW
+simulation_options <- list(
+  n_trajectories = 50,
+  n_samples_per_trajectory = 4,
+  n_days_forward = 28,
+  
+  run_name = "NSW-test-2021-11-08",
+  
+  state_modelled = "NSW"
+)
+
+
+simulation_options$dirs <- list(
+  plots = paste0("results/",simulation_options$run_name, "/plots/"),
+  data = paste0("results/",simulation_options$run_name, "/data/"),
+  input = paste0("results/",simulation_options$run_name, "/input/")
+)
+
+map(simulation_options$dirs, function(d) dir.create(d, recursive = TRUE, showWarnings = FALSE))
+
+simulation_options$files <- list(
+  local_cases = paste0(simulation_options$dirs$input, "local_cases_input.csv"),
+  
+  vacc_prob_table = paste0(simulation_options$dirs$data, "vaccination_probability_table.rds"),
+  clinical_prob_table = paste0(simulation_options$dirs$data, "clinical_probabilities.rds"),
+  
+  clinical_linelist = paste0(simulation_options$dirs$input, "clinical_linelist.rds"),
+  clinical_linelist_source = "/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_081121.xlsx",
+  
+  NNDSS_linelist = paste0(simulation_options$dirs$input, "linelist_NNDSS.rds"),
+  NNDSS_raw = paste0(simulation_options$dirs$input, "NNDSS.xlsx"),
+  
+  ensemble_samples = paste0(simulation_options$dirs$input, "ensemble_samples.csv")
+)
+
+
+
 source("R/data_processing/mediaflux.R")
 
-sync_latest_mediaflux_vacc()
+latest_ensemble_file <- get_latest_file_path(
+  "forecast-outputs",
+  "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd)
 
-# May want to overwrite these if they get it wrong
-latest_ensemble_file <- get_latest_ensemble_file()
-latest_nndss_file <- get_latest_NNDSS_file()
+latest_nndss_file <- get_latest_file_path(
+  "Health Uploads",
+  "COVID-19 UoM", "\\ \\d{1,2}\\D{3}\\d{4}", dmy)
+
+
+latest_vacc_file <- get_latest_file_path(
+  "vaccine_allocation/vaccine_cumulative_medicare/tabular",
+  "effective_dose_data", "\\d{4}-\\d{2}-\\d{2}", ymd)
 
 mf_files <- tribble(
   ~remote_file, ~local_file,
-  paste0("forecast-outputs/", latest_ensemble_file), "data/input/ensemble_samples.csv",
-  paste0("Health Uploads/", latest_nndss_file),      "data/input/NNDSS.xlsx",
+  paste0("forecast-outputs/", latest_ensemble_file), simulation_options$files$ensemble_samples,
+  paste0("Health Uploads/", latest_nndss_file),      simulation_options$files$NNDSS_raw,
 )
 download_mediaflux_files(mf_files)
 
@@ -33,7 +78,7 @@ process_NNDSS_linelist(minimum_case_date = ymd("2021-06-01"))
 
 source("R/data_processing/fn_age_classes.R")
 source("../covid19_los_estimations/R/read_NSW_linelist.R")
-linelist_raw <- readxl::read_xlsx("/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_081121.xlsx",
+linelist_raw <- readxl::read_xlsx(,
                                   sheet = 2)
 
 NSW_linelist <- read_NSW_linelist(linelist_raw) %>%
@@ -48,36 +93,6 @@ process_vaccination_data()
 source("R/model_parameters.R")
 model_parameters <- get_model_parameters()
 
-
-## NSW
-simulation_options <- list(
-  n_trajectories = 50,
-  n_samples_per_trajectory = 4,
-  n_days_forward = 28,
-  
-  run_name = "NSW-test-2021-11-08",
-  
-  state_modelled = "NSW",
-  
-  files = list(
-    local_cases = "data/input/local_cases_input.csv",
-    
-    vacc_prob_table = "data/processed/vaccination_probability_table.rds",
-    clinical_prob_table = "data/processed/clinical_probabilities.rds",
-    
-    clinical_linelist = "data/processed/clinical_linelist_NSW.rds",
-    NNDSS_linelist = "data/processed/linelist_NNDSS.rds",
-    
-    ensemble_samples = "data/input/ensemble_samples.csv"
-  )
-)
-
-simulation_options$dirs = list(
-  plots = paste0("results/",simulation_options$run_name, "/plots"),
-  data = paste0("results/",simulation_options$run_name, "/data")
-)
-
-map(simulation_options$dirs, function(d) dir.create(d, recursive = TRUE, showWarnings = FALSE))
 
 source("R/data_processing/data_fns.R")
 
@@ -106,5 +121,5 @@ sim_results %>%
 
 source("R/agent_based_model/plot_abm_results.R")
 
-plot_abm_results(sim_results, simulation_options, forecast_dates)
+plot_abm_results(sim_results, simulation_options)
 
