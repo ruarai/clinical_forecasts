@@ -1,8 +1,7 @@
 
 
 produce_input_trajectories <- function(simulation_options,
-                                       model_params,
-                                       forecast_dates) {
+                                       model_params) {
   require(tidyverse)
   require(lubridate)
   
@@ -29,14 +28,14 @@ produce_input_trajectories <- function(simulation_options,
   full_linelist <- read_rds(simulation_options$files$NNDSS_linelist) %>%
     filter(state == simulation_options$state_modelled)
   
-  # Produce a backcast linelist over the period (simulation_options$date_simulation_start, date_last_infection_50 - 5)
+  # Produce a backcast linelist over the period (simulation_options$dates$simulation_start, date_last_infection_50 - 5)
   # Assigning pr_hosp, pr_ICU according to known values
   case_linelist_with_vacc_prob <- clinical_linelist %>%
     
-    filter(date_onset <= forecast_dates$date_last_infection_50 - 5) %>%
+    filter(date_onset <= simulation_options$dates$last_infection_50 - 5) %>%
     
     mutate(state = simulation_options$state_modelled) %>%
-    mutate(t_onset = (dt_onset - as.POSIXct(simulation_options$date_simulation_start)) / ddays(1),
+    mutate(t_onset = (dt_onset - as.POSIXct(simulation_options$dates$simulation_start)) / ddays(1),
            case_ix = row_number()) %>%
     filter(t_onset >= 0) %>%
     
@@ -63,7 +62,7 @@ produce_input_trajectories <- function(simulation_options,
                           show_col_types = FALSE) %>%
     filter(state == simulation_options$state_modelled,
            date_onset > max(backcast_case_linelist$date_onset),
-           date_onset <= forecast_dates$date_last_onset_50)
+           date_onset <= simulation_options$dates$last_onset_50)
   
   
   ensemble_spec <- cols(
@@ -83,7 +82,7 @@ produce_input_trajectories <- function(simulation_options,
   # Create a table of age_class samples over recent cases (and not just clinical cases)
   # to be sampled from for forecasted cases
   forecast_age_class_samples <- full_linelist %>%
-    filter(date_onset >= forecast_dates$date_last_onset_50 - 14) %>%
+    filter(date_onset >= simulation_options$dates$last_onset_50 - 14) %>%
     pull(age_class) %>%
     table()
   
@@ -106,7 +105,7 @@ produce_input_trajectories <- function(simulation_options,
   # Select some trajectories for our state
   ensemble_trajectories <- ensembles_wide %>%
     filter(state == simulation_options$state_modelled,
-           date <= forecast_dates$date_forecast_horizon) %>%
+           date <= simulation_options$dates$forecast_horizon) %>%
     select(date_onset = date,
            sample(3:ncol(.), size = simulation_options$n_trajectories))
   
@@ -134,7 +133,7 @@ produce_input_trajectories <- function(simulation_options,
     # then fill them with sampled age_class and vaccination status
     joined_trajs_filled <- bind_rows(nowcast_traj, ensemble_traj)  %>%
       
-      mutate(t_onset = as.numeric(date_onset - simulation_options$date_simulation_start),
+      mutate(t_onset = as.numeric(date_onset - simulation_options$dates$simulation_start),
              age_class = sample(names(forecast_age_class_samples), nrow(.),
                                 prob = forecast_age_class_samples, replace = TRUE),
              

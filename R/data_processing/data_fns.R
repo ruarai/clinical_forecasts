@@ -1,5 +1,6 @@
 get_forecast_dates <- function(local_cases_file,
                                state_modelled,
+                               date_simulation_start,
                                n_days_forward = 28) {
   local_cases <- read_csv(local_cases_file,
                           show_col_types = FALSE) %>%
@@ -18,9 +19,10 @@ get_forecast_dates <- function(local_cases_file,
   date_forecast_horizon = date_last_onset_50 + n_days_forward
   
   tibble(
-    date_minimum_onset = date_minimum_onset,
-    date_last_onset_50 = date_last_onset_50,
-    date_last_infection_50 = date_last_infection_50,
-    date_forecast_horizon = date_forecast_horizon,
+    minimum_onset = date_minimum_onset,
+    last_onset_50 = date_last_onset_50,
+    last_infection_50 = date_last_infection_50,
+    forecast_horizon = date_forecast_horizon,
+    simulation_start = date_simulation_start
   )
 }

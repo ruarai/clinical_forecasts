@@ -27,7 +27,11 @@ process_NNDSS_linelist <- function(minimum_case_date = ymd("2021-06-01")) {
     CV_OTHER_COMORBIDITIES = "text",
     CV_GESTATION = "numeric",
     CV_EXPOSURE_SETTING = "numeric",
-    CV_SOURCE_INFECTION = "numeric"
+    CV_SOURCE_INFECTION = "numeric",
+    
+    CV_SYMPTOMS_REPORTED = "text",
+    CV_QUARANTINE_STATUS = "text",
+    CV_DATE_ENTERED_QUARANTINE = "date"
   )
   
   nndss_data <- readxl::read_xlsx("data/input/NNDSS.xlsx", col_types = nndss_col_types)

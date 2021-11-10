@@ -1,8 +1,7 @@
 
 run_single_simulation <- function(case_linelist,
                                   simulation_options,
-                                  model_params,
-                                  forecast_dates) {
+                                  model_params) {
   
   Rcpp::sourceCpp("cpp/abm_loop.cpp")
   
@@ -41,8 +40,8 @@ run_single_simulation <- function(case_linelist,
       compartment_probs
     )
     
-    t_forecast_horizon <- as.numeric(forecast_dates$date_forecast_horizon - 
-                                       simulation_options$date_simulation_start)
+    t_forecast_horizon <- as.numeric(simulation_options$dates$forecast_horizon - 
+                                       simulation_options$dates$simulation_start)
     
     results <- process_loop(case_parameter_samples, t_forecast_horizon,
                             dt = 0.25,
@@ -69,7 +68,7 @@ run_single_simulation <- function(case_linelist,
       as_tibble() %>%
       mutate(new_comp = compartment_names_true[new_comp + 1],
              t = floor(t),
-             date = simulation_options$date_simulation_start + t) %>%
+             date = simulation_options$dates$simulation_start + t) %>%
       group_by(date, new_comp) %>%
       summarise(n = n(), .groups = "drop")
     
@@ -86,7 +85,7 @@ run_single_simulation <- function(case_linelist,
       as_tibble() %>%
       
       mutate(t = row_number(),
-             date = simulation_options$date_simulation_start + t) %>%
+             date = simulation_options$dates$simulation_start + t) %>%
       
       pivot_longer(cols = -c(date, t), names_to = "compartment", values_to = "count")
     
@@ -131,8 +130,7 @@ run_worker_jobs <-  function(linelists) {
   require(tibble, quietly = TRUE, warn.conflicts = FALSE)
   
   results_worker <- map(linelists, function(linelist) {
-    run_single_simulation(linelist, simulation_options, model_params,
-                          forecast_dates)
+    run_single_simulation(linelist, simulation_options, model_params)
   })
   
   tbl_count <- map_dfr(results_worker, function(r) r$tbl_count, .id = "worker_ix")
@@ -150,8 +148,7 @@ run_worker_jobs <-  function(linelists) {
 
 run_simulations <- function(input_trajectories,
                             simulation_options,
-                            model_params,
-                            forecast_dates) {
+                            model_params) {
   stopifnot(simulation_options$n_trajectories == length(input_trajectories))
   
   sim_t0 <- Sys.time()
@@ -161,8 +158,9 @@ run_simulations <- function(input_trajectories,
 
   results_all <- future_map(worker_trajectories, run_worker_jobs,
     .options = furrr_options(seed = TRUE,
-                             globals = c("simulation_options", "model_params",
-                                         "forecast_dates", "run_single_simulation")))
+                             globals = c("simulation_options", 
+                                         "model_params",
+                                         "run_single_simulation")))
   
   
   print(paste0("Ran simulation loop in ", 

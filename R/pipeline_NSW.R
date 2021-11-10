@@ -31,8 +31,14 @@ source("R/data_processing/read_NNDSS.R")
 source("R/data_processing/read_vaccination.R")
 process_NNDSS_linelist(minimum_case_date = ymd("2021-06-01"))
 
-source("R/linelist_processing/read_NSW_linelist.R")
-NSW_linelist <- read_NSW_linelist("/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_201021.xlsx")
+source("R/data_processing/fn_age_classes.R")
+source("../covid19_los_estimations/R/read_NSW_linelist.R")
+linelist_raw <- readxl::read_xlsx("/usr/local/forecasting/source/linelist_data/NSW/NSW_out_episode_081121.xlsx",
+                                  sheet = 2)
+
+NSW_linelist <- read_NSW_linelist(linelist_raw) %>%
+  mutate(age_class = assign_age_class(age))
+
 write_rds(NSW_linelist, "data/processed/clinical_linelist_NSW.rds")
 
 
@@ -47,11 +53,9 @@ model_parameters <- get_model_parameters()
 simulation_options <- list(
   n_trajectories = 50,
   n_samples_per_trajectory = 4,
-  
-  date_simulation_start = ymd("2021-06-01"),
   n_days_forward = 28,
   
-  run_name = "NSW-test-2021-10-20",
+  run_name = "NSW-test-2021-11-08",
   
   state_modelled = "NSW",
   
@@ -77,22 +81,28 @@ map(simulation_options$dirs, function(d) dir.create(d, recursive = TRUE, showWar
 
 source("R/data_processing/data_fns.R")
 
-forecast_dates <- get_forecast_dates(simulation_options$files$local_cases,
-                                     simulation_options$state_modelled,
-                                     simulation_options$n_days_forward)
+simulation_options$dates <- get_forecast_dates(
+  simulation_options$files$local_cases,
+  simulation_options$state_modelled,
+  date_simulation_start = ymd("2021-06-01"),
+  simulation_options$n_days_forward)
 
 source("R/produce_input_trajectories.R")
 
 input_trajectories <- produce_input_trajectories(simulation_options,
-                                                 model_parameters,
-                                                 forecast_dates)
+                                                 model_parameters)
+
+input_trajectories %>%
+  write_rds(paste0(simulation_options$dirs$data, "/input_trajectories.rds"))
 
 source("R/agent_based_model/run_simulations.R")
 
 sim_results <- run_simulations(input_trajectories,
                                simulation_options,
-                               model_parameters,
-                               forecast_dates)
+                               model_parameters)
+
+sim_results %>%
+  write_rds(paste0(simulation_options$dirs$data, "/sim_results.rds"))
 
 source("R/agent_based_model/plot_abm_results.R")
 

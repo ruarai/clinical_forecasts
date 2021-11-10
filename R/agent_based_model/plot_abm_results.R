@@ -1,8 +1,7 @@
 
 
 plot_abm_results <- function(results_all,
-                             simulation_options,
-                             forecast_dates) {
+                             simulation_options) {
   
   tbl_count <- results_all$tbl_count
   tbl_count_grouped <- results_all$tbl_count_grouped
@@ -10,9 +9,9 @@ plot_abm_results <- function(results_all,
   tbl_count_grouped_quants <- results_all$tbl_count_grouped_quants
   
   forecast_date_lines <- list(
-    geom_vline(xintercept = forecast_dates$date_last_infection_50 - 5, linetype = 'dashed'),
-    geom_vline(xintercept = forecast_dates$date_last_onset_50, linetype = 'dashed'),
-    geom_vline(xintercept = forecast_dates$date_forecast_horizon, linetype = 'dotted')
+    geom_vline(xintercept = simulation_options$dates$last_infection_50 - 5, linetype = 'dashed'),
+    geom_vline(xintercept = simulation_options$dates$last_onset_50, linetype = 'dashed'),
+    geom_vline(xintercept = simulation_options$dates$forecast_horizon, linetype = 'dotted')
   )
   
   p1 <- ggplot(tbl_transitions %>%
@@ -65,8 +64,8 @@ plot_abm_results <- function(results_all,
                size = 0.5) +
     forecast_date_lines +
     
-    coord_cartesian(xlim = c(forecast_dates$date_last_onset_50 - 30,
-                             forecast_dates$date_last_onset_50 + 28)) +
+    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - 30,
+                             simulation_options$dates$last_onset_50 + 28)) +
     
     theme_minimal()
   ggsave(paste0(simulation_options$dirs$plots, "/trace_onset.png"),
@@ -166,8 +165,8 @@ plot_group_counts <- function(sim_results, simulation_options,
                       palette = 5) +
     forecast_date_lines +
     
-    coord_cartesian(xlim = c(forecast_dates$date_last_onset_50 - 60,
-                             forecast_dates$date_last_onset_50 + 28)) +
+    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - 60,
+                             simulation_options$dates$last_onset_50 + 28)) +
     
     theme_minimal() +
     theme(legend.position = 'bottom')
@@ -190,8 +189,8 @@ plot_group_counts <- function(sim_results, simulation_options,
                       palette = 5) +
     forecast_date_lines +
     
-    coord_cartesian(xlim = c(forecast_dates$date_last_onset_50 - 60,
-                             forecast_dates$date_last_onset_50 + 28)) +
+    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - 60,
+                             simulation_options$dates$last_onset_50 + 28)) +
     
     theme_minimal() +
     theme(legend.position = 'bottom')
