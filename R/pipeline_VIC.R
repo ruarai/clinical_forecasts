@@ -12,7 +12,7 @@ model_parameters <- get_model_parameters()
 
 ## VIC
 simulation_options <- list(
-  n_trajectories = 500,
+  n_trajectories = 50,
   n_samples_per_trajectory = 4,
   
   date_simulation_start = ymd("2021-06-01"),

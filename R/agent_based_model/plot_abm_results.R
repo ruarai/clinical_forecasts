@@ -11,7 +11,8 @@ plot_abm_results <- function(results_all,
   
   forecast_date_lines <- list(
     geom_vline(xintercept = forecast_dates$date_last_infection_50 - 5, linetype = 'dashed'),
-    geom_vline(xintercept = forecast_dates$date_last_onset_50, linetype = 'dashed')
+    geom_vline(xintercept = forecast_dates$date_last_onset_50, linetype = 'dashed'),
+    geom_vline(xintercept = forecast_dates$date_forecast_horizon, linetype = 'dotted')
   )
   
   p1 <- ggplot(tbl_transitions %>%
@@ -72,22 +73,26 @@ plot_abm_results <- function(results_all,
          height = 6, width = 8, bg = 'white')
   
   
-  plot_group_counts(sim_results, simulation_options)
+  plot_group_counts(sim_results, simulation_options,
+                    forecast_date_lines)
   
-  plot_group_transitions(sim_results, simulation_options)
+  plot_group_transitions(sim_results, simulation_options,
+                         forecast_date_lines)
   
   ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions.png"),
          height = 6, width = 8, bg = 'white')
   
 }
 
-plot_group_counts <- function(sim_results, simulation_options) {
+plot_group_counts <- function(sim_results, simulation_options,
+                              forecast_date_lines) {
+  
   
   clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
   
   
-  days <- seq(min(clinical_linelist$dt_hosp_admission),
-              max(clinical_linelist$dt_hosp_discharge),
+  days <- seq(min(clinical_linelist$dt_hosp_admission, na.rm = TRUE),
+              max(clinical_linelist$dt_hosp_discharge, na.rm = TRUE),
               by ='days') %>% as_date()
   
   
@@ -114,6 +119,15 @@ plot_group_counts <- function(sim_results, simulation_options) {
                  names_to = "group")
   
   
+  c19data <- read_rds("data/covid19data.rds") %>%
+    filter(state_abbrev == simulation_options$state_modelled,
+           date >= min(clinical_linelist$dt_hosp_admission)) %>% select(-c(state, state_abbrev)) %>%
+    
+    mutate(ward_cum = hosp_cum - icu_cum) %>%
+    select(date, ward = ward_cum, ICU = icu_cum) %>%
+    
+    pivot_longer(cols = -c(date),
+                 values_to = "count", names_to = "group")
   
   ggplot(sim_results$tbl_count_grouped_quants) +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
@@ -187,7 +201,9 @@ plot_group_counts <- function(sim_results, simulation_options) {
 }
 
 
-plot_group_transitions <- function(sim_results, simulation_options) {
+plot_group_transitions <- function(sim_results, simulation_options,
+                                   forecast_date_lines) {
+  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
   
   ward_admission_by_day <- clinical_linelist %>%
     group_by(date = as_date(dt_hosp_admission, 'days')) %>%
@@ -233,6 +249,8 @@ plot_group_transitions <- function(sim_results, simulation_options) {
               linelist_data) +
     
     facet_wrap(~group, scales = "free_y") +
+    
+    forecast_date_lines +
     
     scale_fill_brewer(type = 'seq',
                       palette = 5) +
