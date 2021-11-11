@@ -263,7 +263,7 @@ make_clinical_prob_table <- function(simulation_options,
   
   clinical_probabilities <- results_by_ageclass %>%
     ungroup() %>%
-    rename(date_onset = date) %>%
+    mutate(date_onset = date + 7) %>%
     
     select(date_onset, age_class, pr_hosp, pr_ICU) %>%
     

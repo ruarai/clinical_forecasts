@@ -18,6 +18,15 @@ run_single_simulation <- function(case_linelist,
     `colnames<-`(paste0("pr_", colnames(model_params$morbidity_params$prob_table)))
   
   
+  pr_ICU_moving <- case_linelist$pr_ICU
+  pr_ICU_constant <- compartment_probs[,"pr_ward_to_ICU"]
+  
+  # Calculate our non-ward-to-ICU path probabilities conditional upon our moving
+  # ICU probability. This is P(ward_to_discharge|not ward_to_ICU (constant))*P(not ward_to_ICU (moving))
+  compartment_probs[, "pr_ward_to_discharge"] <- (compartment_probs[,"pr_ward_to_discharge"] /
+    (1 - pr_ICU_constant)) * (1 - pr_ICU_moving)
+  
+  compartment_probs[, "pr_ward_to_ICU"] <- pr_ICU_moving
   
   run_sim_sample <- function(i) {
     
@@ -31,7 +40,7 @@ run_single_simulation <- function(case_linelist,
     case_linelist$t_onset <- as.numeric(case_linelist$date_onset - min(case_linelist$date_onset))
     case_parameter_samples = cbind(
       time_of_infection = case_linelist$t_onset,
-      LoS_symptomatic_to_ED = rgamma(nrow(case_linelist), 2, 2 / 6),
+      LoS_symptomatic_to_ED = rgamma(nrow(case_linelist), 2, 2 / 14),
       case_delay_samples,
       
       pr_hosp = case_linelist$pr_hosp,
@@ -50,15 +59,15 @@ run_single_simulation <- function(case_linelist,
     
     compartment_names_true <- c("susceptible", "symptomatic_clinical", "symptomatic_nonclinical",
                                 "ED_queue", "ward",
-                                "ward_died", "ward_discharged", "ICU", "ICU_died",
-                                "postICU_to_death", "postICU_to_discharge", "postICU_died",
+                                "ward_died", "ward_discharged", "ICU", "ICU_died", "ICU_discharged",
+                                "postICU", "postICU_died",
                                 "postICU_discharged")
     
-    summary_groups <- list("ward" = c("ward", "postICU_to_death", "postICU_to_discharge"), 
+    summary_groups <- list("ward" = c("ward", "postICU"), 
                            "queue" = c("ED_queue"),
                            "ICU" = c("ICU"),
                            "died" = c("ward_died", "ICU_died", "postICU_died"),
-                           "discharged" = c("ward_discharged", "postICU_discharged"),
+                           "discharged" = c("ward_discharged", "postICU_discharged", "ICU_discharged"),
                            "symptomatic (clinical)" = c("symptomatic_clinical")) %>%
       map_dfr(~ tibble(compartment = .), .id="group")  %>%
       select(compartment, group) %>% deframe()
@@ -155,6 +164,11 @@ run_simulations <- function(input_trajectories,
   
   worker_trajectories <- split(input_trajectories,
                                rep(1:16, length.out = length(input_trajectories)))
+  
+  require(future)
+  require(furrr)
+  require(future.callr)
+  plan(callr)
 
   results_all <- future_map(worker_trajectories, run_worker_jobs,
     .options = furrr_options(seed = TRUE,

@@ -53,6 +53,7 @@ get_forecast_dates <- function(local_cases_file,
                                state_modelled,
                                date_simulation_start,
                                mf_dates,
+                               clinical_linelist_date,
                                n_days_forward = 28) {
   local_cases <- read_csv(local_cases_file,
                           show_col_types = FALSE) %>%
@@ -80,6 +81,7 @@ get_forecast_dates <- function(local_cases_file,
     last_infection_50 = date_last_infection_50,
     forecast_horizon = date_forecast_horizon,
     simulation_start = date_simulation_start,
+    clinical_linelist = clinical_linelist_date,
     mf_dates_wide
   )
 }

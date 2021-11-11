@@ -20,27 +20,24 @@ produce_input_trajectories <- function(simulation_options,
   
   
   
-  
-  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
-  
   full_linelist <- read_rds(simulation_options$files$NNDSS_linelist) %>%
     filter(state == simulation_options$state_modelled)
   
-  # Produce a backcast linelist over the period (simulation_options$dates$simulation_start, date_last_infection_50 - 5)
+  # Produce a backcast linelist over the period (dates$simulation_start, dates$linelist_cutoff)
   # Assigning pr_hosp, pr_ICU according to known values
-  case_linelist_with_vacc_prob <- clinical_linelist %>%
-    mutate(date_onset = date(dt_onset)) %>%
+  case_linelist_with_vacc_prob <- full_linelist %>%
+    filter(ever_in_hospital) %>%
     
-    filter(date_onset <= simulation_options$dates$last_infection_50 - 5) %>%
+    filter(date_onset <= simulation_options$dates$linelist_cutoff) %>%
     
     mutate(state = simulation_options$state_modelled) %>%
-    mutate(t_onset = (dt_onset - as.POSIXct(simulation_options$dates$simulation_start)) / ddays(1),
+    mutate(t_onset = as.numeric(date_onset - simulation_options$dates$simulation_start),
            case_ix = row_number()) %>%
     filter(t_onset >= 0) %>%
     
     left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
     
-    mutate(pr_ICU = if_else(ever_in_icu, 1, 0),
+    mutate(pr_ICU = if_else(ever_in_ICU, 1, 0),
            pr_hosp = 1)
   
   # Use slice_sample across our vaccination options to produce

@@ -1,37 +1,46 @@
 
-read_VIC_linelist <- function(file_load_date) {
+read_VIC_linelist <- function(simulation_options) {
   require(tidyverse)
   require(lubridate)
   source("R/data_processing/fn_age_classes.R")
   
   
   linelist_spec <- cols(
-    ...1 = col_double(),
     RecordID = col_character(),
     admdate = col_date(format = ""),
     sepdate = col_date(format = ""),
     LGA = col_character(),
-    LOS = col_double(),
-    TYPE = col_character(),
+    #LOS = col_double(),
+    #TYPE = col_character(),
     Status = col_character(),
-    Onset = col_date(format = ""),
+    Symptom_Onset = col_date(format = ""),
     DiagnosisDate = col_date(format = ""),
     AdmissionDateICU = col_date(format = ""),
     DischargeDateICU = col_date(format = ""),
     AdmissionDateVentilator = col_date(format = ""),
     DischargeDateVentilator = col_logical(),
     DateOfDeath = col_date(format = ""),
-    AgeGroup = col_character(),
-    Age = col_double(),
-    HaveYouHadACovidVaccine = col_logical()
+    AgeGroup = col_character()
+    #Age = col_double(),
+    #HaveYouHadACovidVaccine = col_logical()
   )
   
-  load_date <- ymd(file_load_date)
-  file_date_code <- format(load_date, "%Y%m%d")
+  load_date <- simulation_options$dates$clinical_linelist
   
-  file_path <- paste0("/usr/local/forecasting/source/linelist_data/VIC/",
-                      file_date_code,
-                      "_Individual_Stay_Data.csv")
+  file_path <- simulation_options$files$clinical_linelist_source
+  
+  
+  guess_age <- function(age_band) {
+    age_mat <- age_band %>%
+      str_split_fixed("-", n = 2) %>%
+      apply(1, as.numeric)
+    
+    lower_age <- age_mat[1,]
+    upper_age <- age_mat[2,]
+    
+    runif(length(age_band), lower_age, upper_age) %>% 
+      floor()
+  }
   
   clinical_linelist <- read_csv(file_path,
                                 col_types = linelist_spec) %>%
@@ -40,15 +49,19 @@ read_VIC_linelist <- function(file_load_date) {
            admit_date = admdate,
            discharge_date = sepdate,
            status = Status,
-           onset_date = Onset,
+           onset_date = Symptom_Onset,
            confirmation_date = DiagnosisDate,
            
            first_icu_date = AdmissionDateICU,
            last_icu_date = DischargeDateICU,
            
            death_date = DateOfDeath,
-           age = Age,
-           vaccinated = HaveYouHadACovidVaccine)
+           age_class_vic = AgeGroup,
+           #age = Age,
+           #vaccinated = HaveYouHadACovidVaccine
+           ) %>%
+    
+    mutate(age = guess_age(age_class_vic)) %>% select(-age_class_vic)
   
   
   single_episodes <- clinical_linelist %>%
@@ -148,12 +161,12 @@ read_VIC_linelist <- function(file_load_date) {
            patient_died = status == "Deceased",
            age_class = assign_age_class(age),
            
-           admit_date_dt = as_datetime(admit_date, tz = "Australia/Melbourne"),
-           discharge_date_dt = as_datetime(discharge_date, tz = "Australia/Melbourne"),
+           admit_date_dt = as_datetime(admit_date),
+           discharge_date_dt = as_datetime(discharge_date),
            
-           first_icu_date_dt = as_datetime(first_icu_date, tz = "Australia/Melbourne"),
-           last_icu_date_dt = as_datetime(last_icu_date, tz = "Australia/Melbourne"),
-           dt_onset = as_datetime(onset_date, tz = "Australia/Melbourne")) %>%
+           first_icu_date_dt = as_datetime(first_icu_date),
+           last_icu_date_dt = as_datetime(last_icu_date),
+           dt_onset = as_datetime(onset_date)) %>%
     
     drop_na(age) %>%
     
@@ -172,7 +185,8 @@ read_VIC_linelist <- function(file_load_date) {
            ever_in_icu,
            patient_died,
            
-           vaccinated)
+          # vaccinated
+          )
   
   
   cleaned_clinical_linelist

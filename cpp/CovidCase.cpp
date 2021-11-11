@@ -98,7 +98,9 @@ void CovidCase::transitionWardQueueWard() {
   // Ignoring the case where pr_ward_to_ICU is 1 as this means
   // we've manually passed in the value here
   if(pr_ward_to_death < 0 & pr_ward_to_ICU != 1) {
-    Rcout << "invalid pr_ward_to_death\n"; 
+    Rcout << "invalid pr_ward_to_death "; 
+    Rcout << pr_ward_to_death; 
+    Rcout << " \n";
   }
   
   double prob_sample = R::runif(0, 1);

@@ -10,7 +10,8 @@ plot_abm_results <- function(results_all,
   
   forecast_date_lines <- list(
     geom_vline(xintercept = simulation_options$dates$last_infection_50 - 5, linetype = 'dashed'),
-    geom_vline(xintercept = simulation_options$dates$last_onset_50, linetype = 'dashed')
+    geom_vline(xintercept = simulation_options$dates$last_onset_50, linetype = 'dashed'),
+    geom_vline(xintercept = simulation_options$dates$linelist_cutoff, linetype = 'dotted')
   )
   
   p1 <- ggplot(tbl_transitions %>%

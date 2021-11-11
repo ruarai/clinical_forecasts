@@ -3,7 +3,9 @@
 get_latest_file_path <- function(mediaflux_dir,
                                  file_pattern,
                                  date_pattern,
-                                 str_to_date_fn) {
+                                 str_to_date_fn,
+                                 
+                                 date_limit = NULL) {
   mediaflux_dir <- paste0("/projects/proj-6200_nndss_covid19_data_repository-1128.4.270/", mediaflux_dir)
   
   require(tidyverse)
@@ -30,6 +32,11 @@ get_latest_file_path <- function(mediaflux_dir,
     mutate(date = str_extract(source, date_pattern) %>% str_to_date_fn) %>%
     
     arrange(desc(date))
+  
+  if(!is.null(date_limit)) {
+    file_listing <- file_listing %>%
+      filter(date <= date_limit)
+  }
   
   
   likely_files <- file_listing %>%
@@ -80,23 +87,31 @@ download_mediaflux_files <- function(mf_files) {
   }
 }
 
-download_latest_mediaflux_files <- function(simulation_options) {
+download_latest_mediaflux_files <- function(simulation_options,
+                                            
+                                            date_limit = NULL) {
   
   latest_ensemble_file <- get_latest_file_path(
     "forecast-outputs",
-    "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd) %>%
+    "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd,
+    
+    date_limit) %>%
     mutate(file = paste0("forecast-outputs/", file),
            type = "ensemble")
   
   latest_nndss_file <- get_latest_file_path(
     "Health Uploads",
-    "COVID-19 UoM", "\\ \\d{1,2}\\D{3}\\d{4}", dmy) %>%
+    "COVID-19 UoM", "\\ \\d{1,2}\\D{3}\\d{4}", dmy,
+    
+    date_limit) %>%
     mutate(file = paste0("Health Uploads/", file),
            type = "NNDSS")
   
   latest_vacc_file <- get_latest_file_path(
     "vaccine_allocation/vaccine_cumulative_medicare/tabular",
-    "effective_dose_data", "\\d{4}-\\d{2}-\\d{2}", ymd) %>%
+    "effective_dose_data", "\\d{4}-\\d{2}-\\d{2}", ymd,
+    
+    date_limit) %>%
     mutate(file = paste0("vaccine_allocation/vaccine_cumulative_medicare/tabular/", file),
            type = "effective_dose_data")
   

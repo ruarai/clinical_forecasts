@@ -63,8 +63,8 @@ make_clinical_prob_table(simulation_options,
                          model_parameters)
 
 
-source("R/linelist_processing/read_NSW_linelist.R")
-process_NSW_linelist(simulation_options)
+#source("R/linelist_processing/read_NSW_linelist.R")
+#process_NSW_linelist(simulation_options)
 
 
 
@@ -74,6 +74,7 @@ process_NSW_linelist(simulation_options)
 
 
 
+simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
 
 source("R/produce_input_trajectories.R")
 

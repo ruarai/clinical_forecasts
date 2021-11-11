@@ -28,7 +28,7 @@ process_NNDSS_linelist <- function(simulation_options) {
     CV_GESTATION = "numeric",
     CV_EXPOSURE_SETTING = "numeric",
     CV_SOURCE_INFECTION = "numeric",
-    
+
     CV_SYMPTOMS_REPORTED = "text",
     CV_QUARANTINE_STATUS = "text",
     CV_DATE_ENTERED_QUARANTINE = "date"
@@ -54,7 +54,10 @@ process_NNDSS_linelist <- function(simulation_options) {
            status_hospital = case_when(CV_ICU == 1 ~ 1,
                                        TRUE        ~ HOSPITALISED),
            
-           age_class = assign_age_class(AGE_AT_ONSET)) %>%
+           age_class = assign_age_class(AGE_AT_ONSET),
+           
+           ever_in_hospital = status_hospital == 1,
+           ever_in_ICU = status_ICU == 1) %>%
     
     filter(date_onset >= simulation_options$dates$simulation_start) %>%
     
@@ -64,7 +67,9 @@ process_NNDSS_linelist <- function(simulation_options) {
            age_class,
            status_hospital,
            status_ICU,
-           status_DIED = DIED)
+           status_DIED = DIED,
+           ever_in_hospital,
+           ever_in_ICU)
   
   
   
