@@ -18,7 +18,7 @@ simulation_options <- make_simulation_options(
   run_name = paste0("NSW-test-", clinical_linelist_date),
   state_modelled = "NSW",
   
-  n_trajectories = 2000,
+  n_trajectories = 50,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
   
@@ -63,16 +63,11 @@ make_clinical_prob_table(simulation_options,
                          model_parameters)
 
 
-source("R/data_processing/fn_age_classes.R")
+source("R/linelist_processing/read_NSW_linelist.R")
+process_NSW_linelist(simulation_options)
 
 
-source("../covid19_los_estimations/R/read_NSW_linelist.R")
-linelist_raw <- readxl::read_xlsx(simulation_options$files$clinical_linelist_source, sheet = 2)
 
-NSW_linelist <- read_NSW_linelist(linelist_raw) %>%
-  mutate(age_class = assign_age_class(age))
-
-write_rds(NSW_linelist, simulation_options$files$clinical_linelist)
 
 
 
@@ -85,7 +80,7 @@ source("R/produce_input_trajectories.R")
 input_trajectories <- produce_input_trajectories(simulation_options,
                                                  model_parameters)
 
-write_rds(input_trajectories, simulation_options$files$input_trajectories)
+#write_rds(input_trajectories, simulation_options$files$input_trajectories)
 
 source("R/agent_based_model/run_simulations.R")
 
@@ -93,7 +88,7 @@ sim_results <- run_simulations(input_trajectories,
                                simulation_options,
                                model_parameters)
 
-write_rds(sim_results, simulation_options$files$sim_results)
+#write_rds(sim_results, simulation_options$files$sim_results)
 
 source("R/agent_based_model/plot_abm_results.R")
 
