@@ -11,12 +11,11 @@ produce_input_trajectories <- function(simulation_options,
   
   # Ignoring population vaccination rates, expecting that ~10% of hospitalizations
   # are vaccinated
-  vaccination_prob_table <- vaccination_prob_table %>%
-    filter(state == simulation_options$state_modelled) %>%
-    group_by(state, date, age_class) %>%
-    mutate(proportion = case_when(name == "none" ~ 0.9,
-                                  TRUE ~ 0.1 * proportion),
-           proportion = proportion / sum(proportion))
+  # vaccination_prob_table <- vaccination_prob_table %>%
+  #   filter(state == simulation_options$state_modelled) %>%
+  #   group_by(state, date, age_class) %>%
+  #   mutate(proportion = case_when(name == "none" ~ 0.9,
+  #                                 TRUE ~ 0.05))
   
   
   

@@ -5,7 +5,9 @@ make_simulation_options <- function(run_name,
                                     ED_daily_queue_capacity,
                                     n_days_forward = 28,
                                     
-                                    clinical_linelist_source) {
+                                    clinical_linelist_source,
+                                    
+                                    parameters_source_dir) {
   simulation_options <- list(
     n_trajectories = n_trajectories,
     n_samples_per_trajectory = n_samples_per_trajectory,
@@ -26,6 +28,10 @@ make_simulation_options <- function(run_name,
   )
   
   map(simulation_options$dirs, function(d) dir.create(d, recursive = TRUE, showWarnings = FALSE))
+  
+  simulation_options$dirs$parameters_source <- parameters_source_dir
+  
+  
   
   simulation_options$files <- list(
     local_cases = paste0(simulation_options$dirs$input, "local_cases_input.csv"),
@@ -56,7 +62,6 @@ get_forecast_dates <- function(local_cases_file,
                                state_modelled,
                                date_simulation_start,
                                mf_dates,
-                               clinical_linelist_date,
                                n_days_forward = 28) {
   local_cases <- read_csv(local_cases_file,
                           show_col_types = FALSE) %>%
@@ -84,7 +89,6 @@ get_forecast_dates <- function(local_cases_file,
     last_infection_50 = date_last_infection_50,
     forecast_horizon = date_forecast_horizon,
     simulation_start = date_simulation_start,
-    clinical_linelist = clinical_linelist_date,
     mf_dates_wide
   )
 }

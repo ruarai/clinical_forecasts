@@ -6,7 +6,7 @@ source("R/data_processing/data_fns.R")
 
 ## NSW
 
-clinical_linelist_dir <- "/usr/local/forecasting/source/linelist_data/NSW/"
+clinical_linelist_dir <- "/usr/local/forecasting/linelist_data/NSW/"
 clinical_linelist_date <- ymd("2021-11-08")
 
 clinical_linelist_source <- paste0(clinical_linelist_dir,
@@ -24,7 +24,9 @@ simulation_options <- make_simulation_options(
   
   ED_daily_queue_capacity = 3945,
   
-  clinical_linelist_source = clinical_linelist_source
+  clinical_linelist_source = clinical_linelist_source,
+  
+  parameters_source_dir = "results_length_of_stay/NSW-2021-11-08/"
 )
 
 
@@ -58,7 +60,7 @@ process_vaccination_data(simulation_options)
 
 
 source("R/model_parameters.R")
-model_parameters <- get_model_parameters()
+model_parameters <- get_model_parameters(simulation_options$dirs$parameters_source)
 
 source("R/probability_hospitalisation.R")
 make_clinical_prob_table(simulation_options,
@@ -70,13 +72,7 @@ make_clinical_prob_table(simulation_options,
 
 
 
-
-
-
-
-
-
-simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50 - 5
+simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
 
 source("R/produce_input_trajectories.R")
 

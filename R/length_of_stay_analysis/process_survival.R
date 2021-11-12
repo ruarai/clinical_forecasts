@@ -254,7 +254,7 @@ results_wide_age <- bind_rows(
 )
 
 
-source("R/fn_age_class.R")
+source("R/length_of_stay_analysis/fn_age_class.R")
 age_class_expansion_table <- tibble(wide_age_class = c(ward_age_groups,
                                                        death_age_groups,
                                                        icu_age_groups) %>% unique()) %>%

@@ -21,12 +21,13 @@ run_single_simulation <- function(case_linelist,
   pr_ICU_moving <- case_linelist$pr_ICU
   pr_ICU_constant <- compartment_probs[,"pr_ward_to_ICU"]
   
+  compartment_probs[, "pr_ward_to_ICU"] <- pr_ICU_moving
+  
   # Calculate our non-ward-to-ICU path probabilities conditional upon our moving
   # ICU probability. This is P(ward_to_discharge|not ward_to_ICU (constant))*P(not ward_to_ICU (moving))
   compartment_probs[, "pr_ward_to_discharge"] <- (compartment_probs[,"pr_ward_to_discharge"] /
     (1 - pr_ICU_constant)) * (1 - pr_ICU_moving)
   
-  compartment_probs[, "pr_ward_to_ICU"] <- pr_ICU_moving
   
   run_sim_sample <- function(i) {
     
@@ -37,10 +38,9 @@ run_single_simulation <- function(case_linelist,
       `colnames<-`(paste0("LoS_", delay_compartment_names))
     
     
-    case_linelist$t_onset <- as.numeric(case_linelist$date_onset - min(case_linelist$date_onset))
+    case_linelist$t_onset <- as.numeric(case_linelist$date_onset - simulation_options$dates$simulation_start)
     case_parameter_samples = cbind(
       time_of_infection = case_linelist$t_onset,
-      LoS_symptomatic_to_ED = rgamma(nrow(case_linelist), 2, 2 / 14),
       case_delay_samples,
       
       pr_hosp = case_linelist$pr_hosp,

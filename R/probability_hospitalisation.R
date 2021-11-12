@@ -105,9 +105,10 @@ make_clinical_prob_table <- function(simulation_options,
     
     nothosp_days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
     
-    # TODO FIXME
-    delay_shape <- 2
-    delay_mean <- 5
+    delay_shape <- model_parameters$delay_params$
+      compartment_LoS_shape[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
+    delay_mean <- model_parameters$delay_params$
+      compartment_LoS_shape[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
     
     
     prob_hosp_MLE <- tryCatch(pracma::fzero(
