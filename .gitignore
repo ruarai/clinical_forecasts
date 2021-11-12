@@ -11,6 +11,7 @@ data/
 
 #or results,
 results/
+results_length_of_stay/
 *.png
 *.pdf
 
