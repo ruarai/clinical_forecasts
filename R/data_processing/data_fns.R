@@ -2,6 +2,7 @@ make_simulation_options <- function(run_name,
                                     state_modelled,
                                     n_trajectories,
                                     n_samples_per_trajectory,
+                                    ED_daily_queue_capacity,
                                     n_days_forward = 28,
                                     
                                     clinical_linelist_source) {
@@ -9,6 +10,8 @@ make_simulation_options <- function(run_name,
     n_trajectories = n_trajectories,
     n_samples_per_trajectory = n_samples_per_trajectory,
     n_days_forward = n_days_forward,
+    
+    ED_daily_queue_capacity = ED_daily_queue_capacity,
     
     run_name = run_name,
     

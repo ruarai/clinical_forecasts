@@ -86,8 +86,9 @@ plot_abm_results <- function(results_all,
   plot_group_transitions(sim_results, simulation_options,
                          forecast_date_lines)
   
-  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions.png"),
-         height = 6, width = 8, bg = 'white')
+  
+  plot_ED_capacity(sim_results, simulation_options,
+                   forecast_date_lines)
   
 }
 
@@ -282,12 +283,68 @@ plot_group_transitions <- function(sim_results, simulation_options,
     
     ggtitle("Grouped transition counts",
             simulation_options$run_name)
+  
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions.png"),
+         height = 6, width = 8, bg = 'white')
 }
 
 
 
 
 
-
+plot_ED_capacity <- function(sim_results, simulation_options, forecast_date_lines) {
+  
+  ED_capacity <- simulation_options$ED_daily_queue_capacity
+  
+  ED_queue_probs <- sim_results$tbl_transitions %>%
+    filter(new_comp == "ED_queue") %>%
+    
+    mutate(over_capacity = n > ED_capacity) %>%
+    
+    group_by(date) %>%
+    summarise(pr_over_capacity = sum(over_capacity) / n())
+  
+  plot_prob <- ggplot(ED_queue_probs) +
+    geom_line(aes(x = date, y = pr_over_capacity))+
+    
+    forecast_date_lines +
+    
+    theme_minimal() +
+    
+    ggtitle("Probability of hitting ED consult capacity")  +
+    ylab("Probability") + xlab("Date")
+  
+  
+  ED_queue_counts <- sim_results$tbl_transitions_grouped_quants %>% 
+    filter(group == "queue")
+  
+  plot_count <- ggplot() +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant),
+                data = ED_queue_counts) +
+    
+    geom_hline(yintercept = ED_capacity,
+               linetype = 'dotted') +
+    
+    forecast_date_lines +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    theme_minimal() +
+    theme(legend.position = 'none') +
+    
+    ggtitle("Daily number of ED queue entries") +
+    ylab("Count") + xlab("Date")
+  
+  cowplot::plot_grid(plot_prob, plot_count, ncol = 1,
+                     
+                     align = 'v', axis = 'lr')
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/ED_capacity.png"),
+         height = 8, width = 9, bg = 'white')
+}
 
 

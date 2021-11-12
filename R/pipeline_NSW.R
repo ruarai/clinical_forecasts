@@ -18,9 +18,11 @@ simulation_options <- make_simulation_options(
   run_name = paste0("NSW-test-", clinical_linelist_date),
   state_modelled = "NSW",
   
-  n_trajectories = 50,
+  n_trajectories = 100,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
+  
+  ED_daily_queue_capacity = 3945,
   
   clinical_linelist_source = clinical_linelist_source
 )
@@ -74,7 +76,7 @@ make_clinical_prob_table(simulation_options,
 
 
 
-simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
+simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50 - 5
 
 source("R/produce_input_trajectories.R")
 
