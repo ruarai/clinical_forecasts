@@ -54,7 +54,7 @@ get_latest_file_path <- function(mediaflux_dir,
     slice_max(date, n = 1)
   
   print("")
-  print(paste0("Using the most likely ensemble CSV '", likely_file$source, "'"))
+  print(paste0("Using the most likely file '", likely_file$source, "'"))
   print(paste0("Which is dated ", likely_file$date, 
                " (", today() - ymd(likely_file$date), " days ago)"))
   print("Is this correct?")

@@ -109,7 +109,9 @@ plot_group_counts <- function(sim_results, simulation_options,
     
     mutate(count_ward = clinical_linelist %>%
              filter(dt_hosp_discharge >= date | is.na(dt_hosp_discharge),
-                    dt_hosp_admission <= date) %>%
+                    dt_hosp_admission <= date,
+                    
+                    is.na(dt_first_icu) | dt_first_icu >= date | dt_last_icu <= date) %>%
              nrow(),
            
            count_ICU = clinical_linelist %>%
@@ -239,13 +241,13 @@ plot_group_transitions <- function(sim_results, simulation_options,
     summarise(n_ICU = n())
   
   discharge_by_day <- clinical_linelist %>%
-    filter(dt_hosp_discharge != max(dt_hosp_discharge),
+    filter(dt_hosp_discharge != max(dt_hosp_discharge, na.rm = TRUE),
            !patient_died) %>%
     group_by(date = as_date(dt_hosp_discharge, 'days')) %>%
     summarise(n_discharged = n())
   
   death_by_day <- clinical_linelist %>%
-    filter(dt_hosp_discharge != max(dt_hosp_discharge),
+    filter(dt_hosp_discharge != max(dt_hosp_discharge, na.rm = TRUE),
            patient_died) %>%
     group_by(date = as_date(dt_hosp_discharge, 'days')) %>%
     summarise(n_died = n())

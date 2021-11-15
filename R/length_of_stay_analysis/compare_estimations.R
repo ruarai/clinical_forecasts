@@ -38,7 +38,7 @@ compartment_LoS_shape <- c(2, 2, 1, 2, 2, 2, 2, 2) %>%
 
 
 draw_gamma_dist <- function(shape, rate) {
-  x_vals = seq(0, 60, by = 0.01)
+  x_vals = seq(0, 60, by = 0.1)
   y_vals = dgamma(x_vals, shape = shape, rate = rate)
   tibble(x = x_vals, y = y_vals)
 }
@@ -53,6 +53,7 @@ compartment_expansion <- tribble(
   "censored_ICU", "ICU_to_postICU_death",
   "censored_ICU", "ICU_to_death",
   "censored_ICU", "ICU_to_discharge",
+  "censored_ICU", "ICU_to_postICU",
   
   
   "censored_postICU", "postICU_to_death",
@@ -138,7 +139,7 @@ our_values_plot <- our_values %>%
   unnest(plot_values)
 
 reorder_compartments <- . %>%
-  mutate(compartment = factor(compartment, levels = compartment_labels))
+  mutate(compartment = factor(compartment, levels = compartments_of_interest))
 
 ggplot() +
   geom_histogram(aes(x = LoS, y =..density.., fill = is_censored),
@@ -179,3 +180,30 @@ ggplot(all_values %>% reorder_compartments) +
 
 ggsave(paste0(output_dir, "/fit_against_imperial.png"),
        width = 15, height = 7, bg = 'white')
+
+
+
+summ_values <- bind_rows(
+  our_values,
+  imperial_values
+)  %>%
+  ungroup()
+
+
+ggplot(all_values %>% reorder_compartments) +
+  geom_line(aes(x = x, y = y, color = source)) +
+  
+  geom_rug(aes(x = mean, color = source),
+           length = unit(0.6, "cm"),
+           summ_values) +
+  
+  facet_grid(cols = vars(compartment), rows = vars(age_class)) +
+  
+  coord_cartesian(xlim = c(0,30),
+                  ylim = c(0, 0.3)) +
+  
+  scale_color_brewer(type = 'qual',
+                     palette = 2) +
+  
+  theme_minimal() +
+  theme(legend.position = 'bottom')

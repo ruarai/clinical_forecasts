@@ -70,12 +70,13 @@ run_single_simulation <- function(case_linelist,
       select(compartment, group) %>% deframe()
     
     tbl_transitions <- do.call(rbind, results$transitions) %>%
-      `colnames<-`(c("case_index", "t", "new_comp")) %>%
+      `colnames<-`(c("case_index", "t", "old_comp", "new_comp")) %>%
       as_tibble() %>%
-      mutate(new_comp = compartment_names_true[new_comp + 1],
+      mutate(old_comp = compartment_names_true[old_comp + 1],
+             new_comp = compartment_names_true[new_comp + 1],
              t = floor(t),
              date = simulation_options$dates$simulation_start + t) %>%
-      group_by(date, new_comp) %>%
+      group_by(date, old_comp, new_comp) %>%
       summarise(n = n(), .groups = "drop")
     
     

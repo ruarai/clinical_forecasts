@@ -26,11 +26,13 @@ void validate_case_param_matrix(NumericMatrix &case_param_matrix){
 }
 
 
-std::array<double, 3> create_plot_datapoint(int case_index, double t, int new_compartment) {
-  std::array<double, 3> result;
+std::array<double, 4> create_plot_datapoint(int case_index, double t,
+                                            int old_compartment, int new_compartment) {
+  std::array<double, 4> result;
   result[0] = case_index;
   result[1] = t;
-  result[2] = new_compartment;
+  result[2] = old_compartment;
+  result[3] = new_compartment;
   
   return result;
 }
@@ -39,7 +41,7 @@ void call_transition(CovidCase &covid_case, int case_ix,
                      double time_in_compartment[],
                      double next_compartment_trigger_time[],
                      
-                     std::vector<std::array<double, 3>> &transitions,
+                     std::vector<std::array<double, 4>> &transitions,
                      NumericMatrix &compartment_counts,
                      
                      double t, double dt, int steps_per_day) {
@@ -57,7 +59,8 @@ void call_transition(CovidCase &covid_case, int case_ix,
   compartment_counts(t / steps_per_day, old_compartment) -= 1;
   compartment_counts(t / steps_per_day, new_compartment) += 1;
   
-  std::array<double, 3> datapoint = create_plot_datapoint(case_ix, (double)t * dt, new_compartment);
+  std::array<double, 4> datapoint = create_plot_datapoint(case_ix, (double)t * dt,
+                                                          old_compartment, new_compartment);
   
   transitions.push_back(datapoint);
 }
@@ -115,7 +118,7 @@ List process_loop(NumericMatrix case_param_matrix,
   }
   
   
-  std::vector<std::array<double, 3>> transitions(0);
+  std::vector<std::array<double, 4>> transitions(0);
   
   int steps_per_day = (int)(1 / dt);
   
