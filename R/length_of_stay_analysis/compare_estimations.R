@@ -52,13 +52,14 @@ compartment_expansion <- tribble(
   "censored_ICU", "ICU_to_postICU_discharge",
   "censored_ICU", "ICU_to_postICU_death",
   "censored_ICU", "ICU_to_death",
+  "censored_ICU", "ICU_to_discharge",
   
   
   "censored_postICU", "postICU_to_death",
   "censored_postICU", "postICU_to_discharge",
 )
 
-compartments_of_interest <- compartment_labels
+compartments_of_interest <- c(compartment_labels, "ICU_to_discharge", "ICU_to_postICU")
 # compartments_of_interest <- c("ICU_to_postICU_discharge", "ICU_to_postICU_death", "ICU_to_death",
 #                               "postICU_to_death", "postICU_to_discharge")
 

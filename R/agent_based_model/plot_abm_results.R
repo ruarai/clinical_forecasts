@@ -108,12 +108,14 @@ plot_group_counts <- function(sim_results, simulation_options,
     rowwise() %>%
     
     mutate(count_ward = clinical_linelist %>%
-             filter(dt_hosp_discharge >= date, dt_hosp_admission <= date) %>%
+             filter(dt_hosp_discharge >= date | is.na(dt_hosp_discharge),
+                    dt_hosp_admission <= date) %>%
              nrow(),
            
            count_ICU = clinical_linelist %>%
              drop_na(dt_first_icu) %>%
-             filter(dt_last_icu >= date, dt_first_icu <= date) %>%
+             filter(dt_last_icu >= date | is.na(dt_last_icu),
+                    dt_first_icu <= date) %>%
              nrow(),
            
            count_died = clinical_linelist %>%

@@ -37,15 +37,12 @@ run_single_simulation <- function(case_linelist,
       matrix(ncol = ncol(case_delay_shapes)) %>%
       `colnames<-`(paste0("LoS_", delay_compartment_names))
     
-    
-    case_linelist$t_onset <- as.numeric(case_linelist$date_onset - simulation_options$dates$simulation_start)
     case_parameter_samples = cbind(
       time_of_infection = case_linelist$t_onset,
       case_delay_samples,
       
       pr_hosp = case_linelist$pr_hosp,
       pr_ICU = case_linelist$pr_ICU,
-      
       compartment_probs
     )
     

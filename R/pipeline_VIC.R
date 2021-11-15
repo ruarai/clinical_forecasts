@@ -6,8 +6,8 @@ source("R/data_processing/data_fns.R")
 
 ## VIC
 
-clinical_linelist_dir <- "/usr/local/forecasting/source/linelist_data/VIC/"
-clinical_linelist_date <- ymd("2021-11-10")
+clinical_linelist_dir <- "/usr/local/forecasting/linelist_data/VIC/"
+clinical_linelist_date <- ymd("2021-11-15")
 
 
 clinical_linelist_source <- paste0(clinical_linelist_dir,
@@ -18,11 +18,15 @@ simulation_options <- make_simulation_options(
   run_name = paste0("VIC-test-", clinical_linelist_date),
   state_modelled = "VIC",
   
-  n_trajectories = 50,
+  n_trajectories = 100,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
   
-  clinical_linelist_source = clinical_linelist_source
+  ED_daily_queue_capacity = 2456,
+  
+  clinical_linelist_source = clinical_linelist_source,
+  
+  parameters_source_dir = "results_length_of_stay/NSW-2021-11-08/"
 )
 
 
@@ -42,7 +46,6 @@ simulation_options$dates <- get_forecast_dates(
   simulation_options$files$local_cases,
   simulation_options$state_modelled,
   date_simulation_start = ymd("2021-06-01"),
-  clinical_linelist_date = clinical_linelist_date,
   mf_dates,
   simulation_options$n_days_forward
 )
@@ -57,7 +60,7 @@ process_vaccination_data(simulation_options)
 
 
 source("R/model_parameters.R")
-model_parameters <- get_model_parameters()
+model_parameters <- get_model_parameters(simulation_options$dirs$parameters_source)
 
 source("R/probability_hospitalisation.R")
 make_clinical_prob_table(simulation_options,
@@ -65,20 +68,11 @@ make_clinical_prob_table(simulation_options,
 
 
 source("R/linelist_processing/read_VIC_linelist.R")
-VIC_linelist <- read_VIC_linelist(simulation_options) %>%
-  filter(dt_onset >= simulation_options$dates$simulation_start)
-VIC_linelist %>% write_rds(simulation_options$files$clinical_linelist)
+process_VIC_linelist(simulation_options)
 
 
 
-
-
-
-
-
-simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50 - 14
-
-
+simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
 
 source("R/produce_input_trajectories.R")
 

@@ -1,5 +1,15 @@
+process_VIC_linelist <- function(simulation_options) {
+  
+  
+  print(paste0("Using VIC linelist ", simulation_options$files$clinical_linelist_source))
+  
+  VIC_linelist <- read_VIC_linelist(simulation_options$files$clinical_linelist_source)
+  
+  write_rds(VIC_linelist, simulation_options$files$clinical_linelist)
+  
+}
 
-read_VIC_linelist <- function(simulation_options) {
+read_VIC_linelist <- function(linelist_raw_path) {
   require(tidyverse)
   require(lubridate)
   source("R/data_processing/fn_age_classes.R")
@@ -20,14 +30,16 @@ read_VIC_linelist <- function(simulation_options) {
     AdmissionDateVentilator = col_date(format = ""),
     DischargeDateVentilator = col_logical(),
     DateOfDeath = col_date(format = ""),
-    AgeGroup = col_character()
+    Vaccine_Status = col_logical(),
+    AgeGroup_5yr = col_character()
+    #AgeGroup = col_character()
     #Age = col_double(),
     #HaveYouHadACovidVaccine = col_logical()
   )
+  #wrong, but whatev
+  load_date <- simulation_options$dates$NNDSS
   
-  load_date <- simulation_options$dates$clinical_linelist
-  
-  file_path <- simulation_options$files$clinical_linelist_source
+  file_path <- linelist_raw_path
   
   
   guess_age <- function(age_band) {
@@ -56,10 +68,12 @@ read_VIC_linelist <- function(simulation_options) {
            last_icu_date = DischargeDateICU,
            
            death_date = DateOfDeath,
-           age_class_vic = AgeGroup,
+           age_class_vic = AgeGroup_5yr,
            #age = Age,
-           #vaccinated = HaveYouHadACovidVaccine
+           vaccinated = Vaccine_Status
            ) %>%
+    
+    drop_na(age_class_vic) %>%
     
     mutate(age = guess_age(age_class_vic)) %>% select(-age_class_vic)
   
@@ -185,7 +199,7 @@ read_VIC_linelist <- function(simulation_options) {
            ever_in_icu,
            patient_died,
            
-          # vaccinated
+           vaccinated
           )
   
   
