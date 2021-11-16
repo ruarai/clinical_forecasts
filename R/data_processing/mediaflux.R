@@ -115,15 +115,26 @@ download_latest_mediaflux_files <- function(simulation_options,
     mutate(file = paste0("vaccine_allocation/vaccine_cumulative_medicare/tabular/", file),
            type = "effective_dose_data")
   
+  
+  latest_local_cases_file <- get_latest_file_path(
+    "past_local_cases",
+    "local_cases", "\\d{8}", ymd,
+    
+    date_limit) %>%
+    mutate(file = paste0("past_local_cases/", file),
+           type = "local_cases")
+  
   mf_files <- tribble(
     ~remote_file, ~local_file,
-    latest_ensemble_file$file, simulation_options$files$ensemble_samples,
-    latest_nndss_file$file,    simulation_options$files$NNDSS_raw,
-    latest_vacc_file$file,     simulation_options$files$vacc_raw,
+    latest_ensemble_file$file,        simulation_options$files$ensemble_samples,
+    latest_nndss_file$file,           simulation_options$files$NNDSS_raw,
+    latest_vacc_file$file,            simulation_options$files$vacc_raw,
+    latest_local_cases_file$file,     simulation_options$files$local_cases,
   )
   download_mediaflux_files(mf_files)
   
   bind_rows(latest_ensemble_file,
             latest_nndss_file,
-            latest_vacc_file)
+            latest_vacc_file,
+            latest_local_cases_file)
 }
