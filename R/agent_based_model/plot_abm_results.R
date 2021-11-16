@@ -86,6 +86,9 @@ plot_abm_results <- function(results_all,
   plot_group_transitions(sim_results, simulation_options,
                          forecast_date_lines)
   
+  plot_all_transitions(sim_results, simulation_options,
+                         forecast_date_lines)
+  
   
   plot_ED_capacity(sim_results, simulation_options,
                    forecast_date_lines)
@@ -291,6 +294,70 @@ plot_group_transitions <- function(sim_results, simulation_options,
   
   
   ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions.png"),
+         height = 6, width = 8, bg = 'white')
+}
+
+plot_all_transitions <- function(sim_results, simulation_options, forecast_date_lines) {
+  
+  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
+  
+  ward_admission_by_day <- clinical_linelist %>%
+    group_by(date = as_date(dt_hosp_admission, 'days')) %>%
+    summarise(n = n()) %>%
+    mutate(new_comp = "ward", old_comp = "ED_queue")
+  
+  ICU_admission_by_day <- clinical_linelist %>%
+    drop_na(dt_first_icu) %>%
+    group_by(date = as_date(dt_first_icu, 'days')) %>%
+    summarise(n = n()) %>%
+    mutate(new_comp = "ICU", old_comp = "ward")
+  
+  clinical_data <- bind_rows(
+    ward_admission_by_day,
+    ICU_admission_by_day
+  )
+  
+  
+  
+  ggplot(sim_results$tbl_transitions_quants) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    facet_wrap(~ old_comp * new_comp,
+               scales = "free_y") +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    forecast_date_lines +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom')
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions_all.png"),
+         height = 6, width = 8, bg = 'white')
+  
+  ggplot(sim_results$tbl_transitions_quants %>%
+           filter(old_comp %in% clinical_data$old_comp,
+                  new_comp %in% clinical_data$new_comp)) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    geom_line(aes(x = date, y = n),
+              clinical_data) +
+    
+    facet_wrap(~ old_comp * new_comp,
+               scales = "free_y") +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    forecast_date_lines +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom')
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions_all_key.png"),
          height = 6, width = 8, bg = 'white')
 }
 

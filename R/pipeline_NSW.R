@@ -31,12 +31,9 @@ simulation_options <- make_simulation_options(
 
 
 source("R/data_processing/mediaflux.R")
-mf_dates <- download_latest_mediaflux_files(simulation_options)
+mf_dates <- download_latest_mediaflux_files(simulation_options,
+                                            date_limit = clinical_linelist_date)
 
-
-source("R/data_processing/dropbox.R")
-download_files(tibble(remote_file = "/covid_output/local_cases_input.csv",
-                      local_file = simulation_options$files$local_cases))
 
 
 update_c19data()
@@ -67,8 +64,8 @@ make_clinical_prob_table(simulation_options,
                          model_parameters)
 
 
-#source("R/linelist_processing/read_NSW_linelist.R")
-#process_NSW_linelist(simulation_options)
+source("R/linelist_processing/read_NSW_linelist.R")
+process_NSW_linelist(simulation_options)
 
 
 

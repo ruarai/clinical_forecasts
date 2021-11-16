@@ -233,6 +233,14 @@ run_simulations <- function(input_trajectories,
     mutate(group = replace_na(group, "other")) %>%
     make_quants()
   
+  tbl_transitions_quants <- tbl_transitions %>%
+    pivot_wider(names_from = ix,
+                values_from = n,
+                names_prefix = "sim_") %>%
+    mutate(across(starts_with("sim_"), ~ replace_na(., 0))) %>%
+    
+    make_quants()
+  
   tbl_transitions_grouped_quants <- tbl_transitions_grouped %>%
     pivot_wider(names_from = ix,
                 values_from = n,
@@ -246,6 +254,7 @@ run_simulations <- function(input_trajectories,
        tbl_count_grouped_quants = tbl_count_grouped_quants,
        
        tbl_transitions = tbl_transitions,
+       tbl_transitions_quants = tbl_transitions_quants,
        tbl_transitions_grouped = tbl_transitions_grouped,
        tbl_transitions_grouped_quants = tbl_transitions_grouped_quants)
 }

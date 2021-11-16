@@ -32,6 +32,7 @@ make_quants <- function(tbl) {
   quants
 }
 
+clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
 
 ward_admission_by_day <- clinical_linelist %>%
   group_by(date = as_date(dt_hosp_admission, 'days')) %>%
