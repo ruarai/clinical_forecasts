@@ -18,9 +18,6 @@ ggplot() +
   stat_ecdf(aes(x = LoS, y = 1 - ..y..),
             data = observed_data,
             geom = 'step') +
-  stat_ecdf(aes(x = LoS, y = 1 - ..y.., color = coding),
-            data = observed_data %>% filter(coding == "censored"),
-            geom = 'point') +
   
   geom_line(aes(x = x, y = y),
             data = plot_fit) +

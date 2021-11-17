@@ -183,27 +183,47 @@ ggsave(paste0(output_dir, "/fit_against_imperial.png"),
 
 
 
+both_comps<- c("ward_to_discharge", "ward_to_death",
+               "ward_to_ICU", "ICU_to_death", "postICU_to_death", "postICU_to_discharge")
+
 summ_values <- bind_rows(
   our_values,
   imperial_values
 )  %>%
-  ungroup()
+  ungroup() %>%
+  filter(compartment %in% both_comps)
 
 
-ggplot(all_values %>% reorder_compartments) +
-  geom_line(aes(x = x, y = y, color = source)) +
+
+
+summ_values_text <- summ_values %>%
+  mutate(x = 15,
+         y = if_else(source == "imperial", 0.3, 0.4),
+         text = format(round(mean, 2), nsmall = 2))
+
+ggplot(all_values %>% filter(compartment %in% both_comps) %>% reorder_compartments) +
+  geom_line(aes(x = x, y = y, color = source))  +
   
   geom_rug(aes(x = mean, color = source),
-           length = unit(0.6, "cm"),
+           length = unit(0.3, "cm"),
            summ_values) +
   
-  facet_grid(cols = vars(compartment), rows = vars(age_class)) +
+  facet_grid(rows = vars(compartment), cols = vars(age_class)) +
+  
   
   coord_cartesian(xlim = c(0,30),
-                  ylim = c(0, 0.3)) +
+                  ylim = c(0, 0.5)) +
   
-  scale_color_brewer(type = 'qual',
+  scale_color_brewer("Source",
+                     labels = c("imperial" = "Old estimates",
+                                "ours" = "New estimates"),
+                     type = 'qual',
                      palette = 2) +
   
   theme_minimal() +
-  theme(legend.position = 'bottom')
+  theme(legend.position = 'bottom') +
+  
+  xlab("Days") + ylab("Probability")
+
+ggsave(paste0(output_dir, "/comp_plot.png"),
+       width = 8, height = 12)

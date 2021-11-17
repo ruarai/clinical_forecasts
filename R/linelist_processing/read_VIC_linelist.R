@@ -9,7 +9,8 @@ process_VIC_linelist <- function(simulation_options) {
   
 }
 
-read_VIC_linelist <- function(linelist_raw_path) {
+read_VIC_linelist <- function(linelist_raw_path,
+                              load_date) {
   require(tidyverse)
   require(lubridate)
   source("R/data_processing/fn_age_classes.R")
@@ -37,9 +38,7 @@ read_VIC_linelist <- function(linelist_raw_path) {
     #HaveYouHadACovidVaccine = col_logical()
   )
   #wrong, but whatev
-  load_date <- simulation_options$dates$NNDSS
-  
-  file_path <- linelist_raw_path
+  #load_date <- simulation_options$dates$NNDSS
   
   
   guess_age <- function(age_band) {
@@ -54,7 +53,7 @@ read_VIC_linelist <- function(linelist_raw_path) {
       floor()
   }
   
-  clinical_linelist <- read_csv(file_path,
+  clinical_linelist <- read_csv(linelist_raw_path,
                                 col_types = linelist_spec) %>%
     
     select(person_id = RecordID,
@@ -129,6 +128,26 @@ read_VIC_linelist <- function(linelist_raw_path) {
     replace_na(days > 120, FALSE)
   }
   
+  # Is !(A <= B <= C <= D) ?
+  is_interval_incorrect <- function(a, b, c, d) {
+    interval_correct_fn <- function(a, b, c, d) {
+      if(is.na(b) & is.na(c) & is.na(d)) {
+        return(TRUE)
+      } else if(is.na(b)) {
+        return(a <= d)
+      } else if(is.na(c)) {
+        return(a <= b)
+      } else {
+        return(a <= b & b <= c & c <= d)
+      }
+    }
+    
+    
+    
+    
+    return(!sapply(1:length(a), function(i) interval_correct_fn(a[i], b[i], c[i], d[i])))
+  }
+  
   
   
   
@@ -145,6 +164,9 @@ read_VIC_linelist <- function(linelist_raw_path) {
     filter(is_duration_too_long(admit_date, discharge_date) |
              is_duration_too_long(first_icu_date, last_icu_date))
   
+  incorrect_intervals <- clinical_linelist_collapsed %>%
+    filter(is_interval_incorrect(admit_date, first_icu_date, last_icu_date, discharge_date))
+  
   
   print("Rows with dates too early:")
   print(early_dated_entries)
@@ -158,13 +180,18 @@ read_VIC_linelist <- function(linelist_raw_path) {
   print("Rows with excessive duration lengths:")
   print(long_duration_entries)
   
+  print("Rows with incorrect interval points:")
+  print(incorrect_intervals)
   
-  filtered_clinical_linelist <- clinical_linelist_collapsed %>%
-    filter(if_all(ends_with("_date"), ~ !is_date_too_early(.))) %>%
-    filter(if_all(ends_with("_date"), ~ !is_date_too_late(.))) %>%
-    filter(!is_indicator_incorrect(discharge_date, status)) %>%
-    filter(!is_duration_too_long(admit_date, discharge_date) &
-             !is_duration_too_long(first_icu_date, last_icu_date))
+  
+  filtered_clinical_linelist <- setdiff(
+    clinical_linelist_collapsed,
+    early_dated_entries %>%
+      union(late_dated_entries) %>%
+      union(incorrect_indicator_dates) %>%
+      union(long_duration_entries) %>%
+      union(incorrect_intervals)
+  )
   
   
   

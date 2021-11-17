@@ -84,7 +84,8 @@ get_compartment_data <- function(full_data, compartment_name, age_breaks, age_gr
     filter(!!sym(coding_column)  == "censored") %>%
     left_join(prob_table) %>%
     
-    filter(runif(nrow(.)) <= prob)
+    filter(runif(nrow(.)) <= prob) %>%
+    select(-prob)
   
   with_age %>% 
     filter(!!sym(coding_column)  == compartment_name) %>%
@@ -104,7 +105,6 @@ ward_died_data <- get_compartment_data(ward_modelling, "ward_to_death",
 ward_ICU_data <- get_compartment_data(ward_modelling, "ward_to_ICU",
                                       icu_age_breaks, icu_age_groups,
                                       "ward_coding")
-
 
 ward_LoS_discharged <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
                                    anc = list(shape = ~age_class),
@@ -281,8 +281,7 @@ results %>%
 
 ### Probabilities
 
-
-full_prob_table <- bind_rows(
+wide_prob_table <-  bind_rows(
   make_prob_table(ward_modelling,
                   "ward_coding", ward_age_breaks, ward_age_groups) %>%
     filter(ward_coding != "ward_to_death") %>% rename(compartment = ward_coding),
@@ -300,7 +299,9 @@ full_prob_table <- bind_rows(
                   "postICU_coding", death_age_breaks, death_age_groups) %>%
     filter(postICU_coding == "postICU_to_death") %>% rename(compartment = postICU_coding),
 ) %>%
-  ungroup() %>%
+  ungroup()
+
+full_prob_table <- wide_prob_table%>%
   right_join(age_class_expansion_table, by = c("age_class" = "wide_age_class")) %>%
   select(-age_class) %>% rename(age_class = narrow_age_class) %>%
   
