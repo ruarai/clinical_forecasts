@@ -47,7 +47,7 @@ produce_input_trajectories <- function(simulation_options,
     slice_sample(n = 1, weight_by = proportion) %>%
     ungroup() %>% 
     rename(vaccine = name) %>%
-    select(state, date_onset, t_onset, age_class, vaccine,
+    select(date_onset, t_onset, age_class, vaccine,
            pr_hosp, pr_ICU)
   
   ## Nowcast & forecast case linelist creation:
@@ -130,9 +130,7 @@ produce_input_trajectories <- function(simulation_options,
       
       mutate(t_onset = as.numeric(date_onset - simulation_options$dates$simulation_start),
              age_class = sample(names(forecast_age_class_samples), nrow(.),
-                                prob = forecast_age_class_samples, replace = TRUE),
-             
-             state = simulation_options$state_modelled) %>%
+                                prob = forecast_age_class_samples, replace = TRUE)) %>%
       
       left_join(clinical_prob_table, by = c("date_onset", "age_class")) %>%
       
@@ -144,7 +142,8 @@ produce_input_trajectories <- function(simulation_options,
       ungroup()
     
     # Finally return a linelist with backcast, nowcast and forecast
-    bind_rows(backcast_case_linelist, joined_trajs_filled)
+    bind_rows(backcast_case_linelist, joined_trajs_filled) %>%
+      select(-date_onset)
   })
   
   

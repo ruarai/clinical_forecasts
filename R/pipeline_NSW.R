@@ -86,6 +86,10 @@ sim_results <- run_simulations(input_trajectories,
 
 #write_rds(sim_results, simulation_options$files$sim_results)
 
+source("R/sanity_checks.R")
+perform_sanity_checks(simulation_options, model_parameters,
+                      input_trajectories, sim_results)
+
 source("R/agent_based_model/plot_abm_results.R")
 
 plot_abm_results(sim_results, simulation_options)
