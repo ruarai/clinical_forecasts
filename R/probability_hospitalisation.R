@@ -155,6 +155,9 @@ make_clinical_prob_table <- function(simulation_options,
   
   
   
+  ggsave(paste0(simulation_options$dirs$plots, "/morbidity_timeseries.png"),
+         height = 9, width = 12, bg = 'white')
+  
   clinical_probs_by_ageclass <- function(date_start, filter_age_class,
                                          n_days_forward = 14) {
     dates <- seq(date_start, date_start + n_days_forward, by = 'day')
@@ -217,7 +220,8 @@ make_clinical_prob_table <- function(simulation_options,
   
   
   results_combined <- results_by_ageclass %>% 
-    left_join(results_by_ageclass_total) %>%
+    left_join(results_by_ageclass_total %>%
+                select(-c(n_cases, n_hosps, n_ICUs))) %>%
     
     mutate(weight_use_cases = pmin(1, n_cases / 50),
            weight_use_hosp = pmin(1, n_hosps / 50),

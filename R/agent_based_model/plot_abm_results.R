@@ -312,9 +312,19 @@ plot_all_transitions <- function(sim_results, simulation_options, forecast_date_
     summarise(n = n()) %>%
     mutate(new_comp = "ICU", old_comp = "ward")
   
+  ICU_discharge_by_day <- clinical_linelist %>%
+    drop_na(dt_last_icu) %>%
+    filter(dt_last_icu != max(dt_last_icu),
+           !patient_died,
+           dt_hosp_discharge >= dt_last_icu + ddays(1)) %>%
+    group_by(date = as_date(dt_last_icu, 'days')) %>%
+    summarise(n = n()) %>%
+    mutate(new_comp = "postICU", old_comp = "ICU")
+  
   clinical_data <- bind_rows(
     ward_admission_by_day,
-    ICU_admission_by_day
+    ICU_admission_by_day,
+    ICU_discharge_by_day
   )
   
   
