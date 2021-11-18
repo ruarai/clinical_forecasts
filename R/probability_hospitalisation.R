@@ -32,6 +32,44 @@ make_clinical_prob_table <- function(simulation_options,
   }
   
   
+  F_icu_given_case <- function(x, 
+                               delay_hosp_mean, delay_hosp_shape,
+                               delay_ICU_mean, delay_ICU_shape) {
+    
+    numer <- integrate(function(y){
+      pgamma(x - y,
+             shape = delay_ICU_shape,
+             scale = delay_ICU_mean / delay_ICU_shape) *
+        dgamma(y,
+               shape = delay_hosp_shape,
+               scale = delay_hosp_mean / delay_hosp_shape)
+    },
+    
+    0 + .Machine$double.eps, x)$value
+    
+    denom <- pgamma(x,
+                    shape = delay_hosp_shape,
+                    scale = delay_hosp_mean / delay_hosp_shape)
+    
+    return(numer / denom)
+  }
+  
+  fn_score_ICU <- function(x, A, days_since_onset, 
+                           delay_hosp_mean, delay_hosp_shape,
+                           delay_ICU_mean, delay_ICU_shape) {
+    
+    prob_already_observed <- sapply(1:length(days_since_onset), function(i) {
+      F_icu_given_case(days_since_onset[i],
+                       delay_hosp_mean[i], delay_hosp_shape[i],
+                       delay_ICU_mean[i], delay_ICU_shape[i])
+    })
+    
+    
+    
+    A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
+  }
+  
+  
   
   
   prob_naive <- function(data, numer_fn, denom_fn = identity) {
@@ -68,16 +106,22 @@ make_clinical_prob_table <- function(simulation_options,
     
     prob_hosp_naive <- nrow(cases_hospitalised) / nrow(cases_on_dates)
     
-    # Only perform right-truncation adjustment in the last 14 days as we
-    # expect no effect before this time (99.9% quantile)
     
-    if(data_date - date_start <= ddays(31)) {
+    cases_ICU <- cases_hospitalised[.(1), on = "status_ICU"]
+    cases_not_ICU <- cases_hospitalised[!.(1), on = "status_ICU"]
+    
+    prob_ICU_naive <- nrow(cases_ICU) / nrow(cases_hospitalised)
+    
+    # Only perform right-truncation adjustment in the last 50 days as we
+    # expect no effect before this time (>99.99% quantile)
+    
+    if(data_date - date_start <= ddays(50)) {
       
       nothosp_days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
       
-      delay_shape <- model_parameters$delay_params$
+      delay_hosp_shape <- model_parameters$delay_params$
         compartment_LoS_shape[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
-      delay_mean <- model_parameters$delay_params$
+      delay_hosp_mean <- model_parameters$delay_params$
         compartment_LoS_mean[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
       
       
@@ -86,32 +130,50 @@ make_clinical_prob_table <- function(simulation_options,
           fn_score_hosp(x, 
                         nrow(cases_hospitalised),
                         nothosp_days_since_onset,
-                        delay_shape, delay_mean)
+                        delay_hosp_shape, delay_hosp_mean)
         },
         
         x = c(0+.Machine$double.eps,1-.Machine$double.eps),
       )$x,
-      error = function(c) { return(pr_hosp_total) })
+      error = function(c) { return(prob_hosp_naive) })
+      
+      
+      notICU_days_since_onset <- as.numeric(data_date - cases_not_ICU$date_onset)
+      
+      
+      delay_ICU_shape <- model_parameters$delay_params$
+        compartment_LoS_shape[cases_not_hospitalised$age_class, "ward_to_ICU"]
+      delay_ICU_mean <- model_parameters$delay_params$
+        compartment_LoS_mean[cases_not_hospitalised$age_class, "ward_to_ICU"]
+      
+      
+      prob_ICU_MLE <- tryCatch(pracma::fzero(
+        function(x) {
+          fn_score_ICU(x, 
+                       nrow(cases_ICU),
+                       notICU_days_since_onset,
+                       delay_hosp_mean, delay_hosp_shape,
+                       delay_ICU_mean, delay_ICU_shape)
+        },
+        
+        x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+      )$x,
+      error = function(c) { return(prob_ICU_naive) })
+      
+      
       
     } else{
       prob_hosp_MLE <- prob_hosp_naive
+      prob_ICU_MLE <- prob_ICU_naive
     }
-    
-    
-    
-    
-    cases_ICU <- cases_hospitalised[.(1), on = "status_ICU"]
-    cases_not_ICU <- cases_hospitalised[!.(1), on = "status_ICU"]
-    
-    
-    
     
     
     tibble(
       prob_hosp_MLE = prob_hosp_MLE,
       prob_hosp_naive = prob_hosp_naive,
       
-      prob_ICU = nrow(cases_ICU) / nrow(cases_hospitalised),
+      prob_ICU_MLE = prob_ICU_MLE,
+      prob_ICU_naive = prob_ICU_naive,
       
       n_cases_hospitalised = nrow(cases_hospitalised),
       
@@ -134,12 +196,13 @@ make_clinical_prob_table <- function(simulation_options,
     mutate(pr_hosp = prob_hosp_MLE * weight_use_hosp + pr_hosp_total * (1 - weight_use_hosp),
            pr_hosp_naive = prob_hosp_naive * weight_use_hosp + pr_hosp_total * (1 - weight_use_hosp),
            
-           pr_ICU = prob_ICU * weight_use_ICU + pr_ICU_total * (1 - weight_use_ICU)) %>%
+           pr_ICU = prob_ICU_MLE * weight_use_ICU + pr_ICU_total * (1 - weight_use_ICU),
+           pr_ICU_naive = prob_ICU_naive * weight_use_ICU + pr_hosp_total * (1 - weight_use_ICU)) %>%
     
-    select(date, pr_hosp, pr_hosp_naive, pr_ICU)
+    select(date, pr_hosp, pr_hosp_naive, pr_ICU, pr_ICU_naive)
   
   clinical_probs_plot <- clinical_probs_results %>%
-    pivot_longer(cols = c(pr_hosp, pr_ICU, pr_hosp_naive)) %>%
+    pivot_longer(cols = c(pr_hosp, pr_ICU, pr_hosp_naive, pr_ICU_naive)) %>%
     mutate(type = if_else(str_detect(name, "naive"), "naive", "adjusted"),
            name = str_remove(name, "_naive"))
   
@@ -155,6 +218,8 @@ make_clinical_prob_table <- function(simulation_options,
     geom_hline(aes(yintercept = y),
                data = tibble(name = "pr_ICU", y = pr_ICU_total),
                linetype = 'dotted') +
+    
+    coord_cartesian(ylim = c(0, NA)) +
     
     theme_minimal() +
     theme(legend.position = 'bottom') +
@@ -266,6 +331,8 @@ make_clinical_prob_table <- function(simulation_options,
     geom_line(aes(x = date, y = value, color = age_class)) +
     
     facet_wrap(~name, ncol = 1) +
+    
+    scale_color_viridis_d() +
     
     theme_minimal() +
     xlab("Date") + ylab("Probability") +
