@@ -56,8 +56,6 @@ make_clinical_prob_table <- function(simulation_options,
   
   
   
-  
-  
   clinical_probs <- function(date_start) {
     n_days_forward <- 14
     dates <- seq(date_start, date_start + n_days_forward, by = 'day')
@@ -68,26 +66,37 @@ make_clinical_prob_table <- function(simulation_options,
     cases_hospitalised <- cases_on_dates[.(1), on = "status_hospital", nomatch = NULL]
     cases_not_hospitalised <- cases_on_dates[!.(1), on = "status_hospital"]
     
+    prob_hosp_naive <- nrow(cases_hospitalised) / nrow(cases_on_dates)
     
-    nothosp_days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
+    # Only perform right-truncation adjustment in the last 14 days as we
+    # expect no effect before this time (99.9% quantile)
     
-    delay_shape <- model_parameters$delay_params$
-      compartment_LoS_shape[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
-    delay_mean <- model_parameters$delay_params$
-      compartment_LoS_shape[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
-    
-    
-    prob_hosp_MLE <- tryCatch(pracma::fzero(
-      function(x) {
-        fn_score_hosp(x, 
-                      nrow(cases_hospitalised),
-                      nothosp_days_since_onset,
-                      delay_shape, delay_mean)
-      },
+    if(data_date - date_start <= ddays(31)) {
       
-      x = c(0+.Machine$double.eps,1-.Machine$double.eps),
-    )$x,
-    error = function(c) { return(pr_hosp_total) })
+      nothosp_days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
+      
+      delay_shape <- model_parameters$delay_params$
+        compartment_LoS_shape[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
+      delay_mean <- model_parameters$delay_params$
+        compartment_LoS_mean[cases_not_hospitalised$age_class,"symptomatic_to_ED"]
+      
+      
+      prob_hosp_MLE <- tryCatch(pracma::fzero(
+        function(x) {
+          fn_score_hosp(x, 
+                        nrow(cases_hospitalised),
+                        nothosp_days_since_onset,
+                        delay_shape, delay_mean)
+        },
+        
+        x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+      )$x,
+      error = function(c) { return(pr_hosp_total) })
+      
+    } else{
+      prob_hosp_MLE <- prob_hosp_naive
+    }
+    
     
     
     
@@ -100,7 +109,7 @@ make_clinical_prob_table <- function(simulation_options,
     
     tibble(
       prob_hosp_MLE = prob_hosp_MLE,
-      prob_hosp_naive = nrow(cases_hospitalised) / nrow(cases_on_dates),
+      prob_hosp_naive = prob_hosp_naive,
       
       prob_ICU = nrow(cases_ICU) / nrow(cases_hospitalised),
       
