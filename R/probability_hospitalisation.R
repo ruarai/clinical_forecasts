@@ -225,7 +225,7 @@ make_clinical_prob_table <- function(simulation_options,
     theme(legend.position = 'bottom') +
     xlab("Date") + ylab("Probability") +
     ggtitle("Age-independent clinical probability timeseries",
-            "With right truncation adjustment (for hospitalisation)")
+            "With right truncation adjustment")
   
   
   

@@ -1,33 +1,114 @@
 
-make_quants <- function(tbl) {
-  data_matrix <- tbl %>%
-    select(starts_with("sim_")) %>%
-    as.matrix()
+
+clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
+
+
+days <- seq(min(clinical_linelist$dt_hosp_admission, na.rm = TRUE),
+            max(clinical_linelist$dt_hosp_discharge, na.rm = TRUE),
+            by ='days') %>% as_date()
+
+
+linelist_data_counts <- tibble(date = days) %>%
+  rowwise() %>%
   
-  id_tbl <- tbl %>%
-    select(!starts_with("sim_"))
+  mutate(count_ward = clinical_linelist %>%
+           filter(dt_hosp_discharge >= date | is.na(dt_hosp_discharge),
+                  dt_hosp_admission <= date,
+                  
+                  is.na(dt_first_icu) | dt_first_icu >= date | dt_last_icu <= date) %>%
+           nrow(),
+         
+         count_ICU = clinical_linelist %>%
+           drop_na(dt_first_icu) %>%
+           filter(dt_last_icu >= date | is.na(dt_last_icu),
+                  dt_first_icu <= date) %>%
+           nrow(),
+         
+         count_died = clinical_linelist %>%
+           filter(patient_died) %>%
+           filter(dt_hosp_discharge <= date) %>%
+           nrow()) %>%
   
-  medians <- data_matrix %>%
-    matrixStats::rowMedians() %>%
-    tibble(median = .)
+  pivot_longer(cols = starts_with("count_"),
+               names_prefix = "count_",
+               values_to = "count",
+               names_to = "group")
+
+
+
+fix_quant <- . %>% mutate(quant = factor(quant, levels = unique(quant)))
+
+p_ward <- ggplot(sim_results$tbl_count_grouped_quants %>% filter(group == "ward")) +
+  geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
   
-  probs <- c(0.5, 0.75, 0.9, 0.95, 0.99)
+  geom_point(aes(x = date, y = count),
+            linelist_data_counts %>% filter(group == "ward"),
+            color = 'gray20', size = 0.7) +
   
-  quant_probs <- c(rev(1 - probs) / 2, 0.5 + probs / 2)
-  quant_names <- c(str_c("lower_", rev(probs) * 100), str_c("upper_", probs * 100))
+  scale_fill_manual(values = c("99" = "#e7cff2",
+                                "95" = "#d3a8e7",
+                                "90" = "#c389de",
+                                "75" = "#b770d7",
+                                "50" = "#ad5cd2")) +
   
-  quants <- data_matrix %>%
-    matrixStats::rowQuantiles(probs = quant_probs) %>%
-    `colnames<-`(quant_names) %>%
-    as_tibble() %>%
-    bind_cols(id_tbl, .) %>%
-    pivot_longer(cols = -all_of(colnames(id_tbl)),
-                 names_to = c("type", "quant"),
-                 names_sep = "_") %>%
-    pivot_wider(names_from = "type",
-                values_from = "value") %>%
-    
-    mutate(quant = factor(quant, levels = as.character(probs * 100)) %>% fct_rev())
+  coord_cartesian(xlim = c(simulation_options$dates$simulation_start,
+                           simulation_options$dates$last_onset_50)) +
   
-  quants
-}
+  ylab("Number Occupied Beds") +
+  xlab("Date") +
+  
+  scale_x_date(labels = scales::label_date_short(),
+               breaks = scales::date_breaks()) +
+  
+  scale_y_continuous(position = 'right') +
+  
+  ggtitle("Ward Occupancy") +
+  
+  cowplot::theme_cowplot() +
+  theme(legend.position = 'none',
+        plot.title = element_text(size = 11,
+                                  face = 'plain'),
+        axis.title = element_text(size = 11,
+                                  face = 'plain'))
+
+
+
+p_ICU <- ggplot(sim_results$tbl_count_grouped_quants %>% filter(group == "ICU")) +
+  geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+  
+  geom_point(aes(x = date, y = count),
+            linelist_data_counts  %>% filter(group == "ICU"),
+            color = 'gray20', size = 0.7) +
+  
+  scale_fill_manual(values = c("99" = "#cfe5cc",
+                               "95" = "#a8d0a3",
+                               "90" = "#89bf82",
+                               "75" = "#70b168",
+                               "50" = "#5ca653")) +
+  
+  coord_cartesian(xlim = c(simulation_options$dates$simulation_start,
+                           simulation_options$dates$last_onset_50)) +
+  
+  ylab("Number Occupied Beds") +
+  xlab("Date") +
+  
+  scale_x_date(labels = scales::label_date_short(),
+               breaks = scales::date_breaks()) +
+  
+  scale_y_continuous(position = 'right') +
+  
+  ggtitle("ICU Occupancy") +
+  
+  cowplot::theme_cowplot() +
+  theme(legend.position = 'none',
+        plot.title = element_text(size = 11,
+                                  face = 'plain'),
+        axis.title = element_text(size = 11,
+                                  face = 'plain'))
+
+cowplot::plot_grid(p_ward, p_ICU, nrow = 1)
+
+ggsave(paste0(simulation_options$dirs$plots, "/report_figs.png"),
+       bg = 'white',
+       width = 10, height = 5,
+       dpi = 400)

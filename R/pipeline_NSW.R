@@ -18,7 +18,7 @@ simulation_options <- make_simulation_options(
   run_name = paste0("NSW-test-", clinical_linelist_date),
   state_modelled = "NSW",
   
-  n_trajectories = 100,
+  n_trajectories = 1000,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
   
@@ -69,7 +69,7 @@ process_NSW_linelist(simulation_options)
 
 
 
-simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
+simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_onset_50
 
 source("R/produce_input_trajectories.R")
 

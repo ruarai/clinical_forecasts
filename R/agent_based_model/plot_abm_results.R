@@ -9,13 +9,12 @@ plot_abm_results <- function(results_all,
   tbl_count_grouped_quants <- results_all$tbl_count_grouped_quants
   
   forecast_date_lines <- list(
-    geom_vline(xintercept = simulation_options$dates$last_infection_50 - 5, linetype = 'dashed'),
     geom_vline(xintercept = simulation_options$dates$last_onset_50, linetype = 'dashed'),
     geom_vline(xintercept = simulation_options$dates$linelist_cutoff, linetype = 'dotted')
   )
   
   p1 <- ggplot(tbl_transitions %>%
-           filter(str_detect(ix, "1-"))) +
+           filter(str_detect(ix, "-1-"))) +
     geom_line(aes(x = date, y = n, group = ix),
               size = 0.1) +
     
@@ -28,7 +27,7 @@ plot_abm_results <- function(results_all,
   
   
   p2 <- ggplot(tbl_count %>%
-           filter(str_detect(ix, "1-"),
+           filter(str_detect(ix, "-1-"),
                   compartment %in% unique(tbl_transitions$new_comp))) +
     geom_line(aes(x = date, y = count, group = ix),
               size = 0.1) +
@@ -45,7 +44,7 @@ plot_abm_results <- function(results_all,
   
   
   ggplot(tbl_count_grouped %>%
-           filter(str_detect(ix, "1-"),
+           filter(str_detect(ix, "-1-"),
                   !is.na(group))) +
     geom_line(aes(x = date, y = count, group = ix),
               size = 0.1) +
@@ -64,7 +63,7 @@ plot_abm_results <- function(results_all,
   
   ggplot(tbl_transitions %>%
            filter(new_comp == "symptomatic_clinical",
-                  str_detect(ix, "1-"))) +
+                  str_detect(ix, "-1-"))) +
     geom_line(aes(x = date, y = n, group = ix),
                size = 0.5) +
     forecast_date_lines +
