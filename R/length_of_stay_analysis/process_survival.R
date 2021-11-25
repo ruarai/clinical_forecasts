@@ -7,11 +7,23 @@ ward_age_breaks <- c(0, 40, 70, Inf) - 1
 death_age_groups <- c("0-69", "70+")
 death_age_breaks <- c(0, 70, Inf) - 1
 
-icu_age_groups <- c("0-39", "40-69", "70+")
-icu_age_breaks <- c(0, 40, 70, Inf) - 1
+ICU_age_groups <- c("0-39", "40-69", "70+")
+ICU_age_breaks <- c(0, 40, 70, Inf) - 1
 
 
 time_diff_to_days <- function(time_diff){ as.numeric(time_diff / ddays(1)) }
+
+
+
+
+data_LoS_onset_to_ward <- clinical_linelist %>%
+  mutate(onset_LoS = time_diff_to_days(dt_hosp_admission - as_datetime(date_onset)),
+         age_class = cut(age, breaks = ward_age_breaks, labels = ward_age_groups))
+
+LoS_onset_to_ward <- flexsurvreg(Surv(time = onset_LoS) ~ 1,
+                                 anc = list(shape = ~age_class),
+                                 dist = "gamma",
+                                 data = data_LoS_onset_to_ward)
 
 
 code_ward_compartment <- function(is_still_in_hosp, ever_in_icu, patient_died) {
@@ -93,33 +105,33 @@ get_compartment_data <- function(full_data, compartment_name, age_breaks, age_gr
 }
   
 
-ward_discharge_data <- get_compartment_data(ward_modelling, "ward_to_discharge",
+data_LoS_ward_to_discharge <- get_compartment_data(ward_modelling, "ward_to_discharge",
                                             ward_age_breaks, ward_age_groups,
                                             "ward_coding")
 
 
-ward_died_data <- get_compartment_data(ward_modelling, "ward_to_death",
+data_LoS_ward_to_death <- get_compartment_data(ward_modelling, "ward_to_death",
                                        death_age_breaks, death_age_groups,
                                        "ward_coding")
 
-ward_ICU_data <- get_compartment_data(ward_modelling, "ward_to_ICU",
-                                      icu_age_breaks, icu_age_groups,
+data_LoS_ward_to_ICU <- get_compartment_data(ward_modelling, "ward_to_ICU",
+                                      ICU_age_breaks, ICU_age_groups,
                                       "ward_coding")
 
-ward_LoS_discharged <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
+LoS_ward_to_discharge <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
                                    anc = list(shape = ~age_class),
                                    dist = "gamma",
-                                   data = ward_discharge_data)
+                                   data = data_LoS_ward_to_discharge)
 
-ward_LoS_died <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
+LoS_ward_to_death <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
                              anc = list(shape = ~age_class),
                              dist = "gamma",
-                             data = ward_died_data)
+                             data = data_LoS_ward_to_death)
 
-ward_LoS_ICU <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
+LoS_ward_to_ICU <- flexsurvreg(Surv(time = ward_LoS, event = ward_censor_code) ~ 1,
                             anc = list(shape = ~age_class),
                             dist = "gamma",
-                            data = ward_ICU_data)
+                            data = data_LoS_ward_to_ICU)
 
 code_ICU_compartment <- function(is_still_in_icu, received_postICU_care, patient_died) {
   case_when(is_still_in_icu ~ "censored",
@@ -153,7 +165,7 @@ ggplot(ICU_modelling) +
                  binwidth = 5) +
   
   geom_vline(aes(xintercept = age),
-             data = tibble(age = icu_age_breaks)) +
+             data = tibble(age = ICU_age_breaks)) +
   
   theme_minimal() +
   
@@ -163,32 +175,32 @@ ggplot(ICU_modelling) +
   theme(legend.position = 'bottom') +
   ggtitle("ICU data w/ age breaks")
 
-ICU_postICU_data <- get_compartment_data(ICU_modelling, "ICU_to_postICU",
-                                         icu_age_breaks, icu_age_groups,
+data_LoS_ICU_to_postICU <- get_compartment_data(ICU_modelling, "ICU_to_postICU",
+                                         ICU_age_breaks, ICU_age_groups,
                                          "ICU_coding")
 
-ICU_discharge_data <- get_compartment_data(ICU_modelling, "ICU_to_discharge",
-                                           icu_age_breaks, icu_age_groups,
+data_LoS_ICU_to_discharge <- get_compartment_data(ICU_modelling, "ICU_to_discharge",
+                                           ICU_age_breaks, ICU_age_groups,
                                            "ICU_coding")
 
-ICU_death_data <-get_compartment_data(ICU_modelling, "ICU_to_death",
+data_LoS_ICU_to_death <-get_compartment_data(ICU_modelling, "ICU_to_death",
                                       death_age_breaks, death_age_groups,
                                       "ICU_coding")
 
-ICU_LoS_postICU <- flexsurvreg(Surv(time = ICU_LoS, event = ICU_censor_code) ~ 1,
+LoS_ICU_to_postICU <- flexsurvreg(Surv(time = ICU_LoS, event = ICU_censor_code) ~ 1,
                                          anc = list(shape = ~age_class),
                                          dist = "gamma",
-                                         data = ICU_postICU_data)
+                                         data = data_LoS_ICU_to_postICU)
 
-ICU_LoS_discharge <- flexsurvreg(Surv(time = ICU_LoS, event = ICU_censor_code) ~ 1,
+LoS_ICU_to_discharge <- flexsurvreg(Surv(time = ICU_LoS, event = ICU_censor_code) ~ 1,
                                      anc = list(shape = ~age_class),
                                      dist = "gamma",
-                                     data = ICU_discharge_data)
+                                     data = data_LoS_ICU_to_discharge)
 
-ICU_LoS_death<- flexsurvreg(Surv(time = ICU_LoS, event = ICU_censor_code) ~ 1,
+LoS_ICU_to_death <- flexsurvreg(Surv(time = ICU_LoS, event = ICU_censor_code) ~ 1,
                             anc = list(shape = ~age_class),
                             dist = "gamma",
-                            data = ICU_death_data)
+                            data = data_LoS_ICU_to_death)
 
 code_postICU_compartment <- function(is_still_in_hosp, patient_died) {
   case_when(is_still_in_hosp ~ "censored",
@@ -202,23 +214,23 @@ postICU_modelling <- ICU_modelling %>%
   mutate(postICU_coding = code_postICU_compartment(is_still_in_hosp, patient_died),
          postICU_censor_code = if_else(postICU_coding == "censored", 0, 1))
 
-postICU_death_data <- get_compartment_data(postICU_modelling, "postICU_to_death",
+data_LoS_postICU_to_death <- get_compartment_data(postICU_modelling, "postICU_to_death",
                                            death_age_breaks, death_age_groups,
                                            "postICU_coding")
 
-postICU_discharge_data <- get_compartment_data(postICU_modelling, "postICU_to_discharge",
-                                               icu_age_breaks, icu_age_groups,
+data_LoS_postICU_to_discharge <- get_compartment_data(postICU_modelling, "postICU_to_discharge",
+                                               ICU_age_breaks, ICU_age_groups,
                                                "postICU_coding")
 
-postICU_LoS_death <- flexsurvreg(Surv(time = postICU_LoS, event = postICU_censor_code) ~ 1,
+LoS_postICU_to_death <- flexsurvreg(Surv(time = postICU_LoS, event = postICU_censor_code) ~ 1,
                                  anc = list(shape = ~age_class),
                                  dist = "gamma",
-                                 data = postICU_death_data)
+                                 data = data_LoS_postICU_to_death)
 
-postICU_LoS_discharge <- flexsurvreg(Surv(time = postICU_LoS, event = postICU_censor_code) ~ 1,
+LoS_postICU_to_discharge <- flexsurvreg(Surv(time = postICU_LoS, event = postICU_censor_code) ~ 1,
                                      anc = list(shape = ~age_class),
                                      dist = "gamma",
-                                     data = postICU_discharge_data)
+                                     data = data_LoS_postICU_to_discharge)
 
 
 create_parameter_table <- function(flexsurvresult, age_groups) {
@@ -241,23 +253,25 @@ create_parameter_table <- function(flexsurvresult, age_groups) {
 }
 
 results_wide_age <- bind_rows(
-  create_parameter_table(ward_LoS_discharged, ward_age_groups) %>% mutate(compartment = "ward_to_discharge"),
-  create_parameter_table(ward_LoS_died, death_age_groups) %>% mutate(compartment = "ward_to_death"),
-  create_parameter_table(ward_LoS_ICU, icu_age_groups) %>% mutate(compartment = "ward_to_ICU"),
+  create_parameter_table(LoS_onset_to_ward, ward_age_groups) %>% mutate(compartment = "symptomatic_to_ED"),
   
-  create_parameter_table(ICU_LoS_postICU, icu_age_groups) %>% mutate(compartment = "ICU_to_postICU"),
-  create_parameter_table(ICU_LoS_discharge, icu_age_groups) %>% mutate(compartment = "ICU_to_discharge"),
-  create_parameter_table(ICU_LoS_death, death_age_groups) %>% mutate(compartment = "ICU_to_death"),
+  create_parameter_table(LoS_ward_to_discharge, ward_age_groups) %>% mutate(compartment = "ward_to_discharge"),
+  create_parameter_table(LoS_ward_to_death, death_age_groups) %>% mutate(compartment = "ward_to_death"),
+  create_parameter_table(LoS_ward_to_ICU, ICU_age_groups) %>% mutate(compartment = "ward_to_ICU"),
   
-  create_parameter_table(postICU_LoS_death, death_age_groups) %>% mutate(compartment = "postICU_to_death"),
-  create_parameter_table(postICU_LoS_discharge, icu_age_groups) %>% mutate(compartment = "postICU_to_discharge"),
+  create_parameter_table(LoS_ICU_to_postICU, ICU_age_groups) %>% mutate(compartment = "ICU_to_postICU"),
+  create_parameter_table(LoS_ICU_to_discharge, ICU_age_groups) %>% mutate(compartment = "ICU_to_discharge"),
+  create_parameter_table(LoS_ICU_to_death , death_age_groups) %>% mutate(compartment = "ICU_to_death"),
+  
+  create_parameter_table(LoS_postICU_to_death, death_age_groups) %>% mutate(compartment = "postICU_to_death"),
+  create_parameter_table(LoS_postICU_to_discharge, ICU_age_groups) %>% mutate(compartment = "postICU_to_discharge"),
 )
 
 
 source("R/length_of_stay_analysis/fn_age_class.R")
 age_class_expansion_table <- tibble(wide_age_class = c(ward_age_groups,
                                                        death_age_groups,
-                                                       icu_age_groups) %>% unique()) %>%
+                                                       ICU_age_groups) %>% unique()) %>%
   rowwise() %>%
   mutate(narrow_age_class = list(breakdown_age_classes(wide_age_class, 5, 80))) %>% 
   unnest(narrow_age_class) %>%
@@ -288,11 +302,11 @@ wide_prob_table <-  bind_rows(
   
   
   make_prob_table(ICU_modelling,
-                  "ICU_coding", icu_age_breaks, icu_age_groups) %>%
+                  "ICU_coding", ICU_age_breaks, ICU_age_groups) %>%
     filter(ICU_coding == "ICU_to_discharge") %>% rename(compartment = ICU_coding),
   
   make_prob_table(ICU_modelling,
-                  "ICU_coding", icu_age_breaks, icu_age_groups) %>%
+                  "ICU_coding", ICU_age_breaks, ICU_age_groups) %>%
     filter(ICU_coding == "ICU_to_postICU") %>% rename(compartment = ICU_coding),
   
   make_prob_table(postICU_modelling,

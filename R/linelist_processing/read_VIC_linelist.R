@@ -3,7 +3,8 @@ process_VIC_linelist <- function(simulation_options) {
   
   print(paste0("Using VIC linelist ", simulation_options$files$clinical_linelist_source))
   
-  VIC_linelist <- read_VIC_linelist(simulation_options$files$clinical_linelist_source)
+  VIC_linelist <- read_VIC_linelist(simulation_options$files$clinical_linelist_source,
+                                    simulation_options$dates$clinical_linelist)
   
   write_rds(VIC_linelist, simulation_options$files$clinical_linelist)
   

@@ -26,7 +26,6 @@ get_model_parameters <- function(parameters_source) {
                          show_col_types = FALSE)
   
   
-  symptomatic_to_ED <- model_params_base$delay_params$compartment_LoS_mean[, "symptomatic_to_ED"]
   params_mean_mat <- LoS_params %>%
     select(age_class, compartment, value = mean) %>%
     pivot_wider(names_from = compartment, values_from = value) %>%
@@ -34,11 +33,8 @@ get_model_parameters <- function(parameters_source) {
     slice(1:17) %>%
     select(-age_class) %>%
     as.matrix() %>%
-    `rownames<-`(covariates_age) %>%
-    
-    cbind(symptomatic_to_ED, .)
+    `rownames<-`(covariates_age)
   
-  symptomatic_to_ED <- model_params_base$delay_params$compartment_LoS_shape[, "symptomatic_to_ED"]
   params_shape_mat <- LoS_params %>%
     select(age_class, compartment, value = shape) %>%
     pivot_wider(names_from = compartment, values_from = value) %>%
@@ -46,9 +42,7 @@ get_model_parameters <- function(parameters_source) {
     slice(1:17) %>%
     select(-age_class) %>%
     as.matrix() %>%
-    `rownames<-`(covariates_age) %>%
-    
-    cbind(symptomatic_to_ED, .)
+    `rownames<-`(covariates_age)
   
   model_params_base$delay_params$compartment_LoS_mean <- params_mean_mat
   model_params_base$delay_params$compartment_LoS_shape <- params_shape_mat
