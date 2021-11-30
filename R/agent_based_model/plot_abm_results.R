@@ -92,6 +92,9 @@ plot_abm_results <- function(results_all,
   plot_ED_capacity(sim_results, simulation_options,
                    forecast_date_lines)
   
+  source("R/agent_based_model/reporting_figures.R")
+  reporting_comp_quants(sim_results, simulation_options)
+  
 }
 
 plot_group_counts <- function(sim_results, simulation_options,

@@ -7,15 +7,17 @@ source("R/data_processing/data_fns.R")
 ## NSW
 
 clinical_linelist_dir <- "/usr/local/forecasting/linelist_data/NSW/"
-clinical_linelist_date <- ymd("2021-11-08")
+clinical_linelist_date <- ymd("2021-11-25")
 
 clinical_linelist_source <- paste0(clinical_linelist_dir,
                                    "NSW_out_episode_",
                                    format(clinical_linelist_date, "%d%m%y"),
                                    ".xlsx")
 
+run_type <- "prod"
+
 simulation_options <- make_simulation_options(
-  run_name = paste0("NSW-test-", clinical_linelist_date),
+  run_name = paste0("NSW-", run_type, "-", clinical_linelist_date),
   state_modelled = "NSW",
   
   n_trajectories = 1000,
@@ -26,7 +28,7 @@ simulation_options <- make_simulation_options(
   
   clinical_linelist_source = clinical_linelist_source,
   
-  parameters_source_dir = "results_length_of_stay/NSW-2021-11-08/"
+  parameters_source_dir = "results_length_of_stay/NSW-2021-11-25/"
 )
 
 
@@ -67,6 +69,10 @@ make_clinical_prob_table(simulation_options,
 source("R/linelist_processing/read_NSW_linelist.R")
 process_NSW_linelist(simulation_options)
 
+source("R/data_processing/data_sharing.R")
+make_timeseries_from_occupancy(simulation_options)
+upload_mf_sharing()
+
 
 
 simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_onset_50
@@ -84,7 +90,8 @@ sim_results <- run_simulations(input_trajectories,
                                simulation_options,
                                model_parameters)
 
-#write_rds(sim_results, simulation_options$files$sim_results)
+write_rds(sim_results, simulation_options$files$sim_results,
+          compress = "gz")
 
 source("R/sanity_checks.R")
 perform_sanity_checks(simulation_options, model_parameters,

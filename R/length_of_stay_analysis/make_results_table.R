@@ -3,20 +3,11 @@
 
 results_wide_age %>%
   mutate(var = shape / rate ^ 2,
-         stdev = sqrt(var)) %>% 
-  select(compartment, age_class, stdev) %>%
+         stdev = sqrt(var),
+         result = str_c(round(mean,2), " (", round(stdev,2), ")")) %>% 
+  select(compartment, age_class, result) %>%
+  filter(compartment == "symptomatic_to_ED") %>%
   pivot_wider(names_from = compartment,
-              values_from = stdev) %>%
+              values_from = result)# %>%
   
-  write_csv(paste0(output_dir, "/tbl_stdev.csv"))
-
-results_wide_age %>%
-  select(compartment, age_class, mean) %>%
-  pivot_wider(names_from = compartment,
-              values_from = mean) %>%
-  
-  write_csv(paste0(output_dir, "/tbl_mean.csv"))
-
-
-wide_prob_table %>%
-  write_csv(paste0(output_dir, "/tbl_prob.csv"))
+  write_csv(paste0(output_dir, "/tbl_result.csv"))

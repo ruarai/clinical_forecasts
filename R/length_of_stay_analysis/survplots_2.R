@@ -1,13 +1,54 @@
 
-obs_data <- list("onset_to_ward" = data_LoS_onset_to_ward %>% mutate(onset_coding = "-"),
-                 "ward_to_discharge" = data_LoS_ward_to_discharge,
-                 "ward_to_death" = data_LoS_ward_to_death,
-                 "ward_to_ICU" = data_LoS_ward_to_ICU,
-                 "ICU_to_discharge" = data_LoS_ICU_to_discharge, 
-                 "ICU_to_death" = data_LoS_ICU_to_death,
-                 "ICU_to_postICU" = data_LoS_ICU_to_postICU,
-                 "postICU_to_death" = data_LoS_postICU_to_death,
-                 "postICU_to_discharge" = data_LoS_postICU_to_discharge)
+obs_data <- list(
+  "onset_to_ward" = data_LoS_onset_to_ward %>% mutate(onset_coding = "-"),
+  
+  "ward_to_discharge" = data_LoS_ward_to_discharge,
+  "ward_to_death" = data_LoS_ward_to_death,
+  "ward_to_ICU" = data_LoS_ward_to_ICU,
+  
+  "ICU_to_discharge" = data_LoS_ICU_to_discharge, 
+  "ICU_to_death" = data_LoS_ICU_to_death,
+  "ICU_to_postICU" = data_LoS_ICU_to_postICU,
+  
+  "postICU_to_death" = data_LoS_postICU_to_death,
+  "postICU_to_discharge" = data_LoS_postICU_to_discharge)
+
+
+wide_prob_table_full <- bind_rows(
+  wide_prob_table %>%
+    select(compartment, age_class, pr = prob),
+  
+  data_LoS_onset_to_ward %>%
+    mutate(compartment = "onset_to_ward", pr = 1) %>%
+    distinct(compartment, age_class, pr),
+  
+  make_prob_table(ward_modelling,
+                  "ward_coding", death_age_breaks, death_age_groups) %>%
+    filter(ward_coding != "ward_to_death") %>% 
+    rename(compartment = ward_coding) %>% 
+    group_by(age_class) %>% 
+    summarise(pr = 1 - sum(prob)) %>% 
+    mutate(compartment = "ward_to_death") %>%
+    select(compartment, age_class, pr),
+  
+  make_prob_table(ICU_modelling,
+                  "ICU_coding", death_age_breaks, death_age_groups) %>%
+    filter(ICU_coding != "ICU_to_death") %>% 
+    rename(compartment = ICU_coding) %>% 
+    group_by(age_class) %>% 
+    summarise(pr = 1 - sum(prob)) %>% 
+    mutate(compartment = "ICU_to_death") %>%
+    select(compartment, age_class, pr),
+  
+  make_prob_table(postICU_modelling,
+                  "postICU_coding", ward_age_breaks, ward_age_groups) %>%
+    filter(postICU_coding != "postICU_to_discharge") %>% 
+    rename(compartment = postICU_coding) %>% 
+    group_by(age_class) %>% 
+    summarise(pr = 1 - sum(prob)) %>% 
+    mutate(compartment = "postICU_to_discharge") %>%
+    select(compartment, age_class, pr),
+)
 
 observed_data <- 1:length(obs_data) %>%
   map_dfr(function(i) {
@@ -39,14 +80,23 @@ obs_data_ecdf <- observed_data %>%
   bind_rows(
     observed_data %>% distinct(compartment, age_class) %>% mutate(y = 0, LoS = 0),
     observed_data %>% distinct(compartment, age_class) %>% mutate(y = 1, LoS = 1000)
-  )
+  )# %>%
+  
+  # left_join(wide_prob_table_full) %>%
+  # mutate(y = pr * y)
 
 LoS_fits <- list(
   "onset_to_ward" = LoS_onset_to_ward,
+  
   "ward_to_discharge" = LoS_ward_to_discharge,
-  "ward_to_death" = LoS_ward_to_death, "ward_to_ICU" = LoS_ward_to_ICU,
-  "ICU_to_discharge" = LoS_ICU_to_discharge, "ICU_to_death" = LoS_ICU_to_death,
-  "ICU_to_postICU" = LoS_ICU_to_postICU, "postICU_to_death" =LoS_postICU_to_death,
+  "ward_to_death" = LoS_ward_to_death,
+  "ward_to_ICU" = LoS_ward_to_ICU,
+  
+  "ICU_to_discharge" = LoS_ICU_to_discharge, 
+  "ICU_to_death" = LoS_ICU_to_death,
+  "ICU_to_postICU" = LoS_ICU_to_postICU,
+  
+  "postICU_to_death" =LoS_postICU_to_death,
   "postICU_to_discharge" = LoS_postICU_to_discharge
 )
 
@@ -71,7 +121,12 @@ fit_plots <- 1:length(LoS_fits) %>% map_dfr(function(i) {
            compartment = names(LoS_fits)[i])
   
   fit_summary_tbl
-})
+}) #%>%
+  
+  # left_join(wide_prob_table_full) %>%
+  # mutate(lcl = 1 - (1 - lcl) * pr,
+  #        ucl = 1 - (1 - ucl) * pr,
+  #        est = 1 - (1 - est) * pr)
 
 
 
@@ -83,8 +138,13 @@ p_list <- map(comp_names, function(i_comp) {
   filter_comp <- . %>% filter(compartment == i_comp)
   
   ggplot() +
+    # 
+    # geom_hline(aes(yintercept = 1 - pr),
+    #            wide_prob_table_full %>% filter_comp,
+    #            color = '#009E73',
+    #            linetype = 'dotted') +
     
-    geom_line(aes(x = time, y = est),
+    geom_line(aes(x = time, y =  est),
               color = '#009E73',
               data = fit_plots %>% filter_comp) +
     
@@ -100,11 +160,15 @@ p_list <- map(comp_names, function(i_comp) {
                pch = 4,
                obs_data_ecdf %>% filter(censored) %>% filter_comp) +
     
+    geom_blank(aes(y = pmin(1,(pr * 1.2))),
+               wide_prob_table_full %>% filter_comp) +
+    
     coord_cartesian(xlim = c(0, 40)) +
     
     xlab("Time (days)") + ylab("Probability") +
     
-    facet_wrap(~age_class) +
+    facet_wrap(~age_class, scale = if_else(i_comp == "ward_to_death" , "free_y",
+                                           "fixed")) +
     
     ggtitle(i_comp) +
     

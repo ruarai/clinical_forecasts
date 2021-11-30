@@ -9,7 +9,7 @@ setwd("/usr/local/forecasting/source/covid19_aus_clinical_forecasting/")
 
 
 state_modelled <- "NSW"
-data_date_str <- "161121"
+data_date_str <- "251121"
 data_date <- dmy(data_date_str)
 
 output_dir <- paste0("results_length_of_stay/", state_modelled, "-", data_date)

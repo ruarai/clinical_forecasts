@@ -48,6 +48,9 @@ process_NNDSS_linelist <- function(simulation_options) {
                                   !is.na(NOTIFICATION_DATE)         ~ NOTIFICATION_DATE,
                                   !is.na(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE) %>% lubridate::date(),
            
+           date_diagnosis = case_when(!is.na(NOTIFICATION_DATE)         ~ NOTIFICATION_DATE,
+                                      !is.na(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE) %>% lubridate::date(),
+           
            status_ICU = case_when(is.na(CV_ICU) ~ 0,
                                   TRUE          ~ CV_ICU),
            
@@ -63,6 +66,7 @@ process_NNDSS_linelist <- function(simulation_options) {
     
     select(state = STATE,
            date_onset,
+           date_diagnosis,
            age = AGE_AT_ONSET,
            age_class,
            status_hospital,

@@ -70,7 +70,9 @@ read_VIC_linelist <- function(linelist_raw_path,
            death_date = DateOfDeath,
            age_class_vic = AgeGroup_5yr,
            #age = Age,
-           vaccinated = Vaccine_Status
+           vaccinated = Vaccine_Status,
+           
+           diagnosis_date = DiagnosisDate
            ) %>%
     
     drop_na(age_class_vic) %>%
@@ -169,6 +171,7 @@ read_VIC_linelist <- function(linelist_raw_path,
     filter(is_interval_incorrect(admit_date, first_icu_date, last_icu_date, discharge_date))
   
   
+  
   print("Rows with dates too early:")
   print(early_dated_entries)
   
@@ -227,7 +230,9 @@ read_VIC_linelist <- function(linelist_raw_path,
            ever_in_icu,
            patient_died,
            
-           vaccinated
+           vaccinated,
+           
+           diagnosis_date
           )
   
   

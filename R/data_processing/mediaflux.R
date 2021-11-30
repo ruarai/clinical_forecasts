@@ -138,3 +138,20 @@ download_latest_mediaflux_files <- function(simulation_options,
             latest_vacc_file,
             latest_local_cases_file)
 }
+
+
+
+upload_mflux_sharing <- function() {
+  
+  
+  mediaflux_call <- paste0(
+    "~/unimelb-mf-clients-0.6.3/bin/unix/unimelb-mf-upload",
+    " --mf.config ~/auth_keys/mflux.cfg",
+    " --namespace /projects/proj-6200_nndss_covid19_data_repository-1128.4.270/",
+    " /usr/local/forecasting/clinical_forecasts/")
+  
+  system(mediaflux_call)
+  
+}
+
+

@@ -70,7 +70,12 @@ produce_input_trajectories <- function(simulation_options,
                             col_types = ensemble_spec)
   clinical_prob_table <- read_rds(simulation_options$files$clinical_prob_table)
   
+  print(table(ensemble_data$.model))
+  print("Excluding DST forecast")
+  
   ensembles_wide <- ensemble_data %>%
+    filter(.model != "dst") %>%
+    
     select(-forecast_origin) %>%
     pivot_wider(names_from = ".model", values_from = starts_with("sim"))
   

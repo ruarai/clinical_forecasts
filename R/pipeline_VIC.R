@@ -7,18 +7,20 @@ source("R/data_processing/data_fns.R")
 ## VIC
 
 clinical_linelist_dir <- "/usr/local/forecasting/linelist_data/VIC/"
-clinical_linelist_date <- ymd("2021-11-15")
+clinical_linelist_date <- ymd("2021-11-28")
 
 
 clinical_linelist_source <- paste0(clinical_linelist_dir,
                                    format(clinical_linelist_date, "%Y%m%d"),
                                    "_Individual_Stay_Data.csv")
 
+run_type <- "prod"
+
 simulation_options <- make_simulation_options(
-  run_name = paste0("VIC-test-", clinical_linelist_date),
+  run_name = paste0("VIC-", run_type, "-", clinical_linelist_date),
   state_modelled = "VIC",
   
-  n_trajectories = 100,
+  n_trajectories = 1000,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
   
@@ -26,17 +28,13 @@ simulation_options <- make_simulation_options(
   
   clinical_linelist_source = clinical_linelist_source,
   
-  parameters_source_dir = "results_length_of_stay/NSW-2021-11-08/"
+  parameters_source_dir = "results_length_of_stay/NSW-2021-11-16/"
 )
 
 
 source("R/data_processing/mediaflux.R")
 mf_dates <- download_latest_mediaflux_files(simulation_options)
 
-
-source("R/data_processing/dropbox.R")
-download_files(tibble(remote_file = "/covid_output/local_cases_input.csv",
-                      local_file = simulation_options$files$local_cases))
 
 
 update_c19data()
@@ -66,11 +64,14 @@ source("R/probability_hospitalisation.R")
 make_clinical_prob_table(simulation_options,
                          model_parameters)
 
-
+simulation_options$dates$clinical_linelist <- clinical_linelist_date
 source("R/linelist_processing/read_VIC_linelist.R")
 process_VIC_linelist(simulation_options)
 
 
+source("R/data_processing/data_sharing.R")
+make_timeseries_from_occupancy(simulation_options)
+upload_mflux_sharing()
 
 simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
 
@@ -87,7 +88,12 @@ sim_results <- run_simulations(input_trajectories,
                                simulation_options,
                                model_parameters)
 
-#write_rds(sim_results, simulation_options$files$sim_results)
+write_rds(sim_results, simulation_options$files$sim_results,
+          compress = "gz")
+
+source("R/sanity_checks.R")
+perform_sanity_checks(simulation_options, model_parameters,
+                      input_trajectories, sim_results)
 
 source("R/agent_based_model/plot_abm_results.R")
 
