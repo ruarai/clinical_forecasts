@@ -13,42 +13,41 @@ obs_data <- list(
   "postICU_to_death" = data_LoS_postICU_to_death,
   "postICU_to_discharge" = data_LoS_postICU_to_discharge)
 
-
-wide_prob_table_full <- bind_rows(
-  wide_prob_table %>%
-    select(compartment, age_class, pr = prob),
-  
-  data_LoS_onset_to_ward %>%
-    mutate(compartment = "onset_to_ward", pr = 1) %>%
-    distinct(compartment, age_class, pr),
-  
-  make_prob_table(ward_modelling,
-                  "ward_coding", death_age_breaks, death_age_groups) %>%
-    filter(ward_coding != "ward_to_death") %>% 
-    rename(compartment = ward_coding) %>% 
-    group_by(age_class) %>% 
-    summarise(pr = 1 - sum(prob)) %>% 
-    mutate(compartment = "ward_to_death") %>%
-    select(compartment, age_class, pr),
-  
-  make_prob_table(ICU_modelling,
-                  "ICU_coding", death_age_breaks, death_age_groups) %>%
-    filter(ICU_coding != "ICU_to_death") %>% 
-    rename(compartment = ICU_coding) %>% 
-    group_by(age_class) %>% 
-    summarise(pr = 1 - sum(prob)) %>% 
-    mutate(compartment = "ICU_to_death") %>%
-    select(compartment, age_class, pr),
-  
-  make_prob_table(postICU_modelling,
-                  "postICU_coding", ward_age_breaks, ward_age_groups) %>%
-    filter(postICU_coding != "postICU_to_discharge") %>% 
-    rename(compartment = postICU_coding) %>% 
-    group_by(age_class) %>% 
-    summarise(pr = 1 - sum(prob)) %>% 
-    mutate(compartment = "postICU_to_discharge") %>%
-    select(compartment, age_class, pr),
-)
+# wide_prob_table_full <- bind_rows(
+#   wide_prob_table %>%
+#     select(compartment, age_class, pr = prob),
+#   
+#   data_LoS_onset_to_ward %>%
+#     mutate(compartment = "onset_to_ward", pr = 1) %>%
+#     distinct(compartment, age_class, pr),
+#   
+#   make_prob_table(ward_modelling,
+#                   "ward_coding", death_age_breaks, death_age_groups) %>%
+#     filter(ward_coding != "ward_to_death") %>% 
+#     rename(compartment = ward_coding) %>% 
+#     group_by(age_class) %>% 
+#     summarise(pr = 1 - sum(prob)) %>% 
+#     mutate(compartment = "ward_to_death") %>%
+#     select(compartment, age_class, pr),
+#   
+#   make_prob_table(ICU_modelling,
+#                   "ICU_coding", death_age_breaks, death_age_groups) %>%
+#     filter(ICU_coding != "ICU_to_death") %>% 
+#     rename(compartment = ICU_coding) %>% 
+#     group_by(age_class) %>% 
+#     summarise(pr = 1 - sum(prob)) %>% 
+#     mutate(compartment = "ICU_to_death") %>%
+#     select(compartment, age_class, pr),
+#   
+#   make_prob_table(postICU_modelling,
+#                   "postICU_coding", ward_age_breaks, ward_age_groups) %>%
+#     filter(postICU_coding != "postICU_to_discharge") %>% 
+#     rename(compartment = postICU_coding) %>% 
+#     group_by(age_class) %>% 
+#     summarise(pr = 1 - sum(prob)) %>% 
+#     mutate(compartment = "postICU_to_discharge") %>%
+#     select(compartment, age_class, pr),
+# )
 
 observed_data <- 1:length(obs_data) %>%
   map_dfr(function(i) {
@@ -121,13 +120,7 @@ fit_plots <- 1:length(LoS_fits) %>% map_dfr(function(i) {
            compartment = names(LoS_fits)[i])
   
   fit_summary_tbl
-}) #%>%
-  
-  # left_join(wide_prob_table_full) %>%
-  # mutate(lcl = 1 - (1 - lcl) * pr,
-  #        ucl = 1 - (1 - ucl) * pr,
-  #        est = 1 - (1 - est) * pr)
-
+}) 
 
 
 
@@ -167,14 +160,16 @@ p_list <- map(comp_names, function(i_comp) {
     
     xlab("Time (days)") + ylab("Probability") +
     
-    facet_wrap(~age_class, scale = if_else(i_comp == "ward_to_death" , "free_y",
-                                           "fixed")) +
+    facet_wrap(~age_class, scale = "fixed") +
     
     ggtitle(i_comp) +
     
     theme_minimal() +
     theme(plot.title = element_text(face = 'plain',
                                     size = 12),
+          plot.title.position = "plot",
+          plot.margin = margin(b = 10),
+          axis.title.y = element_text(margin = margin(l = 10, r = 5)),
           axis.title.x = element_blank())
   
 })
