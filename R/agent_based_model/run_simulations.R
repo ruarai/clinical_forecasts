@@ -96,6 +96,15 @@ run_single_simulation <- function(case_linelist,
       
       pivot_longer(cols = -c(date, t), names_to = "compartment", values_to = "count")
     
+    tbl_count_active <- apply(results$compartment_active_counts, MARGIN = 2, cumsum)[,1:length(compartment_names_true)] %>%
+      `colnames<-`(compartment_names_true) %>%
+      as_tibble() %>%
+      
+      mutate(t = row_number(),
+             date = simulation_options$dates$simulation_start + t) %>%
+      
+      pivot_longer(cols = -c(date, t), names_to = "compartment", values_to = "count")
+    
     
     
     tbl_count_grouped <- tbl_count %>%
@@ -105,8 +114,17 @@ run_single_simulation <- function(case_linelist,
       summarise(count = sum(count), .groups = "drop")
     
     
+    tbl_count_active_grouped <- tbl_count_active %>%
+      mutate(group = summary_groups[compartment]) %>%
+      
+      group_by(date, group) %>%
+      summarise(count = sum(count), .groups = "drop")
+    
+    
     list(tbl_count = tbl_count,
          tbl_count_grouped = tbl_count_grouped,
+         
+         tbl_count_active_grouped = tbl_count_active_grouped,
          
          tbl_transitions = tbl_transitions,
          tbl_transitions_grouped = tbl_transitions_grouped)
@@ -118,12 +136,17 @@ run_single_simulation <- function(case_linelist,
   
   tbl_count <- map_dfr(results_samples, function(r) r$tbl_count, .id = "sample_ix")
   tbl_count_grouped <- map_dfr(results_samples, function(r) r$tbl_count_grouped, .id = "sample_ix")
+  
+  tbl_count_active_grouped <- map_dfr(results_samples, function(r) r$tbl_count_active_grouped, .id = "sample_ix")
+  
   tbl_transitions <- map_dfr(results_samples, function(r) r$tbl_transitions, .id = "sample_ix")
   tbl_transitions_grouped <- map_dfr(results_samples, function(r) r$tbl_transitions_grouped, .id = "sample_ix")
   
   
   list(tbl_count = tbl_count,
        tbl_count_grouped = tbl_count_grouped,
+       
+       tbl_count_active_grouped = tbl_count_active_grouped,
        
        tbl_transitions = tbl_transitions,
        tbl_transitions_grouped = tbl_transitions_grouped)
@@ -142,11 +165,16 @@ run_worker_jobs <-  function(linelists) {
   
   tbl_count <- map_dfr(results_worker, function(r) r$tbl_count, .id = "worker_ix")
   tbl_count_grouped <- map_dfr(results_worker, function(r) r$tbl_count_grouped, .id = "worker_ix")
+  
+  tbl_count_active_grouped <- map_dfr(results_worker, function(r) r$tbl_count_active_grouped, .id = "worker_ix")
+  
   tbl_transitions <- map_dfr(results_worker, function(r) r$tbl_transitions, .id = "worker_ix")
   tbl_transitions_grouped <- map_dfr(results_worker, function(r) r$tbl_transitions_grouped, .id = "worker_ix")
   
   list(tbl_count = tbl_count,
        tbl_count_grouped = tbl_count_grouped,
+       
+       tbl_count_active_grouped = tbl_count_active_grouped,
        
        tbl_transitions = tbl_transitions,
        tbl_transitions_grouped = tbl_transitions_grouped)
@@ -182,6 +210,9 @@ run_simulations <- function(input_trajectories,
   tbl_count <- map_dfr(results_all, function(r) r$tbl_count, .id = "job_ix") %>%
     mutate(ix = str_c(job_ix, "-", worker_ix ,"-",  sample_ix)) %>% select(-c(job_ix, worker_ix, sample_ix))
   tbl_count_grouped <- map_dfr(results_all, function(r) r$tbl_count_grouped, .id = "job_ix") %>%
+    mutate(ix = str_c(job_ix, "-", worker_ix ,"-",  sample_ix)) %>% select(-c(job_ix, worker_ix, sample_ix))
+  
+  tbl_count_active_grouped <- map_dfr(results_all, function(r) r$tbl_count_active_grouped, .id = "job_ix") %>%
     mutate(ix = str_c(job_ix, "-", worker_ix ,"-",  sample_ix)) %>% select(-c(job_ix, worker_ix, sample_ix))
   
   tbl_transitions <- map_dfr(results_all, function(r) r$tbl_transitions, .id = "job_ix") %>%
@@ -233,6 +264,11 @@ run_simulations <- function(input_trajectories,
     mutate(group = replace_na(group, "other")) %>%
     make_quants()
   
+  tbl_count_active_grouped_quants <- tbl_count_active_grouped %>%
+    pivot_wider(names_from = "ix", names_prefix = "sim_",
+                values_from = "count") %>%
+    make_quants()
+  
   tbl_transitions_quants <- tbl_transitions %>%
     pivot_wider(names_from = ix,
                 values_from = n,
@@ -252,6 +288,7 @@ run_simulations <- function(input_trajectories,
   list(tbl_count = tbl_count,
        tbl_count_grouped = tbl_count_grouped,
        tbl_count_grouped_quants = tbl_count_grouped_quants,
+       tbl_count_active_grouped_quants = tbl_count_active_grouped_quants,
        
        tbl_transitions = tbl_transitions,
        tbl_transitions_quants = tbl_transitions_quants,

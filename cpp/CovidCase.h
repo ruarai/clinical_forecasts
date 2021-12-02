@@ -21,7 +21,13 @@ public:
   double GetNextCompartmentTriggerTime();
   void TriggerNextCompartment();
   
+  void TriggerInactive();
+  
+  double GetActiveChangeTriggerTime();
+  
   CaseCompartment GetCurrentCompartment();
+  
+  bool IsActiveCase();
   
 private:
   
@@ -31,6 +37,9 @@ private:
   std::string vaccine_status;
   
   double next_compartment_trigger_time;
+  double active_change_trigger_time;
+  
+  bool is_active_case;
   
   CaseParameterSamples case_parameter_samples;
   

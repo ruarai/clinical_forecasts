@@ -40,13 +40,19 @@ std::array<double, 4> create_plot_datapoint(int case_index, double t,
 void call_transition(CovidCase &covid_case, int case_ix,
                      double time_in_compartment[],
                      double next_compartment_trigger_time[],
+                                                         
+                     double time_in_active_state[],
+                     double active_change_trigger_time[],
                      
                      std::vector<std::array<double, 4>> &transitions,
                      NumericMatrix &compartment_counts,
+                     NumericMatrix &compartment_active_counts,
                      
                      double t, double dt, int steps_per_day) {
   
   int old_compartment = static_cast<int>(covid_case.GetCurrentCompartment());
+  
+  bool was_active = covid_case.IsActiveCase();
   
   covid_case.TriggerNextCompartment();
   
@@ -54,6 +60,19 @@ void call_transition(CovidCase &covid_case, int case_ix,
   
   time_in_compartment[case_ix] = 0;
   next_compartment_trigger_time[case_ix] = covid_case.GetNextCompartmentTriggerTime();
+  
+  if(covid_case.IsActiveCase()) {
+    compartment_active_counts(t / steps_per_day, new_compartment) += 1;
+    
+    if(was_active) {
+      compartment_active_counts(t / steps_per_day, old_compartment) -= 1;
+      
+    } else {
+      time_in_active_state[case_ix] = 0;
+      active_change_trigger_time[case_ix] = covid_case.GetActiveChangeTriggerTime();
+    }
+    
+  }
   
   
   compartment_counts(t / steps_per_day, old_compartment) -= 1;
@@ -103,7 +122,11 @@ List process_loop(NumericMatrix case_param_matrix,
   double time_in_compartment[n_cases];
   double next_compartment_trigger_time[n_cases];
   
+  double time_in_active_state[n_cases];
+  double active_change_trigger_time[n_cases];
+  
   NumericMatrix compartment_counts(n_days, 14);
+  NumericMatrix compartment_active_counts(n_days, 14);
   ClinicalQueue* ED_queue = new ClinicalQueue(ED_queue_capacity, CaseCompartment::Ward);
   
   for(int i = 0; i < n_cases; i++) {
@@ -113,6 +136,9 @@ List process_loop(NumericMatrix case_param_matrix,
     
     time_in_compartment[i] = 0;
     next_compartment_trigger_time[i] = case_array[i]->GetNextCompartmentTriggerTime();
+    
+    time_in_active_state[i] = 0;
+    active_change_trigger_time[i] = std::numeric_limits<double>::infinity();
     
     compartment_counts(0, 0) += 1;
   }
@@ -126,14 +152,28 @@ List process_loop(NumericMatrix case_param_matrix,
     
     for(int i = 0; i < n_cases; i++) {
       time_in_compartment[i] += dt;
+      time_in_active_state[i] += dt;
       
       if(time_in_compartment[i] >= next_compartment_trigger_time[i]) {
         CovidCase& i_case = *case_array[i];
         
         call_transition(i_case, i,
                         time_in_compartment, next_compartment_trigger_time,
-                        transitions, compartment_counts,
+                        time_in_active_state, active_change_trigger_time,
+                        transitions,
+                        compartment_counts, compartment_active_counts,
                         t, dt, steps_per_day);
+      }
+      
+      if(time_in_active_state[i] >= active_change_trigger_time[i]) {
+        CovidCase& i_case = *case_array[i];
+        
+        i_case.TriggerInactive();
+        
+        int curr_compartment = static_cast<int>(i_case.GetCurrentCompartment());
+        
+        compartment_active_counts(t / steps_per_day, curr_compartment) -= 1;
+        active_change_trigger_time[i] = std::numeric_limits<double>::infinity();
       }
     }
     
@@ -144,14 +184,17 @@ List process_loop(NumericMatrix case_param_matrix,
       
       call_transition(*i_case, i,
                       time_in_compartment, next_compartment_trigger_time,
-                      transitions, compartment_counts,
+                      time_in_active_state, active_change_trigger_time,
+                      transitions,
+                      compartment_counts, compartment_active_counts,
                       t, dt, steps_per_day);
     }
   }
   
   return List::create(
     _["transitions"] = transitions, 
-    _["compartment_counts"] = compartment_counts
+    _["compartment_counts"] = compartment_counts,
+    _["compartment_active_counts"] = compartment_active_counts
   );
 }
 

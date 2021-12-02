@@ -38,7 +38,7 @@ mf_dates <- download_latest_mediaflux_files(simulation_options,
 
 
 
-update_c19data()
+#update_c19data()
 
 
 simulation_options$dates <- get_forecast_dates(

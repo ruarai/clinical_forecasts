@@ -7,20 +7,20 @@ source("R/data_processing/data_fns.R")
 ## VIC
 
 clinical_linelist_dir <- "/usr/local/forecasting/linelist_data/VIC/"
-clinical_linelist_date <- ymd("2021-11-28")
+clinical_linelist_date <- ymd("2021-11-24")
 
 
 clinical_linelist_source <- paste0(clinical_linelist_dir,
                                    format(clinical_linelist_date, "%Y%m%d"),
                                    "_Individual_Stay_Data.csv")
 
-run_type <- "prod"
+run_type <- "test"
 
 simulation_options <- make_simulation_options(
   run_name = paste0("VIC-", run_type, "-", clinical_linelist_date),
   state_modelled = "VIC",
   
-  n_trajectories = 1000,
+  n_trajectories = 50,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
   

@@ -19,6 +19,8 @@ CovidCase::CovidCase(int ix,
   this->case_parameter_samples = case_parameter_samples;
   this->next_compartment_trigger_time = case_parameter_samples.time_of_infection;
   
+  this->is_active_case = false;
+  
   
   this->ED_queue = ED_queue;
 }
@@ -28,8 +30,15 @@ int CovidCase::GetIndex() { return(ix); }
 double CovidCase::GetNextCompartmentTriggerTime() {
   return(next_compartment_trigger_time);
 }
+double CovidCase::GetActiveChangeTriggerTime() {
+  return(active_change_trigger_time);
+}
+
 CaseCompartment CovidCase::GetCurrentCompartment() {
   return(compartment);
+}
+bool CovidCase::IsActiveCase() {
+  return(is_active_case);
 }
 
 void CovidCase::TriggerNextCompartment() {
@@ -64,6 +73,11 @@ void CovidCase::TriggerNextCompartment() {
   }
 }
 
+void CovidCase::TriggerInactive() {
+  is_active_case = false;
+  active_change_trigger_time = std::numeric_limits<double>::infinity();
+}
+
 
 
 void CovidCase::transitionSusceptibleSymptomatic() {
@@ -72,6 +86,9 @@ void CovidCase::transitionSusceptibleSymptomatic() {
      R::runif(0, 1) <= case_parameter_samples.pr_hosp) {
     compartment = CaseCompartment::Symptomatic;
     next_compartment_trigger_time = case_parameter_samples.LoS_symptomatic_to_ED;
+    
+    is_active_case = true;
+    active_change_trigger_time = 14;
   } else{
     compartment = CaseCompartment::Symptomatic_NonClinical;
     next_compartment_trigger_time = std::numeric_limits<double>::infinity();
