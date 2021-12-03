@@ -7,7 +7,7 @@ produce_input_trajectories <- function(simulation_options,
   
   ### Backcast linelist creation:
   
-  vaccination_prob_table <- read_rds(simulation_options$files$vacc_prob_table)
+  #vaccination_prob_table <- read_rds(simulation_options$files$vacc_prob_table)
   
   # Ignoring population vaccination rates, expecting that ~10% of hospitalizations
   # are vaccinated
@@ -22,19 +22,19 @@ produce_input_trajectories <- function(simulation_options,
   full_linelist <- read_rds(simulation_options$files$NNDSS_linelist) %>%
     filter(state == simulation_options$state_modelled)
   
-  # Produce a backcast linelist over the period (dates$simulation_start, dates$linelist_cutoff)
+  # Produce a backcast linelist over the period (dates$simulation_start, dates$backcast_cutoff_date)
   # Assigning pr_hosp, pr_ICU according to known values
   case_linelist_with_vacc_prob <- full_linelist %>%
     filter(ever_in_hospital) %>%
     
-    filter(date_onset <= simulation_options$dates$linelist_cutoff) %>%
+    filter(date_onset <= simulation_options$dates$backcast_cutoff) %>%
     
     mutate(state = simulation_options$state_modelled) %>%
     mutate(t_onset = as.numeric(date_onset - simulation_options$dates$simulation_start),
            case_ix = row_number()) %>%
     filter(t_onset >= 0) %>%
     
-    left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
+    #left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
     
     mutate(pr_ICU = if_else(ever_in_ICU, 1, 0),
            pr_hosp = 1)
@@ -42,12 +42,12 @@ produce_input_trajectories <- function(simulation_options,
   # Use slice_sample across our vaccination options to produce
   # a vaccination status. To be replaced by actual vaccine status eventually
   backcast_case_linelist <- case_linelist_with_vacc_prob %>%
-    group_by(case_ix) %>%
+    #group_by(case_ix) %>%
     
-    slice_sample(n = 1, weight_by = proportion) %>%
-    ungroup() %>% 
-    rename(vaccine = name) %>%
-    select(date_onset, t_onset, age_class, vaccine,
+    #slice_sample(n = 1, weight_by = proportion) %>%
+    #ungroup() %>% 
+    #rename(vaccine = name) %>%
+    select(date_onset, t_onset, age_class,# vaccine,
            pr_hosp, pr_ICU)
   
   ## Nowcast & forecast case linelist creation:
@@ -71,10 +71,8 @@ produce_input_trajectories <- function(simulation_options,
   clinical_prob_table <- read_rds(simulation_options$files$clinical_prob_table)
   
   print(table(ensemble_data$.model))
-  print("Excluding DST forecast")
   
   ensembles_wide <- ensemble_data %>%
-    filter(.model != "dst") %>%
     
     select(-forecast_origin) %>%
     pivot_wider(names_from = ".model", values_from = starts_with("sim"))
@@ -87,18 +85,18 @@ produce_input_trajectories <- function(simulation_options,
     table()
   
   # The forecast vaccination table
-  forecast_vacc_prob <- vaccination_prob_table %>%
-    ungroup() %>% filter(date == max(date))
+  #forecast_vacc_prob <- vaccination_prob_table %>%
+  #  ungroup() %>% filter(date == max(date))
   
   # Create a table of vaccination status for each age_class to be sampled from
   # for forecasted cases
-  forecast_vaccine_status_samples <- model_params$covariates_age %>%
-    map(function(age_class) {
-      age_class_probs <- forecast_vacc_prob %>% filter(age_class == !!age_class)
-      
-      sample(age_class_probs$name, 1000, age_class_probs$proportion, replace = TRUE)
-    }) %>%
-    `names<-`(model_params$covariates_age)
+  # forecast_vaccine_status_samples <- model_params$covariates_age %>%
+  #   map(function(age_class) {
+  #     age_class_probs <- forecast_vacc_prob %>% filter(age_class == !!age_class)
+  #     
+  #     sample(age_class_probs$name, 1000, age_class_probs$proportion, replace = TRUE)
+  #   }) %>%
+  #   `names<-`(model_params$covariates_age)
   
   
   
@@ -141,8 +139,8 @@ produce_input_trajectories <- function(simulation_options,
       
       group_by(age_class) %>%
       
-      mutate(vaccine = sample(forecast_vaccine_status_samples[[first(age_class)]],
-                              n(), replace = TRUE)) %>%
+      # mutate(vaccine = sample(forecast_vaccine_status_samples[[first(age_class)]],
+      #                         n(), replace = TRUE)) %>%
       
       ungroup()
     

@@ -41,7 +41,7 @@ perform_sanity_checks <- function(simulation_options,
     all(traj$t_onset >= 0)
     
     all(traj$age_class %in% model_parameters$covariates_age)
-    all(traj$vaccine %in% model_parameters$covariates_vaccine_status)
+    #all(traj$vaccine %in% model_parameters$covariates_vaccine_status)
   }
   
   ## Simulation results

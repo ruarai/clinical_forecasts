@@ -14,13 +14,13 @@ clinical_linelist_source <- paste0(clinical_linelist_dir,
                                    format(clinical_linelist_date, "%Y%m%d"),
                                    "_Individual_Stay_Data.csv")
 
-run_type <- "test"
+run_type <- "prod"
 
 simulation_options <- make_simulation_options(
   run_name = paste0("VIC-", run_type, "-", clinical_linelist_date),
   state_modelled = "VIC",
   
-  n_trajectories = 50,
+  n_trajectories = 500,
   n_samples_per_trajectory = 4,
   n_days_forward = 28,
   
@@ -28,16 +28,13 @@ simulation_options <- make_simulation_options(
   
   clinical_linelist_source = clinical_linelist_source,
   
-  parameters_source_dir = "results_length_of_stay/NSW-2021-11-16/"
+  parameters_source_dir = "results_length_of_stay/NSW-2021-11-25/"
 )
 
 
 source("R/data_processing/mediaflux.R")
 mf_dates <- download_latest_mediaflux_files(simulation_options)
 
-
-
-update_c19data()
 
 
 simulation_options$dates <- get_forecast_dates(
@@ -69,9 +66,9 @@ source("R/linelist_processing/read_VIC_linelist.R")
 process_VIC_linelist(simulation_options)
 
 
-source("R/data_processing/data_sharing.R")
-make_timeseries_from_occupancy(simulation_options)
-upload_mflux_sharing()
+# source("R/data_processing/data_sharing.R")
+# make_timeseries_from_occupancy(simulation_options)
+# upload_mflux_sharing()
 
 simulation_options$dates$linelist_cutoff <- simulation_options$dates$last_infection_50
 

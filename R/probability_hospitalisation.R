@@ -8,6 +8,7 @@ make_clinical_prob_table <- function(simulation_options,
   require(lubridate)
   
   
+  print("Starting...")
   
   NNDSS_linelist <- read_rds(simulation_options$files$NNDSS_linelist) %>%
     filter(date_onset >= simulation_options$dates$simulation_start,
@@ -182,7 +183,7 @@ make_clinical_prob_table <- function(simulation_options,
   }
   
   
-  
+  print("Calculating age-independent probability timeseries...")
   
   clinical_probs_results <- tibble(date = seq(min(NNDSS_linelist$date_onset),
                                               max(NNDSS_linelist$date_onset) - 14,
@@ -269,6 +270,7 @@ make_clinical_prob_table <- function(simulation_options,
     )
   }
   
+  print("Calculating timeseries by age...")
   
   results_by_ageclass <- expand_grid(
     date = seq(min(NNDSS_linelist$date_onset),max(NNDSS_linelist$date_onset) - 14, by = 'days'),
@@ -342,7 +344,7 @@ make_clinical_prob_table <- function(simulation_options,
   ggsave(paste0(simulation_options$dirs$plots, "/morbidity_age_timeseries.png"),
          height = 9, width = 12, bg = 'white')
   
-  
+  print("Saving results...")
   
   clinical_probabilities <- results_combined %>%
     ungroup() %>%

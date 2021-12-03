@@ -1,13 +1,15 @@
-make_simulation_options <- function(run_name,
+make_simulation_options <- function(run_label,
                                     state_modelled,
                                     n_trajectories,
                                     n_samples_per_trajectory,
                                     ED_daily_queue_capacity,
+                                    clinical_linelist_date,
                                     n_days_forward = 28,
                                     
-                                    clinical_linelist_source,
-                                    
                                     parameters_source_dir) {
+  
+  run_name <- paste0("NSW-", run_label, "-", clinical_linelist_date)
+  
   simulation_options <- list(
     n_trajectories = n_trajectories,
     n_samples_per_trajectory = n_samples_per_trajectory,
@@ -31,6 +33,8 @@ make_simulation_options <- function(run_name,
   
   simulation_options$dirs$parameters_source <- parameters_source_dir
   
+  clinical_linelist_source <- get_clinical_linelist_file(state_modelled,
+                                                         clinical_linelist_date)
   
   
   simulation_options$files <- list(
@@ -50,17 +54,39 @@ make_simulation_options <- function(run_name,
     
     
     input_trajectories = paste0(simulation_options$dirs$data, "input_trajectories.rds"),
-    sim_results = paste0(simulation_options$dirs$data, "sim_results.rds")
+    sim_results = paste0(simulation_options$dirs$data, "sim_results.rds"),
+    sim_options = paste0(simulation_options$dirs$data, "simulation_options.rds")
     
   )
   
   simulation_options
 }
 
+get_clinical_linelist_file <- function(state_modelled,
+                                       clinical_linelist_date) {
+  if(state_modelled == "VIC") {
+    
+  } else if(state_modelled == "NSW") {
+    
+    clinical_linelist_dir <- "/usr/local/forecasting/linelist_data/NSW/"
+    
+    
+    return(paste0(clinical_linelist_dir,
+                  "NSW_out_episode_",
+                  format(clinical_linelist_date, "%d%m%y"),
+                  ".xlsx"))
+    
+  } else{
+    stop("Invalid state provided to get_clinical_linelist_file")
+  }
+}
+
 
 get_forecast_dates <- function(local_cases_file,
                                state_modelled,
                                date_simulation_start,
+                               clinical_linelist_date,
+                               backcast_cutoff_date,
                                mf_dates,
                                n_days_forward = 28) {
   local_cases <- read_csv(local_cases_file,
@@ -87,8 +113,13 @@ get_forecast_dates <- function(local_cases_file,
     minimum_onset = date_minimum_onset,
     last_onset_50 = date_last_onset_50,
     last_infection_50 = date_last_infection_50,
+    
     forecast_horizon = date_forecast_horizon,
     simulation_start = date_simulation_start,
+    
+    clinical_linelist = clinical_linelist_date,
+    backcast_cutoff = backcast_cutoff_date,
+    
     mf_dates_wide
   )
 }

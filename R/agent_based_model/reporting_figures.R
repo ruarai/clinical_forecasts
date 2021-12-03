@@ -34,6 +34,13 @@ reporting_comp_quants <- function(sim_results, simulation_options) {
                  values_to = "count",
                  names_to = "group")
   
+  plots_common <- list(
+    coord_cartesian(xlim = c(simulation_options$dates$simulation_start,
+                             simulation_options$dates$forecast_horizon)),
+    scale_x_date("Date", date_labels = "%e/%m", date_breaks = "months", expand=c(0,0)),
+    geom_vline(xintercept = simulation_options$dates$last_onset_50,
+               lty = 2, colour = "grey60")
+  )
   
   
   fix_quant <- . %>% mutate(quant = factor(quant, levels = unique(quant)))
@@ -51,17 +58,12 @@ reporting_comp_quants <- function(sim_results, simulation_options) {
                                  "75" = "#b770d7",
                                  "50" = "#ad5cd2")) +
 
-    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - ddays(60),
-                             simulation_options$dates$forecast_horizon)) +
-    # 
-    # coord_cartesian(xlim = c(simulation_options$dates$simulation_start,
-    #                          simulation_options$dates$forecast_horizon)) +
+    plots_common +
     
     scale_y_continuous("Number Occupied Beds", position = "right") +
-    scale_x_date("Date", date_labels = "%e/%m", date_breaks = "2 weeks", expand=c(0,0)) +
     
-    geom_vline(xintercept = simulation_options$dates$last_onset_50,
-               lty = 2, colour = "grey60") +
+    
+    
     
     ggtitle(simulation_options$state_modelled, "Ward Occupancy")+
     
@@ -87,17 +89,9 @@ reporting_comp_quants <- function(sim_results, simulation_options) {
                                  "75" = "#70b168",
                                  "50" = "#5ca653")) +
     
-    geom_vline(xintercept = simulation_options$dates$last_onset_50,
-               lty = 2, colour = "grey60") +
-
-    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - ddays(60),
-                             simulation_options$dates$forecast_horizon)) +
-    # 
-    # coord_cartesian(xlim = c(simulation_options$dates$simulation_start,
-    #                          simulation_options$dates$forecast_horizon)) +
+    plots_common +
     
     scale_y_continuous("Number Occupied Beds", position = "right") +
-    scale_x_date("Date", date_labels = "%e/%m", date_breaks = "2 weeks", expand=c(0,0))+
     
     ggtitle(" ", "ICU Occupancy") +
     
