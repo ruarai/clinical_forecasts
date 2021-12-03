@@ -10,6 +10,7 @@ data/
 *.rds
 
 #or results,
+results
 results/
 results_length_of_stay/
 *.png
