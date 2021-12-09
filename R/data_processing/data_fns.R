@@ -73,7 +73,7 @@ get_clinical_linelist_file <- function(state_modelled,
     
     return(paste0(clinical_linelist_dir,
                   "NSW_out_episode_",
-                  format(clinical_linelist_date, "%d%m%y"),
+                  format(clinical_linelist_date, "%Y_%m_%d"),
                   ".xlsx"))
     
   } else{
@@ -87,7 +87,7 @@ get_forecast_dates <- function(local_cases_file,
                                date_simulation_start,
                                clinical_linelist_date,
                                backcast_cutoff_date,
-                               mf_dates,
+                               #mf_dates,
                                n_days_forward = 28) {
   local_cases <- read_csv(local_cases_file,
                           show_col_types = FALSE) %>%
@@ -104,10 +104,10 @@ get_forecast_dates <- function(local_cases_file,
   date_last_infection_50 <- date_last_onset_50 - 5
   
   date_forecast_horizon = date_last_onset_50 + n_days_forward
-  
-  mf_dates_wide <- mf_dates %>% 
-    select(type, date) %>% 
-    pivot_wider(names_from = type, values_from = date)
+  # 
+  # mf_dates_wide <- mf_dates %>% 
+  #   select(type, date) %>% 
+  #   pivot_wider(names_from = type, values_from = date)
   
   tibble(
     minimum_onset = date_minimum_onset,
@@ -120,7 +120,7 @@ get_forecast_dates <- function(local_cases_file,
     clinical_linelist = clinical_linelist_date,
     backcast_cutoff = backcast_cutoff_date,
     
-    mf_dates_wide
+    #mf_dates_wide
   )
 }
 

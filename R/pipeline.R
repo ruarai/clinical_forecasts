@@ -17,12 +17,12 @@ source("R/data_processing/data_fns.R")
 # what state/territory (only NSW/VIC valid right now)
 state_modelled <- "NSW" 
 # What is the date (in the file name) of the state's clinical linelist
-clinical_linelist_date <- ymd("2021-11-30")
+clinical_linelist_date <- ymd("2021-12-07")
 
 # An additional name to track where our results go
-run_label <- "test"
+run_label <- "prod"
 # How many trajectories from our forecasting ensemble should we use? 1000 seems okay for real forecasting
-n_trajectories <- 1000
+n_trajectories <- 2000
 
 # What LoS analysis do we use?
 parameters_source_dir <- "results_length_of_stay/NSW-2021-11-25/"
@@ -49,10 +49,11 @@ simulation_options <- make_simulation_options(
   parameters_source_dir = parameters_source_dir
 )
 
+# 
+# source("R/data_processing/mediaflux.R")
+# mflux_dates <- download_latest_mediaflux_files(simulation_options,
+#                                                date_limit = clinical_linelist_date)
 
-source("R/data_processing/mediaflux.R")
-mflux_dates <- download_latest_mediaflux_files(simulation_options,
-                                               date_limit = clinical_linelist_date)
 
 
 simulation_options$dates <- get_forecast_dates(
@@ -64,9 +65,10 @@ simulation_options$dates <- get_forecast_dates(
   clinical_linelist_date = clinical_linelist_date,
   backcast_cutoff_date = simulation_options$dates$last_onset_50,
   
-  mflux_dates,
+ # mflux_dates,
   simulation_options$n_days_forward
 )
+
 
 
 
@@ -87,7 +89,7 @@ source("R/model_parameters.R")
 model_parameters <- get_model_parameters(simulation_options$dirs$parameters_source)
 
 
-setDTthreads(threads = 1)
+data.table::setDTthreads(threads = 1)
 
 ## Calculate our moving probabilities of hospitalization and ICU by age group
 ## This can take a few minutes
@@ -121,7 +123,7 @@ sim_results <- run_simulations(input_trajectories,
 
 ## Save sim_results and options for later use if required
 write_rds(sim_results, simulation_options$files$sim_results, compress = "gz")
-write_rds(simulation_options, simulation_options$files$simulation_options)
+write_rds(simulation_options, simulation_options$files$sim_options)
 
 
 ## Perform checks to make sure we're not producing obviously invalid outputs

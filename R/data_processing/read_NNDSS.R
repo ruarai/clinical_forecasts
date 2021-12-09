@@ -35,7 +35,8 @@ process_NNDSS_linelist <- function(simulation_options) {
   )
   
   nndss_data <- readxl::read_xlsx(simulation_options$files$NNDSS_raw, 
-                                  col_types = nndss_col_types)
+                                  col_types = nndss_col_types,
+                                  range = cellranger::cell_cols(c("A","AA")))
   
   
   

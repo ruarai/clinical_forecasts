@@ -1,31 +1,17 @@
 
-
-produce_input_trajectories <- function(simulation_options,
+produce_input_trajectories_NSW <- function(simulation_options,
                                        model_params) {
   require(tidyverse)
   require(lubridate)
   
-  ### Backcast linelist creation:
-  
-  #vaccination_prob_table <- read_rds(simulation_options$files$vacc_prob_table)
-  
-  # Ignoring population vaccination rates, expecting that ~10% of hospitalizations
-  # are vaccinated
-  # vaccination_prob_table <- vaccination_prob_table %>%
-  #   filter(state == simulation_options$state_modelled) %>%
-  #   group_by(state, date, age_class) %>%
-  #   mutate(proportion = case_when(name == "none" ~ 0.9,
-  #                                 TRUE ~ 0.05))
   
   
-  
-  full_linelist <- read_rds(simulation_options$files$NNDSS_linelist) %>%
-    filter(state == simulation_options$state_modelled)
+  full_linelist <- read_rds(simulation_options$files$clinical_linelist)
   
   # Produce a backcast linelist over the period (dates$simulation_start, dates$backcast_cutoff_date)
   # Assigning pr_hosp, pr_ICU according to known values
   case_linelist_with_vacc_prob <- full_linelist %>%
-    filter(ever_in_hospital) %>%
+    #filter(ever_in_hospital) %>%
     
     filter(date_onset <= simulation_options$dates$backcast_cutoff) %>%
     
@@ -36,7 +22,7 @@ produce_input_trajectories <- function(simulation_options,
     
     #left_join(vaccination_prob_table, by = c("state", "age_class", "date_onset" = "date")) %>%
     
-    mutate(pr_ICU = if_else(ever_in_ICU, 1, 0),
+    mutate(pr_ICU = if_else(ever_in_icu, 1, 0),
            pr_hosp = 1)
   
   # Use slice_sample across our vaccination options to produce
