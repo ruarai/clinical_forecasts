@@ -5,6 +5,7 @@ produce_input_trajectories_NSW <- function(simulation_options,
   require(lubridate)
   
   
+  NNDSS_linelist <- read_rds(simulation_options$files$NNDSS_linelist)
   
   full_linelist <- read_rds(simulation_options$files$clinical_linelist)
   
@@ -74,7 +75,7 @@ produce_input_trajectories_NSW <- function(simulation_options,
   
   # Create a table of age_class samples over recent cases (and not just clinical cases)
   # to be sampled from for forecasted cases
-  forecast_age_class_samples <- full_linelist %>%
+  forecast_age_class_samples <- NNDSS_linelist %>%
     filter(date_onset >= simulation_options$dates$last_onset_50 - 14) %>%
     pull(age_class) %>%
     table()

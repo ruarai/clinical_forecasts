@@ -112,6 +112,7 @@ upload_mflux_sharing()
 
 ## Producing the input trajectories of cases that our ABM runs upon
 source("R/produce_input_trajectories.R")
+simulation_options$dates$backcast_cutoff <- simulation_options$dates$last_onset_50
 input_trajectories <- produce_input_trajectories(simulation_options,
                                                  model_parameters)
 
