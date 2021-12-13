@@ -17,11 +17,12 @@ source("R/data_processing/data_fns.R")
 # what state/territory (only NSW/VIC valid right now)
 state_modelled <- "NSW" 
 # What is the date (in the file name) of the state's clinical linelist
-clinical_linelist_date <- ymd("2021-12-14")
+clinical_linelist_date <- ymd("2021-12-07")
 
 # An additional name to track where our results go
 run_label <- "test"
-# How many trajectories from our forecasting ensemble should we use? 1000 seems okay for real forecasting
+# How many trajectories from our forecasting ensemble should we use? Use 2000 for 
+# real forecasts, smaller number for testing
 n_trajectories <- 2000
 
 # What LoS analysis do we use?
@@ -53,9 +54,9 @@ simulation_options <- make_simulation_options(
   parameters_source_dir = parameters_source_dir
 )
 
-
+# Download the latest files from mediaflux
 source("R/data_processing/mediaflux.R")
-mflux_dates <- download_latest_mediaflux_files(simulation_options,
+mflux_files <- download_latest_mediaflux_files(simulation_options,
                                                date_limit = clinical_linelist_date)
 
 
@@ -69,7 +70,7 @@ simulation_options$dates <- get_forecast_dates(
   clinical_linelist_date = clinical_linelist_date,
   backcast_cutoff_date = simulation_options$dates$last_onset_50,
   
-  mflux_dates,
+  mflux_files,
   simulation_options$n_days_forward
 )
 

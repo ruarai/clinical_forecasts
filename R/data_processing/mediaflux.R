@@ -26,7 +26,8 @@ get_latest_file_path <- function(mediaflux_dir,
   suppressWarnings(file.remove(file_listing_csv))
   system(mediaflux_call, ignore.stdout = TRUE)
   
-  file_listing <- read_csv(file_listing_csv) %>%
+  file_listing <- read_csv(file_listing_csv,
+                           show_col_types = FALSE) %>%
     select(source = SRC_PATH) %>%
     mutate(source = basename(source)) %>%
     mutate(date = str_extract(source, date_pattern) %>% str_to_date_fn) %>%
@@ -39,27 +40,13 @@ get_latest_file_path <- function(mediaflux_dir,
   }
   
   
-  likely_files <- file_listing %>%
-    slice(1:10) %>%
-    arrange(date) %>%
-    pull(source)
-  
-  print("Recent files:")
-  print(likely_files)
-  
-  
-  
   likely_file <- file_listing %>%
     filter(str_detect(source, file_pattern)) %>%
     slice_max(date, n = 1)
   
-  print("")
   print(paste0("Using the most likely file '", likely_file$source, "'"))
   print(paste0("Which is dated ", likely_file$date, 
                " (", today() - ymd(likely_file$date), " days ago)"))
-  print("Is this correct?")
-  
-  readline(prompt="Press [enter] to continue")
   
   tibble(file = likely_file$source, date = likely_file$date)
 }
@@ -79,7 +66,7 @@ download_mediaflux_files <- function(mf_files) {
                              "--out data/mediaflux_syncing/download_files/ ",
                              "'", mf_path_remote, "'")
     
-    system(mediaflux_call)
+    system(mediaflux_call, ignore.stdout = TRUE)
     
     file.copy(paste0("data/mediaflux_syncing/download_files/", basename(mf_path_remote)),
               mf_file$local_file,
@@ -107,13 +94,13 @@ download_latest_mediaflux_files <- function(simulation_options,
     mutate(file = paste0("Health Uploads/", file),
            type = "NNDSS")
   
-  latest_vacc_file <- get_latest_file_path(
-    "vaccine_allocation/vaccine_cumulative_medicare/tabular",
-    "effective_dose_data", "\\d{4}-\\d{2}-\\d{2}", ymd,
-    
-    date_limit) %>%
-    mutate(file = paste0("vaccine_allocation/vaccine_cumulative_medicare/tabular/", file),
-           type = "effective_dose_data")
+  # latest_vacc_file <- get_latest_file_path(
+  #   "vaccine_allocation/vaccine_cumulative_medicare/tabular",
+  #   "effective_dose_data", "\\d{4}-\\d{2}-\\d{2}", ymd,
+  #   
+  #   date_limit) %>%
+  #   mutate(file = paste0("vaccine_allocation/vaccine_cumulative_medicare/tabular/", file),
+  #          type = "effective_dose_data")
   
   
   latest_local_cases_file <- get_latest_file_path(
@@ -128,14 +115,14 @@ download_latest_mediaflux_files <- function(simulation_options,
     ~remote_file, ~local_file,
     latest_ensemble_file$file,        simulation_options$files$ensemble_samples,
     latest_nndss_file$file,           simulation_options$files$NNDSS_raw,
-    latest_vacc_file$file,            simulation_options$files$vacc_raw,
+    #latest_vacc_file$file,            simulation_options$files$vacc_raw,
     latest_local_cases_file$file,     simulation_options$files$local_cases,
   )
   download_mediaflux_files(mf_files)
   
   bind_rows(latest_ensemble_file,
             latest_nndss_file,
-            latest_vacc_file,
+            #latest_vacc_file,
             latest_local_cases_file)
 }
 
