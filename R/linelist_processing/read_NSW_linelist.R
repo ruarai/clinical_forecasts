@@ -7,7 +7,8 @@ process_NSW_linelist <- function(simulation_options) {
   linelist_raw <- readxl::read_xlsx(simulation_options$files$clinical_linelist_source, sheet = 2)
   
   
-  NSW_linelist <- read_NSW_linelist(linelist_raw) %>%
+  NSW_linelist <- read_NSW_linelist(linelist_raw,
+                                    strict_filtering = TRUE) %>%
     mutate(age_class = assign_age_class(age))
   
   write_rds(NSW_linelist, simulation_options$files$clinical_linelist)
@@ -15,7 +16,8 @@ process_NSW_linelist <- function(simulation_options) {
 }
 
 
-read_NSW_linelist <- function(linelist_raw) {
+read_NSW_linelist <- function(linelist_raw,
+                              strict_filtering = TRUE) {
   clinical_linelist <- linelist_raw %>%
     select(person_id, age, load_date,
            admit_date_dt, discharge_date_dt, first_icu_date_dt, last_icu_date_dt,
@@ -54,15 +56,22 @@ read_NSW_linelist <- function(linelist_raw) {
     group_by(person_id) %>%
     filter(n() == 1)
   
-  collapsed_multiple_episodes <- clinical_linelist %>%
+  multiple_episodes <- clinical_linelist %>%
     group_by(person_id) %>%
     filter(n() > 1) %>%
     arrange(person_id, admit_date_dt) %>%
     mutate(discharge_to_next_admit = time_diff_to_days(lead(admit_date_dt) - discharge_date_dt),
-           discharge_to_next_admit = replace_na(discharge_to_next_admit, 0)) %>%
+           discharge_to_next_admit = replace_na(discharge_to_next_admit, 0))
     
-    filter(all(discharge_to_next_admit < 2),
-           all(discharge_to_next_admit > -1)) %>%
+  
+  if(strict_filtering) {
+    multiple_episodes <- multiple_episodes %>%
+      
+      filter(all(discharge_to_next_admit < 2),
+             all(discharge_to_next_admit > -1))
+  }
+    
+  collapsed_multiple_episodes <- multiple_episodes %>%
     
     mutate(discharge_date_dt = max(discharge_date_dt),
            
@@ -127,14 +136,24 @@ read_NSW_linelist <- function(linelist_raw) {
   print(unlikely_admission_delay)
   print(unlikely_admission_delay %>% pull(days_onset_to_adm))
   
-  filtered_clinical_linelist <- setdiff(
-    clinical_linelist_collapsed,
-    early_dated_entries %>% 
-      union(late_dated_entries) %>%
-      union(incorrect_indicator_dates) %>%
-      union(long_duration_entries) %>%
-      union(unlikely_admission_delay)
-  )
+  if(strict_filtering) {
+    filtered_clinical_linelist <- setdiff(
+      clinical_linelist_collapsed,
+      early_dated_entries %>% 
+        union(late_dated_entries) %>%
+        union(incorrect_indicator_dates) %>%
+        union(long_duration_entries) %>%
+        union(unlikely_admission_delay)
+    )
+  } else{
+    filtered_clinical_linelist <- setdiff(
+      clinical_linelist_collapsed,
+      early_dated_entries %>% 
+        union(late_dated_entries) %>%
+        union(incorrect_indicator_dates)
+    )
+  }
+  
   
   ggplot(filtered_clinical_linelist) +
     geom_histogram(aes(x = days_onset_to_adm),
