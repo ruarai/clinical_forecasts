@@ -2,25 +2,27 @@ make_simulation_options <- function(run_label,
                                     state_modelled,
                                     n_trajectories,
                                     n_samples_per_trajectory,
-                                    ED_daily_queue_capacity,
+                                    capacity_table,
                                     clinical_linelist_date,
                                     n_days_forward = 28,
                                     
                                     parameters_source_dir) {
   
-  run_name <- paste0("NSW-", run_label, "-", clinical_linelist_date)
+  run_name <- paste0(state_modelled, "-", run_label, "-", clinical_linelist_date)
   
   simulation_options <- list(
     n_trajectories = n_trajectories,
     n_samples_per_trajectory = n_samples_per_trajectory,
     n_days_forward = n_days_forward,
     
-    ED_daily_queue_capacity = ED_daily_queue_capacity,
-    
     run_name = run_name,
     
     state_modelled = state_modelled
   )
+  
+  simulation_options$capacities <- capacity_table %>%
+    filter(state == state_modelled) %>%
+    select(-state)
   
   
   simulation_options$dirs <- list(

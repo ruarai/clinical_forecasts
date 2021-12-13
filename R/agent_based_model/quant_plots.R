@@ -1,0 +1,335 @@
+
+plot_group_counts <- function(sim_results, simulation_options,
+                              forecast_date_lines) {
+  
+  
+  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
+  
+  
+  days <- seq(min(clinical_linelist$dt_hosp_admission, na.rm = TRUE),
+              max(clinical_linelist$dt_hosp_discharge, na.rm = TRUE),
+              by ='days') %>% as_date()
+  
+  
+  linelist_data_counts <- tibble(date = days) %>%
+    rowwise() %>%
+    
+    mutate(count_ward = clinical_linelist %>%
+             filter(dt_hosp_discharge >= date | is.na(dt_hosp_discharge),
+                    dt_hosp_admission <= date,
+                    
+                    is.na(dt_first_icu) | dt_first_icu >= date | dt_last_icu <= date) %>%
+             nrow(),
+           
+           count_ICU = clinical_linelist %>%
+             drop_na(dt_first_icu) %>%
+             filter(dt_last_icu >= date | is.na(dt_last_icu),
+                    dt_first_icu <= date) %>%
+             nrow(),
+           
+           count_died = clinical_linelist %>%
+             filter(patient_died) %>%
+             filter(dt_hosp_discharge <= date) %>%
+             nrow()) %>%
+    
+    pivot_longer(cols = starts_with("count_"),
+                 names_prefix = "count_",
+                 values_to = "count",
+                 names_to = "group")
+  
+  
+  c19data <- read_rds("data/covid19data.rds") %>%
+    filter(state_abbrev == simulation_options$state_modelled,
+           date >= min(clinical_linelist$dt_hosp_admission)) %>% select(-c(state, state_abbrev)) %>%
+    
+    mutate(ward_cum = hosp_cum - icu_cum) %>%
+    select(date, ward = ward_cum, ICU = icu_cum) %>%
+    
+    pivot_longer(cols = -c(date),
+                 values_to = "count", names_to = "group")
+  
+  ggplot(sim_results$tbl_count_grouped_quants %>%
+           filter(group != "other")) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    geom_line(aes(x = date, y = count, linetype = 'public data'),
+              c19data) +
+    
+    geom_line(aes(x = date, y = count, linetype = 'clinical linelist data'),
+              linelist_data_counts) +
+    
+    facet_grid(rows = vars(group), scales = "free_y") +
+    forecast_date_lines +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    ggtitle("Grouped compartment counts",
+            simulation_options$run_name)
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_grouped_backcast.png"),
+         height = 9, width = 8, bg = 'white')
+  
+  
+  
+  ggplot(sim_results$tbl_count_grouped_quants %>%
+           filter(group != "other")) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    geom_line(aes(x = date, y = count, linetype = 'public data'),
+              c19data) +
+    
+    geom_line(aes(x = date, y = count, linetype = 'clinical linelist data'),
+              linelist_data_counts) +
+    
+    facet_grid(rows = vars(group), scales = "free_y") +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    forecast_date_lines +
+    
+    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - 60,
+                             simulation_options$dates$last_onset_50 + 28)) +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    ggtitle("Grouped compartment counts",
+            simulation_options$run_name)
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_grouped_forecast.png"),
+         height = 9, width = 8, bg = 'white')
+  
+  filter_grp <- . %>% filter(group %in% c("ICU", "ward", "died"))
+  ggplot(sim_results$tbl_count_grouped_quants %>% filter_grp) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    geom_line(aes(x = date, y = count, linetype = 'public data'),
+              c19data) +
+    
+    geom_line(aes(x = date, y = count, linetype = 'clinical linelist data'),
+              linelist_data_counts) +
+    
+    facet_grid(rows = vars(group), scales = "free_y") +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    forecast_date_lines +
+    
+    coord_cartesian(xlim = c(simulation_options$dates$last_onset_50 - 60,
+                             simulation_options$dates$last_onset_50 + 28)) +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    ggtitle("Grouped compartment counts",
+            simulation_options$run_name)
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_key_groups.png"),
+         height = 6, width = 8, bg = 'white')
+  
+}
+
+
+plot_group_transitions <- function(sim_results, simulation_options,
+                                   forecast_date_lines) {
+  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
+  
+  ward_admission_by_day <- clinical_linelist %>%
+    group_by(date = as_date(dt_hosp_admission, 'days')) %>%
+    summarise(n_ward = n())
+  
+  ICU_admission_by_day <- clinical_linelist %>%
+    drop_na(dt_first_icu) %>%
+    group_by(date = as_date(dt_first_icu, 'days')) %>%
+    summarise(n_ICU = n())
+  
+  discharge_by_day <- clinical_linelist %>%
+    filter(dt_hosp_discharge != max(dt_hosp_discharge, na.rm = TRUE),
+           !patient_died) %>%
+    group_by(date = as_date(dt_hosp_discharge, 'days')) %>%
+    summarise(n_discharged = n())
+  
+  death_by_day <- clinical_linelist %>%
+    filter(dt_hosp_discharge != max(dt_hosp_discharge, na.rm = TRUE),
+           patient_died) %>%
+    group_by(date = as_date(dt_hosp_discharge, 'days')) %>%
+    summarise(n_died = n())
+  
+  linelist_data <- ward_admission_by_day %>%
+    left_join(ICU_admission_by_day) %>%
+    left_join(discharge_by_day) %>%
+    left_join(death_by_day) %>%
+    pivot_longer(cols = starts_with("n_"),
+                 names_to = "group",
+                 names_prefix = "n_") %>%
+    mutate(value = replace_na(value, 0))
+  
+  transition_data <- sim_results$tbl_transitions_grouped_quants %>%
+    filter(group %in% c("ward", "ICU", "discharged", "died"))
+  
+  
+  
+  
+  ggplot() +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant),
+                data = transition_data) +
+    
+    geom_line(aes(x = date, y = value),
+              linelist_data) +
+    
+    facet_grid(rows = vars(group), scales = "free_y") +
+    
+    forecast_date_lines +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom',
+          panel.spacing.y = unit(0.75, "cm")) +
+    
+    ggtitle("Grouped transition counts",
+            simulation_options$run_name)
+  
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions.png"),
+         height = 6, width = 8, bg = 'white')
+}
+
+plot_all_transitions <- function(sim_results, simulation_options, forecast_date_lines) {
+  
+  clinical_linelist <- read_rds(simulation_options$files$clinical_linelist)
+  
+  ward_admission_by_day <- clinical_linelist %>%
+    group_by(date = as_date(dt_hosp_admission, 'days')) %>%
+    summarise(n = n()) %>%
+    mutate(new_comp = "ward", old_comp = "ED_queue")
+  
+  ICU_admission_by_day <- clinical_linelist %>%
+    drop_na(dt_first_icu) %>%
+    group_by(date = as_date(dt_first_icu, 'days')) %>%
+    summarise(n = n()) %>%
+    mutate(new_comp = "ICU", old_comp = "ward")
+  
+  ICU_discharge_by_day <- clinical_linelist %>%
+    drop_na(dt_last_icu) %>%
+    filter(dt_last_icu != max(dt_last_icu),
+           !patient_died,
+           dt_hosp_discharge >= dt_last_icu + ddays(1)) %>%
+    group_by(date = as_date(dt_last_icu, 'days')) %>%
+    summarise(n = n()) %>%
+    mutate(new_comp = "postICU", old_comp = "ICU")
+  
+  clinical_data <- bind_rows(
+    ward_admission_by_day,
+    ICU_admission_by_day,
+    ICU_discharge_by_day
+  )
+  
+  
+  
+  ggplot(sim_results$tbl_transitions_quants) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    facet_wrap(~ old_comp * new_comp,
+               scales = "free_y") +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    forecast_date_lines +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom')
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions_all.png"),
+         height = 6, width = 8, bg = 'white')
+  
+  ggplot(sim_results$tbl_transitions_quants %>%
+           filter(old_comp %in% clinical_data$old_comp,
+                  new_comp %in% clinical_data$new_comp)) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    
+    geom_line(aes(x = date, y = n),
+              clinical_data) +
+    
+    facet_wrap(~ old_comp * new_comp,
+               scales = "free_y") +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    forecast_date_lines +
+    
+    theme_minimal() +
+    theme(legend.position = 'bottom')
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/quants_transitions_all_key.png"),
+         height = 6, width = 8, bg = 'white')
+}
+
+
+
+
+
+plot_ED_capacity <- function(sim_results, simulation_options, forecast_date_lines) {
+  
+  ED_capacity <- simulation_options$ED_daily_queue_capacity
+  
+  ED_queue_probs <- sim_results$tbl_transitions %>%
+    filter(new_comp == "ED_queue") %>%
+    
+    mutate(over_capacity = n > ED_capacity) %>%
+    
+    group_by(date) %>%
+    summarise(pr_over_capacity = sum(over_capacity) / n())
+  
+  plot_prob <- ggplot(ED_queue_probs) +
+    geom_line(aes(x = date, y = pr_over_capacity))+
+    
+    forecast_date_lines +
+    
+    theme_minimal() +
+    
+    ggtitle("Probability of hitting ED consult capacity")  +
+    ylab("Probability") + xlab("Date")
+  
+  
+  ED_queue_counts <- sim_results$tbl_transitions_grouped_quants %>% 
+    filter(group == "queue")
+  
+  plot_count <- ggplot() +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant),
+                data = ED_queue_counts) +
+    
+    geom_hline(yintercept = ED_capacity,
+               linetype = 'dotted') +
+    
+    forecast_date_lines +
+    
+    scale_fill_brewer(type = 'seq',
+                      palette = 5) +
+    
+    theme_minimal() +
+    theme(legend.position = 'none') +
+    
+    ggtitle("Daily number of ED queue entries") +
+    ylab("Count") + xlab("Date")
+  
+  cowplot::plot_grid(plot_prob, plot_count, ncol = 1,
+                     
+                     align = 'v', axis = 'lr')
+  
+  
+  ggsave(paste0(simulation_options$dirs$plots, "/ED_capacity.png"),
+         height = 8, width = 9, bg = 'white')
+}
+
+

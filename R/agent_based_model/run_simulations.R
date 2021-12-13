@@ -51,7 +51,7 @@ run_single_simulation <- function(case_linelist,
     
     results <- process_loop(case_parameter_samples, t_forecast_horizon,
                             dt = 0.25,
-                            ED_queue_capacity = simulation_options$ED_daily_queue_capacity)
+                            ED_queue_capacity = simulation_options$capacities$ED_queue)
     
     
     compartment_names_true <- c("susceptible", "symptomatic_clinical", "symptomatic_nonclinical",

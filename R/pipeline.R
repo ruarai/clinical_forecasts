@@ -17,12 +17,12 @@ source("R/data_processing/data_fns.R")
 # what state/territory (only NSW/VIC valid right now)
 state_modelled <- "NSW" 
 # What is the date (in the file name) of the state's clinical linelist
-clinical_linelist_date <- ymd("2021-12-07")
+clinical_linelist_date <- ymd("2021-12-14")
 
 # An additional name to track where our results go
-run_label <- "validation"
+run_label <- "test"
 # How many trajectories from our forecasting ensemble should we use? 1000 seems okay for real forecasting
-n_trajectories <- 1000
+n_trajectories <- 2000
 
 # What LoS analysis do we use?
 parameters_source_dir <- "results_length_of_stay/NSW-2021-11-25/"
@@ -31,6 +31,10 @@ parameters_source_dir <- "results_length_of_stay/NSW-2021-11-25/"
 ## The results will be saved to /results/[state_modelled]-[run_label]-[clinical_linelist_date]/
 
 
+capacity_table <- tribble(
+  ~state, ~ED_queue, ~ward_occupancy, ~ICU_occupancy,
+  "NSW", 3945, 300, 100, # Not sure of these occupancy numbers
+)
 
 
 
@@ -39,12 +43,12 @@ simulation_options <- make_simulation_options(
   state_modelled = state_modelled,
   
   n_trajectories = n_trajectories,
-  n_samples_per_trajectory = 4,
+  n_samples_per_trajectory = 5,
   n_days_forward = 28,
   
   clinical_linelist_date = clinical_linelist_date,
   
-  ED_daily_queue_capacity = 3945,
+  capacity_table = capacity_table,
   
   parameters_source_dir = parameters_source_dir
 )
@@ -99,8 +103,8 @@ make_clinical_prob_table(simulation_options,
 
 ## Load in the state clinical occupancy linelist so we can plot our results against
 ## this in our reporting figures.
-source("R/linelist_processing/read_NSW_linelist.R")
-process_NSW_linelist(simulation_options)
+source("R/linelist_processing/read_linelist.R")
+read_linelist(simulation_options)
 
 
 ## Upload the occupancy counts by ward/ICU (calculated from the above) to mediaflux
