@@ -138,7 +138,7 @@ linelist_data_counts <- tibble(date = days) %>%
 
 
 ts_vic <- read_csv("/usr/local/forecasting/linelist_data/VIC/20211210_Hospital_Occupancy.csv") %>%
-  mutate(n_ICU = ICU.Beds.Occupied + ICU.Vent.Beds.Occupied,
+  mutate(n_ICU = ICU.Beds.Occupied,
          n_ward = Beds.Occupied - n_ICU,
          date = Date) %>%
   select(date, n_ward, n_ICU) %>%
@@ -152,9 +152,9 @@ ts_vic <- read_csv("/usr/local/forecasting/linelist_data/VIC/20211210_Hospital_O
 
 ggplot() +
   
-  geom_line(aes(x = date, y = count, color = 'VicDoH linelist (with 14 day censor)'),
-            linelist_data_counts_censored %>%
-              filter(group == "ward")) +
+  #geom_line(aes(x = date, y = count, color = 'VicDoH linelist (with 14 day censor)'),
+  #          linelist_data_counts_censored %>%
+  #            filter(group == "ward")) +
   
   geom_line(aes(x = date, y = count, color = 'VicDoH linelist (raw)'),
             linelist_data_counts %>%
@@ -164,9 +164,9 @@ ggplot() +
             ts_vic %>%
               filter(group == "ward")) +
   
-  geom_line(aes(x = date, y = count, color = 'Public (VicDoH Twitter)'),
-            c19data %>%
-              filter(group == "ward")) +
+  #geom_line(aes(x = date, y = count, color = 'Public (VicDoH Twitter)'),
+  #          c19data %>%
+  #            filter(group == "ward")) +
   
   coord_cartesian(xlim = c(ymd("2021-Oct-01"), NA)) +
   
