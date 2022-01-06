@@ -52,7 +52,7 @@ pre_forecasting <- list(
   
   tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_04.xlsx"),
   
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test")),
   tar_target(plot_dir, str_c("results/", forecast_name, "/")),
   
   
@@ -231,7 +231,11 @@ state_results <- tar_map(
     format = "qs",
     resources = tar_resources(
       qs = tar_resources_qs(preset = "fast")
-    )
+    ),
+    
+    memory = "transient",
+    garbage_collection = TRUE
+    
   ),
   
   tar_target(
@@ -319,6 +323,21 @@ final <- list(
       select(state, group, date, prob = y_adj) %>%
       
       write_csv(paste0(plot_dir, "/clinical_capacity_", date_forecasting ,".csv"))
+  ),
+  
+  tar_target(
+    backup_task,
+    function() {
+      print(nrow(all_state_quants)) # Make dependent upon result quants at least.
+      
+      file.copy(
+        from = "_targets/",
+        to = plot_dir,
+        
+        recursive = TRUE,
+        overwrite = TRUE
+      )
+    }
   )
 )
 

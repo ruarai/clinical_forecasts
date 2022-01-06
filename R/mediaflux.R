@@ -65,10 +65,7 @@ get_latest_mflux_files <- function(date_limit) {
     "Health Uploads",
     "COVID-19 UoM", "\\ \\d{1,2}\\D{3}\\d{4}", dmy,
     
-    ##FIXME TODO
-    
-    
-    ymd("2022-01-03")) %>%
+    date_limit) %>%
     mutate(file = paste0("Health Uploads/", file),
            type = "NNDSS")
   

@@ -1,10 +1,4 @@
 
-require(tidyverse)
-require(lubridate)
-require(targets)
-
-require(curvemush)
-
 run_progression_model <- function(
   case_trajectories,
   clinical_table_state,
@@ -12,6 +6,11 @@ run_progression_model <- function(
   
   forecast_dates
 ) {
+  require(tidyverse)
+  require(lubridate)
+  
+  require(curvemush)
+  
   
   clinical_table_ordered <- clinical_table_state %>%
     filter(date_onset >= forecast_dates$simulation_start,
@@ -83,35 +82,69 @@ run_progression_model <- function(
   
   
   group_labels <- c("symptomatic_clinical", "ward", "ICU", "discharged", "died")
+  compartment_labels <- c(
+    "symptomatic_clinical", "ward", "discharged_ward", "died_ward", "ICU",
+    "discharged_ICU", "died_ICU", "postICU_to_discharge", "postICU_to_death",
+    "discharged_postICU", "died_postICU"
+  )
   
-  results_count_quants <- results %>%
+  format_grouped <- . %>%
+    mutate(date = forecast_dates$simulation_start + ddays(t_day),
+           group = group_labels[compartment_group + 1])
+  
+  format_ungrouped <- . %>%
+    mutate(date = forecast_dates$simulation_start + ddays(t_day),
+           compartment = compartment_labels[compartment + 1])
+    
+    
+  
+  results_count_quants <- results$grouped_results %>%
     select(-transitions) %>%
     pivot_wider(names_from = "sample",
                 names_prefix = "sim_",
                 values_from = "count") %>%
     make_results_quants() %>%
-    mutate(date = forecast_dates$simulation_start + ddays(t_day),
-           group = group_labels[compartment_group + 1])
+    format_grouped()
   
+  results_ungrouped_count_quants <- results$results %>%
+    select(-transitions) %>%
+    pivot_wider(names_from = "sample",
+                names_prefix = "sim_",
+                values_from = "count") %>%
+    make_results_quants() %>%
+    format_ungrouped()
   
-  results_transitions_quants <- results %>%
+  results_transitions_quants <- results$grouped_results %>%
     select(-count) %>%
     pivot_wider(names_from = "sample",
                 names_prefix = "sim_",
                 values_from = "transitions") %>%
     make_results_quants() %>%
-    mutate(date = forecast_dates$simulation_start + ddays(t_day),
-           group = group_labels[compartment_group + 1])
+    format_grouped()
+  
+  results_ungrouped_transitions_quants <- results$results %>%
+    select(-count) %>%
+    pivot_wider(names_from = "sample",
+                names_prefix = "sim_",
+                values_from = "transitions") %>%
+    make_results_quants() %>%
+    format_ungrouped()
   
   
-  results_formatted <- results %>%
-    mutate(date = forecast_dates$simulation_start + ddays(t_day),
-           group = group_labels[compartment_group + 1])
+  results_formatted <- results$grouped_results  %>%
+    format_grouped()
+  
+  results_ungrouped_formatted <- results$results  %>%
+    format_ungrouped()
   
   list(
     trajectories = results_formatted,
     quants_count = results_count_quants,
-    quants_transitions = results_transitions_quants
+    quants_transitions = results_transitions_quants,
+    
+    trajectories_ungrouped = results_ungrouped_formatted,
+    quants_ungrouped_count = results_ungrouped_count_quants,
+    quants_ungrouped_transitions = results_ungrouped_transitions_quants
   )
 }
 
