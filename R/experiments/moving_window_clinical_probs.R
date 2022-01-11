@@ -81,10 +81,10 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
     `rownames<-`(clinical_parameters$age_group)
   
   delay_hosp_shape <- clinical_parameter_lookup[i_age_class,
-                                                "shape_symptomatic_to_ED"]
+                                                "shape_onset_to_ward"]
   
   delay_hosp_scale <- clinical_parameter_lookup[i_age_class,
-                                                "scale_symptomatic_to_ED"]
+                                                "shape_onset_to_ward"]
   
   
   test <- window_data_summ[1,]

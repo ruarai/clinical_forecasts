@@ -30,6 +30,7 @@ read_NSW_linelist <- function(linelist_raw,
            admit_date_dt, discharge_date_dt, first_icu_date_dt, last_icu_date_dt,
            still_in_hosp, still_in_icu, any_icu_flag, discharge_desc = AP_DISCHARGE_DISPOSITION_DESC,
            days_onset_to_adm = covid_to_adm,
+           ward = WARD_TYPE,
            subward = SUB_WARD_TYPE)
   
   load_date <- first(clinical_linelist$load_date)

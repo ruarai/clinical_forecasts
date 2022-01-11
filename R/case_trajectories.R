@@ -14,7 +14,7 @@ make_case_trajectories <- function(
   # Transform the ensemble data CSV into a matrix of ~8,000 columns, 28 rows
   
   ensemble_curves_df <- ensemble_state %>%
-    filter(date < forecast_dates$forecast_horizon) %>%
+    filter(date <= forecast_dates$forecast_horizon) %>%
     select(-c(state, forecast_origin)) %>%
     
     pivot_wider(names_from = ".model",
@@ -42,7 +42,6 @@ make_case_trajectories <- function(
   date_nowcast_start <- linelist_state_date - ddays(21)
   
   
-  ## TODO
   local_cases_to_impute <- local_cases_state %>%
     filter(date_onset > date_nowcast_start,
            date_onset <= forecast_dates$forecast_start) %>%

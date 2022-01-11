@@ -47,7 +47,7 @@ state_tbl <- tibble::tibble(
 
 pre_forecasting <- list(
   
-  tar_target(date_forecasting, ymd("2022-01-06")),
+  tar_target(date_forecasting, ymd("2022-01-11")),
   tar_target(date_simulation_start, ymd("2021-06-01")),
   
   tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_04.xlsx"),
@@ -60,7 +60,7 @@ pre_forecasting <- list(
   
   
   tar_target(clinical_parameters, get_clinical_parameters(
-    "~/source/length_of_stay_analysis/results/NSW_2022-01-04_omi_and_all/"
+    "~/source/los_analysis_competing_risks/results/NSW_omi_mix_2022-01-04/"
   )),
   
   

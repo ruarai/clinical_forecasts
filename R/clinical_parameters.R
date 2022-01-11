@@ -1,76 +1,106 @@
 
 
 
-get_clinical_parameters <- function(dir = "data/clinical_parameters/") {
+get_clinical_parameters <- function(
+  dir = "~/source/los_analysis_competing_risks/results/NSW_omi_mix_2022-01-04/"
+) {
   
-  age_class_5yr_to_10yr <- function(age_class_5yr) {
-    age_first_piece <- str_extract(age_class_5yr, "\\d{1,3}")
-    
-    age_group_min <- pmin(as.numeric(age_first_piece) %/% 10, 80 / 10) * 10
-    age_group_max <- age_group_min + (10 - 1)
-    
-    labels <- str_c(age_group_min, "-", age_group_max) %>%
-      str_replace("80-89", "80+")
-    
-    return(labels)
+  
+  
+  probability_estimates <- read_csv(
+    paste0(dir, "/modelled_pathway_probs.csv"),
+    show_col_types = FALSE
+  )
+  
+  
+  
+  codings <- c(
+    "ward_to_discharge", "ward_to_ICU", "ward_to_death",
+    "ICU_to_postICU", "ICU_to_discharge", "ICU_to_death",
+    "postICU_to_death", "postICU_to_discharge"
+  )
+  
+  age_classes <- c("0-39", "40-69", "70+")
+  
+  split_age_class <- function(age_class) {
+    case_when(age_class == "0-69" ~ list(c("0-39", "40-69")),
+              TRUE ~ list(age_class))
   }
   
-  
-  probability_estimates <- read_csv(str_c(dir, "/probability_estimates.csv"),
-                                    show_col_types = FALSE)
-  los_estimates <- read_csv(str_c(dir, "/parameter_estimates.csv"),
-                            show_col_types = FALSE)
-  
-  los_estimates_model <- los_estimates %>%
-    mutate(scale = 1 / rate,
-           age_group = age_class_5yr_to_10yr(age_class)) %>%
+  tbl_split_age_class <- .   %>%
+    rowwise() %>%
+    mutate(age_class = split_age_class(age_class)) %>%
+    unnest(age_class) %>%
     
-    select(age_group, compartment, shape, scale)
+    ungroup()
   
-  # Are all estimates within age groups equal?
-  stopifnot(all(los_estimates_model %>% group_by(compartment, age_group) %>% summarise(var = var(shape), .groups = "drop") %>% pull(var) == 0))
-  stopifnot(all(los_estimates_model %>% group_by(compartment, age_group) %>% summarise(var = var(scale), .groups = "drop") %>% pull(var) == 0))
+  age_class_to_10yr <- function(age_class) {
+    case_when(
+      age_class == "0-39" ~ list(c("0-9", "10-19", "20-29", "30-39")),
+      age_class == "40-69" ~ list(c("40-49", "50-59", "60-69")),
+      age_class == "70+" ~ list(c("70-79", "80+")),
+      age_class == "0-69" ~ list(c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69"))
+    )
+  }
   
-  los_estimates_model <- los_estimates_model %>%
-    group_by(compartment, age_group) %>%
-    slice(1)
+  tbl_split_age_class_10yr <- .   %>%
+    rowwise() %>%
+    mutate(age_class = age_class_to_10yr(age_class)) %>%
+    unnest(age_class) %>%
+    
+    ungroup()
+  
+  pr_table <- probability_estimates %>%
+    select(age_class, coding, prop_pathway) %>%
+    tbl_split_age_class() %>%
+    
+    complete(coding = codings, age_class = age_classes, fill = list(prop_pathway = 0)) %>%
+    
+    tbl_split_age_class_10yr() %>%
+    
+    pivot_wider(names_from = "coding",
+                values_from = "prop_pathway") %>%
+    
+    select(age_group = age_class, ward_to_discharge, ward_to_ICU, ICU_to_discharge, ICU_to_postICU, postICU_to_death)
   
   
-  probability_estimates_model <- probability_estimates %>%
-    mutate(age_group = age_class_5yr_to_10yr(age_class)) %>%
-    select(age_group, ward_to_discharge, ward_to_ICU, ICU_to_discharge, ICU_to_postICU, postICU_to_death)
+  los_estimates <- read_csv(
+    paste0(dir, "/los_estimates.csv"),
+    show_col_types = FALSE
+  )
   
+  los_params <- los_estimates  %>%
+    select(coding, age_class, rate = rate_est, shape = shape_est) %>%
+    
+    mutate(scale = 1 / rate) %>%
+    select(-rate) %>%
+    
+    tbl_split_age_class_10yr() %>%
+    rename(age_group = age_class,
+           compartment = coding)
   
-  
-  stopifnot(probability_estimates_model %>% group_by(age_group) %>%
-              summarise(across(everything(), ~ var(.))) %>%
-              select(-age_group) %>% as.matrix() %>% as.vector() %>% var() == 0)
-  
-  
-  probability_estimates_model <- probability_estimates_model %>%
-    group_by(age_group) %>%
-    slice(1)
-  
-  scale_cols <- los_estimates_model %>%
+  scale_cols <- los_params %>%
     select(-shape) %>% 
     pivot_wider(names_from = "compartment", values_from = "scale") %>%
     rename_with(.cols = -age_group, .fn = ~ str_c("scale_", .))
   
   
   
-  shape_cols <- los_estimates_model %>%
+  shape_cols <- los_params %>%
     select(-scale) %>% 
     pivot_wider(names_from = "compartment", values_from = "shape") %>%
     rename_with(.cols = -age_group, .fn = ~ str_c("shape_", .))
   
-  all_parameters <- probability_estimates_model %>%
+  
+  
+  
+  all_parameters <- pr_table %>%
     ungroup() %>%
     rename_with(.cols = -age_group, .fn = ~ str_c("pr_", .)) %>%
     
     left_join(scale_cols, by = "age_group") %>%
     
     left_join(shape_cols, by = "age_group")
-  
   
   return(all_parameters)
 }

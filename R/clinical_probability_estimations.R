@@ -33,9 +33,15 @@ make_clinical_prob_table <- function(
   require(data.table)
   setDTthreads(threads = 1)
   
-  dt_linelist <- data.table(NNDSS_linelist,
-                            key = c("age_group", "date_onset",
-                                    "status_hospital", "status_ICU"))
+  require(future.callr)
+  require(furrr)
+  
+  dt_linelist <- NNDSS_linelist %>%
+    select(age_group, date_onset, status_hospital, status_ICU, age_group) %>%
+    
+    data.table(key = c("age_group", "date_onset",
+                       "status_hospital", "status_ICU"))
+    
   
   data_date <- forecast_dates$NNDSS
   
@@ -143,10 +149,10 @@ make_clinical_prob_table <- function(
       nothosp_days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
       
       delay_hosp_shape <- clinical_parameter_lookup[cases_not_hospitalised$age_group,
-                                                    "shape_symptomatic_to_ED"]
+                                                    "shape_onset_to_ward"]
       
       delay_hosp_scale <- clinical_parameter_lookup[cases_not_hospitalised$age_group,
-                                                    "scale_symptomatic_to_ED"]
+                                                    "scale_onset_to_ward"]
       
       
       prob_hosp_MLE <- tryCatch(pracma::fzero(
@@ -211,6 +217,8 @@ make_clinical_prob_table <- function(
   
   
   print("Calculating age-independent probability timeseries...")
+  
+  
   
   clinical_probs_results <- tibble(date = seq(min(NNDSS_linelist$date_onset),
                                               max(NNDSS_linelist$date_onset) - 14,
