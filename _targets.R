@@ -47,12 +47,13 @@ state_tbl <- tibble::tibble(
 
 pre_forecasting <- list(
   
-  tar_target(date_forecasting, ymd("2022-01-11")),
+  tar_target(date_forecasting, ymd("2022-01-27")),
   tar_target(date_simulation_start, ymd("2021-06-01")),
+  tar_target(date_reporting_line, ymd("2022-01-27")),
   
-  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_04.xlsx"),
+  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_18.xlsx"),
   
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
   tar_target(plot_dir, str_c("results/", forecast_name, "/")),
   
   
@@ -60,7 +61,7 @@ pre_forecasting <- list(
   
   
   tar_target(clinical_parameters, get_clinical_parameters(
-    "~/source/los_analysis_competing_risks/results/NSW_omi_mix_2022-01-04/"
+    "~/source/los_analysis_competing_risks/results/NSW_omi_mix_2022-01-11/"
   )),
   
   
@@ -124,7 +125,9 @@ pre_forecasting <- list(
       NULL,
       
       plot_dir
-    )
+    ),
+    
+    garbage_collection = TRUE # Clear memory after reading NINDSS
     
   )
 )
@@ -308,6 +311,7 @@ final <- list(
     plot_joint_results(
       all_state_quants,
       forecast_dates,
+      date_reporting_line,
       
       forecast_name,
       plot_dir

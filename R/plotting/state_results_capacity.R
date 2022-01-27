@@ -9,16 +9,8 @@ plot_state_results_capacity <- function(
   forecast_name,
   plot_dir
 ) {
-  capacity_limits <- list(
-    "ACT" = list("ward" = 488,  "ICU" = 42,  "admissions" = 202),
-    "NSW" = list("ward" = 8832, "ICU" = 782, "admissions" = 3945),
-    "NT"  = list("ward" = 276,  "ICU" = 24,  "admissions" = 172),
-    "QLD" = list("ward" = 5099, "ICU" = 329, "admissions" = 2071),
-    "SA"  = list("ward" = 1915, "ICU" = 129, "admissions" = 694),
-    "TAS" = list("ward" = 557,  "ICU" = 41,  "admissions" = 222),
-    "VIC" = list("ward" = 6158, "ICU" = 380, "admissions" = 2456),
-    "WA"  = list("ward" = 2471, "ICU" = 121, "admissions" = 1173)
-  )
+  
+  source("R/capacity_table.R")
   
   source("R/plotting/group_capacity_plot.R")
   

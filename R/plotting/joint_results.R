@@ -2,6 +2,7 @@
 plot_joint_results <- function(
   all_state_quants,
   forecast_dates,
+  date_reporting_line,
   
   forecast_name,
   plot_dir
@@ -31,16 +32,9 @@ plot_joint_results <- function(
                scales = "free_y")
   )
   
-  capacity_limits <- list(
-    "ACT" = list("ward" = 488,  "ICU" = 42 ),
-    "NSW" = list("ward" = 8832, "ICU" = 782),
-    "NT"  = list("ward" = 276,  "ICU" = 24 ),
-    "QLD" = list("ward" = 5099, "ICU" = 329),
-    "SA"  = list("ward" = 1915, "ICU" = 129),
-    "TAS" = list("ward" = 557,  "ICU" = 41 ),
-    "VIC" = list("ward" = 6158, "ICU" = 380)#,
-    #"WA"  = list("ward" = 2471, "ICU" = 121)
-  ) %>%
+  source("R/capacity_table.R")
+  
+  capacity_limits_tbl <- capacity_limits %>%
     map_dfr(function(x) tibble_row(capacity_ward = x$ward, capacity_ICU = x$ICU),
             .id = "state") %>%
     pivot_longer(cols = c(capacity_ward, capacity_ICU),
@@ -51,6 +45,9 @@ plot_joint_results <- function(
   plot_states <- function(states) {
     p_ward <- ggplot(all_state_quants %>% filter(group == "ward", state %in% states) %>%
                        mutate(state = str_c("Ward - ", state))) +
+      
+      geom_vline(xintercept = date_reporting_line, colour = "grey80") +
+      
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
       
       scale_fill_manual(values = c("99" = "#e7cff2",
@@ -76,6 +73,9 @@ plot_joint_results <- function(
     
     p_ICU <- ggplot(all_state_quants %>% filter(group == "ICU", state %in% states) %>%
                       mutate(state = str_c("ICU - ", state))) +
+      
+      geom_vline(xintercept = date_reporting_line, colour = "grey80") +
+      
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant))  +
       
       scale_fill_manual(values = c("99" = "#cfe5cc",

@@ -13,7 +13,7 @@ make_forecast_dates <- function(
   
   
   date_forecast_start <- local_cases %>%
-    filter(detection_probability > 0.9) %>%
+    filter(state == "NSW", detection_probability > 0.95) %>%
     pull(date_onset) %>% max()
   
   date_forecast_horizon <- date_forecast_start + ddays(28)

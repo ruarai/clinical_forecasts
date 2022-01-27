@@ -1,6 +1,6 @@
 
 
-nindss_state <- tar_read(nindss_state_NSW)
+nindss_state <- tar_read(nindss)
 
 forecast_dates <- tar_read(forecast_dates)
 
@@ -8,6 +8,32 @@ date_start <- ymd("2021-10-01")
 date_end <- forecast_dates$NNDSS - ddays(2)
 
 age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
+
+
+fn_score_hosp <- function(x, A, days_since_onset, delay_shape, delay_scale) {
+  prob_already_observed <- pgamma(days_since_onset,
+                                  shape = delay_shape,
+                                  scale = delay_scale)
+  
+  
+  A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
+}
+
+
+fn_score_ICU <- function(x, A, days_since_onset, 
+                         delay_hosp_shape, delay_hosp_scale,
+                         delay_ICU_shape, delay_ICU_scale) {
+  
+  prob_already_observed <- sapply(1:length(days_since_onset), function(i) {
+    F_icu_given_case(days_since_onset[i],
+                     delay_hosp_shape[i], delay_hosp_scale[i],
+                     delay_ICU_shape[i], delay_ICU_scale[i])
+  })
+  
+  
+  
+  A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
+}
 
 model_results <- map_dfr(age_groups, function(i_age_class) {
   
@@ -31,7 +57,7 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
   
   while(window_start < date_end + ddays(3)) {
     
-    while(nrow(cases_in_window(window_start, window_end)) < 100 & window_end < date_end + ddays(3)) {
+    while(nrow(cases_in_window(window_start, window_end)) < 200 & window_end < date_end + ddays(3)) {
       window_end <- window_end + ddays(1)
     }
     
@@ -65,14 +91,6 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
              pull(days_since_onset) %>% as.numeric() %>% list())
   
   
-  fn_score_hosp <- function(x, A, days_since_onset, delay_shape, delay_scale) {
-    prob_already_observed <- pgamma(days_since_onset,
-                                    shape = delay_shape,
-                                    scale = delay_scale)
-    
-    
-    A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
-  }
   
   clinical_parameters <- tar_read(clinical_parameters)
   clinical_parameter_lookup <- clinical_parameters %>%
@@ -87,7 +105,6 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
                                                 "shape_onset_to_ward"]
   
   
-  test <- window_data_summ[1,]
   
   window_data_summ_adj <- window_data_summ %>%
   rowwise() %>%
@@ -120,14 +137,15 @@ model_plot <- model_results %>%
   mutate(date = mean.Date(c(date_start, date_end)))
 
 ggplot(model_plot) +
-  geom_step(aes(x = date_end, y = pr_hosp_adj, color = age_group)) +
-  geom_point(aes(x = date_end, y = pr_hosp_adj, color = age_group),
-             size = 0.5) +
-  # geom_line(aes(x = date, y = pr_hosp, color = age_group)) +
-  # geom_point(aes(x = date, y = pr_hosp, color = age_group),
+  # geom_line(aes(x = date_end, y = pr_hosp_adj, color = age_group)) +
+  # geom_point(aes(x = date_end, y = pr_hosp_adj, color = age_group),
   #            size = 0.5) +
+  geom_line(aes(x = date, y = pr_hosp, color = age_group)) +
+  geom_point(aes(x = date, y = pr_hosp, color = age_group),
+             size = 0.5) +
   
   ggokabeito::scale_color_okabe_ito(name = "Age group") +
+  coord_cartesian(ylim = c(0, 0.15)) +
   
   scale_x_date(breaks = "months",
                labels = scales::label_date_short()) +
@@ -138,4 +156,4 @@ ggplot(model_plot) +
   
   ggtitle("Observed probabilities of hospitalisation",
           paste0("Estimates produced over windows of at least 100 cases.\n\n",
-                 "With adjustment for right truncation applied."))
+                 "Without adjustment for right truncation applied."))

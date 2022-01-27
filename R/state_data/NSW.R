@@ -8,7 +8,8 @@ process_NSW_linelist <- function(linelist_raw_path) {
   
   
   NSW_linelist <- read_NSW_linelist(linelist_raw,
-                                    strict_filtering = FALSE) %>%
+                                    remove_adm_delay = FALSE,
+                                    remove_sep_episodes = FALSE) %>%
     mutate(age_group = assign_10yr_age_group(age),
            ever_in_hospital = TRUE,
            ever_in_ICU = ever_in_icu)
@@ -23,8 +24,14 @@ process_NSW_linelist <- function(linelist_raw_path) {
 }
 
 
-read_NSW_linelist <- function(linelist_raw,
-                              strict_filtering = TRUE) {
+read_NSW_linelist <- function(
+  linelist_raw,
+  
+  remove_adm_delay = TRUE,
+  remove_sep_episodes = TRUE,
+  
+  return_diagnostics = FALSE
+) {
   clinical_linelist <- linelist_raw %>%
     select(person_id, age, load_date,
            admit_date_dt, discharge_date_dt, first_icu_date_dt, last_icu_date_dt,
@@ -72,14 +79,36 @@ read_NSW_linelist <- function(linelist_raw,
            discharge_to_next_admit = replace_na(discharge_to_next_admit, 0))
   
   
-  if(strict_filtering) {
-    multiple_episodes <- multiple_episodes %>%
+  if(remove_sep_episodes) {
+    multiple_episodes_filt <- multiple_episodes %>%
       
       filter(all(discharge_to_next_admit < 2),
              all(discharge_to_next_admit > -1))
+  } else{
+    multiple_episodes_filt <- multiple_episodes %>%
+      
+      filter(all(discharge_to_next_admit < 28),
+             all(discharge_to_next_admit > -1),
+             n() < 5) %>%
+      
+      ungroup() %>%
+      map_df(rev) %>%
+      group_by(person_id) %>%
+      
+      mutate(days_to_add = ddays(cumsum(discharge_to_next_admit)),
+             
+             admit_date_dt = admit_date_dt + days_to_add,
+             discharge_date_dt = discharge_date_dt + days_to_add,
+             
+             first_icu_date_dt = first_icu_date_dt + days_to_add,
+             last_icu_date_dt = last_icu_date_dt + days_to_add) %>%
+      
+      ungroup() %>%
+      map_df(rev) %>%
+      group_by(person_id)
   }
   
-  collapsed_multiple_episodes <- multiple_episodes %>%
+  collapsed_multiple_episodes <- multiple_episodes_filt %>%
     
     mutate(discharge_date_dt = max(discharge_date_dt),
            
@@ -144,7 +173,7 @@ read_NSW_linelist <- function(linelist_raw,
   print(unlikely_admission_delay)
   print(unlikely_admission_delay %>% pull(days_onset_to_adm))
   
-  if(strict_filtering) {
+  if(remove_adm_delay) {
     filtered_clinical_linelist <- setdiff(
       clinical_linelist_collapsed,
       early_dated_entries %>% 
@@ -158,14 +187,10 @@ read_NSW_linelist <- function(linelist_raw,
       clinical_linelist_collapsed,
       early_dated_entries %>% 
         union(late_dated_entries) %>%
-        union(incorrect_indicator_dates)
+        union(incorrect_indicator_dates) %>%
+        union(long_duration_entries)
     )
   }
-  
-  
-  ggplot(filtered_clinical_linelist) +
-    geom_histogram(aes(x = days_onset_to_adm),
-                   binwidth = 1)
   
   did_patient_die <- function(discharge_description) {
     death_descriptors <- c("deceased", "death", "died", "dead")
@@ -197,36 +222,45 @@ read_NSW_linelist <- function(linelist_raw,
            patient_died)
   
   
-  
-  ggplot(cleaned_clinical_linelist) +
+  if(return_diagnostics) {
+    filtered_multi_episodes <- multiple_episodes %>%
+      
+      filter(any(discharge_to_next_admit >= 2)|
+               any(discharge_to_next_admit <= -1))
     
-    geom_histogram(aes(x = age),
-                   binwidth = 1) +
-    theme_minimal()
-  
-  
-  ggplot(cleaned_clinical_linelist %>% filter(!is_still_in_hosp)) +
-    geom_histogram(aes(x = dt_hosp_admission),
-                   alpha = 1, fill = 'black',
-                   binwidth = ddays(1))  +
+    n_ind <- . %>% pull(person_id) %>% unique() %>% length()
     
-    geom_histogram(aes(x = dt_hosp_discharge),
-                   alpha = 0.5, fill = 'orangered',
-                   binwidth = ddays(1)) +
-    theme_minimal() +
-    ggtitle("Ward admission and discharge dates")
-  
-  
-  ggplot(cleaned_clinical_linelist %>% filter(!is_still_in_icu)) +
-    geom_histogram(aes(x = dt_first_icu),
-                   alpha = 1, fill = 'black',
-                   binwidth = ddays(1))  +
+    adm_delay_inds <- unique(unlikely_admission_delay$person_id)
     
-    geom_histogram(aes(x = dt_last_icu),
-                   alpha = 0.5, fill = 'orangered',
-                   binwidth = ddays(1)) +
-    theme_minimal() +
-    ggtitle("ICU admission and discharge dates")
-  
-  cleaned_clinical_linelist
+    bad_duration_inds <- union(
+      union(unique(late_dated_entries$person_id), unique(incorrect_indicator_dates$person_id)),
+      union(unique(early_dated_entries$person_id), unique(long_duration_entries$person_id))
+    )%>%
+      setdiff(adm_delay_inds)
+    
+    
+    
+    return(list(
+      data = cleaned_clinical_linelist,
+      
+      diagnostics = tibble(
+        n_raw_records = nrow(linelist_raw),
+        n_raw_ind = linelist_raw  %>% n_ind(),
+        
+        n_single_episode_ind = nrow(single_episodes),
+        n_mult_episode_ind = multiple_episodes %>% n_ind(),
+        
+        n_invalid_multi_episode_ind = filtered_multi_episodes %>% n_ind(),
+        n_after_multi_episode_filt_ind = linelist_raw  %>% n_ind() - filtered_multi_episodes %>% n_ind(),
+        
+        n_adm_delay_ind = length(adm_delay_inds),
+        n_bad_duration_ind = length(bad_duration_inds),
+        
+        final_n_ind = filtered_clinical_linelist %>% n_ind()
+      )
+    ))
+  }
+  else{
+    return(cleaned_clinical_linelist)
+  }
 }
