@@ -15,6 +15,10 @@ make_case_trajectories <- function(
   
   ensemble_curves_df <- ensemble_state %>%
     filter(date <= forecast_dates$forecast_horizon) %>%
+    
+    # Filter out specific models if necessary:
+    #filter(!(.model == "dst" & state == "VIC")) %>%
+    
     select(-c(state, forecast_origin)) %>%
     
     pivot_wider(names_from = ".model",
@@ -69,7 +73,8 @@ make_case_trajectories <- function(
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
   
   backcast_curve <- linelist_state %>%
-    filter(date_onset <= date_nowcast_start) %>%
+    filter(date_onset <= date_nowcast_start,
+           date_onset >= forecast_dates$simulation_start) %>%
     filter(ever_in_hospital) %>%
     
     group_by(date_onset, age_group) %>%
