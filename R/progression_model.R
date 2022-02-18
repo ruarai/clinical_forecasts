@@ -3,6 +3,7 @@ run_progression_model <- function(
   case_trajectories,
   clinical_table_state,
   nindss_state,
+  clinical_parameters,
   
   forecast_dates
 ) {
@@ -10,7 +11,6 @@ run_progression_model <- function(
   require(lubridate)
   
   require(curvemush)
-  
   
   clinical_table_ordered <- clinical_table_state %>%
     filter(date_onset >= forecast_dates$simulation_start,
@@ -20,9 +20,6 @@ run_progression_model <- function(
   forecasting_clinical_table <- clinical_table_ordered %>%
     filter(date_onset == max(date_onset)) %>%
     select(age_group, pr_hosp, pr_ICU)
-  
-  
-  clinical_parameters <- tar_read(clinical_parameters)
   
   # Make our estimated pr_ICU compatible with estimates from our one-off analysis
   forecasting_table_adj_ICU <- clinical_parameters %>%

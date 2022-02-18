@@ -36,6 +36,7 @@ read_NSW_linelist <- function(
     select(person_id, age, load_date,
            admit_date_dt, discharge_date_dt, first_icu_date_dt, last_icu_date_dt,
            still_in_hosp, still_in_icu, any_icu_flag, discharge_desc = AP_DISCHARGE_DISPOSITION_DESC,
+           true_icu_hours = icu_hours,
            days_onset_to_adm = covid_to_adm,
            ward = WARD_TYPE,
            subward = SUB_WARD_TYPE)
@@ -87,7 +88,7 @@ read_NSW_linelist <- function(
   } else{
     multiple_episodes_filt <- multiple_episodes %>%
       
-      filter(all(discharge_to_next_admit < 28),
+      filter(all(discharge_to_next_admit < 5),
              all(discharge_to_next_admit > -1),
              n() < 5) %>%
       
@@ -114,6 +115,7 @@ read_NSW_linelist <- function(
            
            first_icu_date_dt = min(first_icu_date_dt, na.rm = TRUE),
            last_icu_date_dt = max(last_icu_date_dt, na.rm = TRUE),
+           true_icu_hours = sum(true_icu_hours, na.rm = TRUE),
            
            any_icu_flag = any(any_icu_flag, na.rm = TRUE),
            still_in_icu = any(still_in_icu, na.rm = TRUE),
@@ -215,6 +217,7 @@ read_NSW_linelist <- function(
            dt_first_icu = first_icu_date_dt,
            dt_last_icu = last_icu_date_dt,
            date_onset,
+           true_icu_hours,
            
            is_still_in_hosp,
            is_still_in_icu,

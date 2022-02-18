@@ -42,7 +42,8 @@ get_latest_file_path <- function(mediaflux_dir,
   
   likely_file <- file_listing %>%
     filter(str_detect(source, file_pattern)) %>%
-    slice_max(date, n = 1)
+    slice_max(date, n = 1) %>%
+    slice(1)
   
   print(paste0("Using the most likely file '", likely_file$source, "'"))
   print(paste0("Which is dated ", likely_file$date, 

@@ -64,7 +64,7 @@ plot_joint_results <- function(
       plots_common +
       
       geom_hline(aes(yintercept = capacity),
-                 capacity_limits %>% filter(group == "ward", state %in% states) %>%
+                 capacity_limits_tbl %>% filter(group == "ward", state %in% states) %>%
                    mutate(state = str_c("Ward - ", state)),
                  linetype = 'dashed', size = 0.3) +
       
@@ -91,7 +91,7 @@ plot_joint_results <- function(
       plots_common +
       
       geom_hline(aes(yintercept = capacity),
-                 capacity_limits %>% filter(group == "ICU", state %in% states) %>%
+                 capacity_limits_tbl %>% filter(group == "ICU", state %in% states) %>%
                    mutate(state = str_c("ICU - ", state)),
                  linetype = 'dashed', size = 0.3)
     

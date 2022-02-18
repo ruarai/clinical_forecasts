@@ -1,31 +1,18 @@
 
 process_NINDSS_linelist <- function(
-  nindss_raw,
+  raw_nindss,
   date_simulation_start
 ) {
   source("R/age_groups.R")
   
   
   
-  linelist_data <- bind_rows(
-    parse_xl_sheet(nindss_raw, sheet = 1, date_simulation_start),
-    parse_xl_sheet(nindss_raw, sheet = 2, date_simulation_start),
-    parse_xl_sheet(nindss_raw, sheet = 3, date_simulation_start)
-  )
+  nindss_data <- read_csv(raw_nindss)
   
   
-  print("Saving...")
+  print("Reading CSV data")
   
-  linelist_data
-}
-
-parse_xl_sheet <- function(nindss_raw, sheet_n, date_simulation_start) {
-  
-  print(paste0("Reading Excel sheet ", sheet_n, "..."))
-  
-  nindss_data <- openxlsx::read.xlsx(nindss_raw, sheet = sheet_n)
-  
-  parse_xl_date <- function(raw_date) {
+  parse_csv_date <- function(raw_date) {
     suppressWarnings(case_when(
       raw_date == "NULL" ~ NA_Date_,
       TRUE ~ dmy(raw_date)
@@ -36,9 +23,9 @@ parse_xl_sheet <- function(nindss_raw, sheet_n, date_simulation_start) {
   print("Processing...")
   
   nindss_data %>%
-    mutate(TRUE_ONSET_DATE = parse_xl_date(TRUE_ONSET_DATE),
-           NOTIFICATION_DATE = parse_xl_date(NOTIFICATION_DATE),
-           NOTIFICATION_RECEIVE_DATE = parse_xl_date(NOTIFICATION_RECEIVE_DATE),
+    mutate(TRUE_ONSET_DATE = parse_csv_date(TRUE_ONSET_DATE),
+           NOTIFICATION_DATE = parse_csv_date(NOTIFICATION_DATE),
+           NOTIFICATION_RECEIVE_DATE = parse_csv_date(NOTIFICATION_RECEIVE_DATE),
            
            CV_ICU = as.numeric(CV_ICU),
            HOSPITALISED = as.numeric(HOSPITALISED),
@@ -54,11 +41,11 @@ parse_xl_sheet <- function(nindss_raw, sheet_n, date_simulation_start) {
     
     
     mutate(date_onset = case_when(date_valid(TRUE_ONSET_DATE)           ~ TRUE_ONSET_DATE,
-                                  date_valid(NOTIFICATION_DATE)         ~ NOTIFICATION_DATE,
-                                  date_valid(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE),
+                                  date_valid(NOTIFICATION_DATE)         ~ NOTIFICATION_DATE - 1,
+                                  date_valid(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE - 2),
            
            date_diagnosis = case_when(date_valid(NOTIFICATION_DATE)         ~ NOTIFICATION_DATE,
-                                      date_valid(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE),
+                                      date_valid(NOTIFICATION_RECEIVE_DATE) ~ NOTIFICATION_RECEIVE_DATE - 1),
            
            status_ICU = case_when(is.na(CV_ICU) ~ 0,
                                   TRUE          ~ CV_ICU),

@@ -1,6 +1,6 @@
 forecast_dates <- tar_read(forecast_dates)
 all_state_quants <- tar_read(all_state_quants) %>%
-  filter(date >= forecast_dates$forecast_start - ddays(4))
+  filter(date >= forecast_dates$forecast_start - ddays(21))
 
 all_state_known_occupancy_ts <- tar_read(all_state_known_occupancy_ts) %>%
   filter(!(state == "NSW" & source == "direct_ll"))
@@ -12,7 +12,7 @@ plot_dir <- tar_read(plot_dir)
 dir.create(plot_dir, showWarnings = FALSE)
 
 plots_common <- list(
-  coord_cartesian(xlim = c(forecast_dates$forecast_start,
+  coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(21),
                            forecast_dates$forecast_horizon)),
   scale_x_date("Date", date_labels = "%e/%m", breaks = "weeks", expand=c(0,0)),
   geom_vline(xintercept = forecast_dates$forecast_start,
