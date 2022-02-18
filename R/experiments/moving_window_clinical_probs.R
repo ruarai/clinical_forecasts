@@ -1,6 +1,6 @@
 
 
-nindss_state <- tar_read(nindss)
+nindss_state <- tar_read(nindss_state_NSW)
 
 forecast_dates <- tar_read(forecast_dates)
 
@@ -34,6 +34,12 @@ fn_score_ICU <- function(x, A, days_since_onset,
   
   A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
 }
+clinical_parameters <- tar_read(clinical_parameters)
+
+clinical_parameter_lookup <- clinical_parameters %>%
+  select(-age_group) %>%
+  as.matrix() %>%
+  `rownames<-`(clinical_parameters$age_group)
 
 model_results <- map_dfr(age_groups, function(i_age_class) {
   
@@ -57,7 +63,7 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
   
   while(window_start < date_end + ddays(3)) {
     
-    while(nrow(cases_in_window(window_start, window_end)) < 200 & window_end < date_end + ddays(3)) {
+    while(nrow(cases_in_window(window_start, window_end)) < 100 & window_end < date_end + ddays(3)) {
       window_end <- window_end + ddays(1)
     }
     
@@ -80,7 +86,7 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
   
   window_data_summ <- window_data %>%
     group_by(window_s = window, date_start, date_end) %>%
-    summarise(n_hosp = sum(ever_in_hospital),
+    summarise(n_hosp = sum(ever_in_hospital, na.rm = TRUE),
               n_cases = n(), .groups = "drop") %>%
     
     rowwise() %>%
@@ -92,17 +98,11 @@ model_results <- map_dfr(age_groups, function(i_age_class) {
   
   
   
-  clinical_parameters <- tar_read(clinical_parameters)
-  clinical_parameter_lookup <- clinical_parameters %>%
-    select(-age_group) %>%
-    as.matrix() %>%
-    `rownames<-`(clinical_parameters$age_group)
-  
   delay_hosp_shape <- clinical_parameter_lookup[i_age_class,
                                                 "shape_onset_to_ward"]
   
   delay_hosp_scale <- clinical_parameter_lookup[i_age_class,
-                                                "shape_onset_to_ward"]
+                                                "scale_onset_to_ward"]
   
   
   
@@ -145,7 +145,7 @@ ggplot(model_plot) +
              size = 0.5) +
   
   ggokabeito::scale_color_okabe_ito(name = "Age group") +
-  coord_cartesian(ylim = c(0, 0.15)) +
+  coord_cartesian(ylim = c(0, 1)) +
   
   scale_x_date(breaks = "months",
                labels = scales::label_date_short()) +
