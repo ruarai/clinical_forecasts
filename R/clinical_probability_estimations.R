@@ -148,6 +148,8 @@ make_clinical_prob_table <- function(
       
       nothosp_days_since_onset <- as.numeric(data_date - cases_not_hospitalised$date_onset)
       
+      ## TODO: Finish this off when we can make sensible estimates here.
+      
       delay_hosp_shape <- clinical_parameter_lookup[cases_not_hospitalised$age_group,
                                                     "shape_onset_to_ward"]
       
@@ -178,21 +180,25 @@ make_clinical_prob_table <- function(
                                                     "scale_ward_to_ICU"]
       
       
-      prob_ICU_MLE <- tryCatch(pracma::fzero(
-        function(x) {
-          fn_score_ICU(x, 
-                       nrow(cases_ICU),
-                       notICU_days_since_onset,
-                       delay_hosp_shape = delay_hosp_shape, 
-                       delay_hosp_scale = delay_hosp_scale,
-                       
-                       delay_ICU_shape = delay_ICU_shape,
-                       delay_ICU_scale = delay_ICU_scale)
-        },
-        
-        x = c(0+.Machine$double.eps,1-.Machine$double.eps),
-      )$x,
-      error = function(c) { return(prob_ICU_naive) })
+      prob_ICU_MLE <- prob_ICU_naive
+      # BROKEN 28/01/2022
+      # Adjustment has very little effect in past
+      # 
+      # prob_ICU_MLE <- tryCatch(pracma::fzero(
+      #   function(x) {
+      #     fn_score_ICU(x, 
+      #                  nrow(cases_ICU),
+      #                  notICU_days_since_onset,
+      #                  delay_hosp_shape = delay_hosp_shape, 
+      #                  delay_hosp_scale = delay_hosp_scale,
+      #                  
+      #                  delay_ICU_shape = delay_ICU_shape,
+      #                  delay_ICU_scale = delay_ICU_scale)
+      #   },
+      #   
+      #   x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+      # )$x,
+      # error = function(c) { return(prob_ICU_naive) })
       
       
       
