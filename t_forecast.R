@@ -11,6 +11,19 @@ tar_option_set(packages = c(
 ))
 
 
+state_tbl <- tibble::tibble(
+  state_modelled = c(
+    "VIC",
+    "ACT",
+    "QLD",
+    "NSW",
+    "NT",
+    "WA",
+    "SA",
+    "TAS"
+  )
+)
+
 source("R/clinical_parameters.R")
 source("R/mediaflux.R")
 source("R/nindss.R")
@@ -30,29 +43,21 @@ source("R/plotting/state_results.R")
 source("R/plotting/state_results_capacity.R")
 source("R/plotting/joint_results.R")
 
+source("R/plotting/diagnostics.R")
 
-state_tbl <- tibble::tibble(
-  state_modelled = c(
-    "VIC",
-    "ACT",
-    "QLD",
-    "NSW",
-    "NT",
-    "WA",
-    "SA",
-    "TAS"
-  )
-)
+source("t_absenteeism.R")
+
 
 
 pre_forecasting <- list(
   
-  tar_target(date_forecasting, ymd("2022-01-27")),
-  tar_target(date_simulation_start, ymd("2021-06-01")),
-  tar_target(date_reporting_line, ymd("2022-01-27")),
+  tar_target(date_forecasting, ymd("2022-02-11")),
+  tar_target(date_reporting_line, ymd("2022-02-11")),
   
-  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_18.xlsx"),
+  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_08.xlsx"),
   
+  
+  tar_target(date_simulation_start, ymd("2021-11-01")),
   tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
   tar_target(plot_dir, str_c("results/", forecast_name, "/")),
   
@@ -60,9 +65,24 @@ pre_forecasting <- list(
   tar_target(latest_mflux_files, get_latest_mflux_files(date_forecasting)),
   
   
-  tar_target(clinical_parameters, get_clinical_parameters(
-    "~/source/los_analysis_competing_risks/results/NSW_omi_mix_2022-01-11/"
-  )),
+  
+  
+  
+  
+  tar_target(
+    clinical_parameters, 
+    {
+      read_csv(
+        "/home/forecast/source/los_analysis_competing_risks/results/NSW_2022-01-25_omi_mix/clinical_parameters.csv",
+        show_col_types = FALSE
+      ) %>%
+        # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)
+        mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41, 
+                                       3.35, 3.35, 3.24, 3.24),
+               shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
+                                       1.7, 1.9, 1.9, 1.3))
+    }
+  ),
   
   
   tar_target(c19data, get_c19data()),
@@ -79,7 +99,7 @@ pre_forecasting <- list(
     raw_nindss,
     download_mflux_file(
       remote_file = latest_mflux_files$nindss$file,
-      local_file = "data/mflux/downloads/raw_nindss.xlsx"
+      local_file = "data/mflux/downloads/raw_nindss.csv.zip"
     ),
     format = "file"),
   
@@ -168,7 +188,7 @@ state_results <- tar_map(
       nindss_state,
       
       NSW_linelist_path
-      )
+    )
   ),
   
   tar_target(
@@ -228,6 +248,7 @@ state_results <- tar_map(
       case_trajectories,
       clinical_table,
       nindss_state,
+      clinical_parameters,
       
       forecast_dates
     ),
@@ -274,11 +295,36 @@ state_results <- tar_map(
     
     sim_results$quants_count %>%
       mutate(state = state_modelled)
+  ),
+  
+  tar_target(
+    state_results_traj,
+    
+    sim_results$trajectories %>%
+      filter(group %in% c("ward", "ICU")) %>%
+      mutate(state = state_modelled)
+  ),
+  
+  t_state_absenteeism,
+  
+  
+  tar_target(
+    state_diag_plots,
+    
+    plot_diagnostics(
+      case_trajectories,
+      forecast_dates,
+      nindss_state,
+      clinical_table,
+      plot_dir,
+      
+      state_modelled
+    )
   )
 )
 
 
-final <- list(
+t_forecast <- list(
   pre_forecasting,
   
   state_results,
@@ -289,6 +335,36 @@ final <- list(
     state_results[["state_result_quants"]],
     
     command = dplyr::bind_rows(!!!.x)
+  ),
+  
+  tar_combine(
+    all_state_trajs,
+    state_results[["state_results_traj"]],
+    
+    command = dplyr::bind_rows(!!!.x)
+  ),
+  
+  tar_target(
+    backup_trajs,
+    {
+      file_path <- paste0(plot_dir, "/trajectories.fst")
+      fst::write_fst(all_state_trajs, path = file_path, compress = 100)
+      return(file_path)
+    },
+    
+    format = "file"
+  ),
+  
+  tar_target(
+    backup_fc_dates,
+    {
+      file_path <- paste0(plot_dir, "/forecast_dates.csv")
+      forecast_dates %>%
+        write_csv(file_path)
+      return(file_path)
+    },
+    
+    format = "file"
   ),
   
   tar_combine(
@@ -327,22 +403,7 @@ final <- list(
       select(state, group, date, prob = y_adj) %>%
       
       write_csv(paste0(plot_dir, "/clinical_capacity_", date_forecasting ,".csv"))
-  ),
-  
-  tar_target(
-    backup_task,
-    function() {
-      print(nrow(all_state_quants)) # Make dependent upon result quants at least.
-      
-      file.copy(
-        from = "_targets/",
-        to = plot_dir,
-        
-        recursive = TRUE,
-        overwrite = TRUE
-      )
-    }
   )
 )
 
-final
+t_forecast

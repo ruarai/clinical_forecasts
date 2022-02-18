@@ -1,0 +1,3 @@
+forecast:
+  script: t_forecast.R
+  store: forecast
