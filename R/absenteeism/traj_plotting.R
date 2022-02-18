@@ -35,11 +35,11 @@ plot_traj <- function(traj, do_sum = FALSE) {
 
 make_results_quants <- function(tbl) {
   data_matrix <- tbl %>%
-    select(starts_with("sim_")) %>%
+    select(starts_with("sim")) %>%
     as.matrix()
   
   id_tbl <- tbl %>%
-    select(!starts_with("sim_"))
+    select(!starts_with("sim"))
   
   medians <- data_matrix %>%
     matrixStats::rowMedians() %>%

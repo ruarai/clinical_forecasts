@@ -51,10 +51,10 @@ source("t_absenteeism.R")
 
 pre_forecasting <- list(
   
-  tar_target(date_forecasting, ymd("2022-02-11")),
-  tar_target(date_reporting_line, ymd("2022-02-11")),
+  tar_target(date_forecasting, ymd("2022-02-18")),
+  tar_target(date_reporting_line, ymd("2022-02-18")),
   
-  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_08.xlsx"),
+  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_15.xlsx"),
   
   
   tar_target(date_simulation_start, ymd("2021-11-01")),
@@ -63,8 +63,6 @@ pre_forecasting <- list(
   
   
   tar_target(latest_mflux_files, get_latest_mflux_files(date_forecasting)),
-  
-  
   
   
   
@@ -329,6 +327,19 @@ t_forecast <- list(
   
   state_results,
   
+  
+  tar_combine(
+    all_state_absenteeism_trajs,
+    state_results[["absentee_trajs"]],
+    
+    command = dplyr::bind_rows(!!!.x)
+  ),
+  
+  tar_target(
+    absenteeism_plots,
+    
+    make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, plot_dir)
+  ),
   
   tar_combine(
     all_state_quants,

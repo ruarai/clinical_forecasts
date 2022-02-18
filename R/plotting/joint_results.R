@@ -13,6 +13,24 @@ plot_joint_results <- function(
                         forecast_dates$forecast_start + 28,
                         by = "weeks")
   
+  
+  plot_lims <- tribble(
+    ~state, ~group ,~y_lim,
+    "WA", "ICU", 60,
+    "WA", "ward", 750,
+    "TAS", "ICU", 40,
+    "SA", "ICU", 50,
+    "NSW", "ICU", 500,
+    "ACT", "ICU", 50
+  )
+  
+  all_state_quants <- all_state_quants %>%
+    
+    left_join(plot_lims) %>%
+    
+    mutate(upper = if_else(is.na(y_lim), upper, pmin(upper, y_lim)),
+           lower = if_else(is.na(y_lim), lower, pmin(lower, y_lim)))
+  
   plots_common <- list(
     coord_cartesian(xlim = c(forecast_dates$forecast_start - 7,
                              forecast_dates$forecast_horizon)),
@@ -39,7 +57,11 @@ plot_joint_results <- function(
             .id = "state") %>%
     pivot_longer(cols = c(capacity_ward, capacity_ICU),
                  names_prefix = "capacity_",
-                 names_to = "group", values_to = "capacity")
+                 names_to = "group", values_to = "capacity") %>%
+    
+    left_join(plot_lims) %>%
+    
+    filter(is.na(y_lim) | (capacity < y_lim))
   
   
   plot_states <- function(states) {
@@ -88,6 +110,7 @@ plot_joint_results <- function(
                          expand = c(0,0),
                          breaks = scales::breaks_extended(),
                          labels = scales::label_number(accuracy = 1)) +
+      
       plots_common +
       
       geom_hline(aes(yintercept = capacity),
