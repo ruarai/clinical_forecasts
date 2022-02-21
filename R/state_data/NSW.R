@@ -113,12 +113,12 @@ read_NSW_linelist <- function(
     
     mutate(discharge_date_dt = max(discharge_date_dt),
            
-           first_icu_date_dt = min(first_icu_date_dt, na.rm = TRUE),
-           last_icu_date_dt = max(last_icu_date_dt, na.rm = TRUE),
-           true_icu_hours = sum(true_icu_hours, na.rm = TRUE),
+           first_icu_date_dt = suppressWarnings(min(first_icu_date_dt, na.rm = TRUE)),
+           last_icu_date_dt = suppressWarnings(max(last_icu_date_dt, na.rm = TRUE)),
+           true_icu_hours = suppressWarnings(sum(true_icu_hours, na.rm = TRUE)),
            
-           any_icu_flag = any(any_icu_flag, na.rm = TRUE),
-           still_in_icu = any(still_in_icu, na.rm = TRUE),
+           any_icu_flag = suppressWarnings(any(any_icu_flag, na.rm = TRUE)),
+           still_in_icu = suppressWarnings(any(still_in_icu, na.rm = TRUE)),
            
            still_in_hosp = if_else(any(still_in_hosp == 1), 1, 0),
            

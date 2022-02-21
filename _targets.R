@@ -51,15 +51,23 @@ source("t_absenteeism.R")
 
 pre_forecasting <- list(
   
-  tar_target(date_forecasting, ymd("2022-02-18")),
-  tar_target(date_reporting_line, ymd("2022-02-18")),
+  tar_target(date_forecasting, ymd("2022-01-13")),
+  tar_target(date_reporting_line, ymd("2022-01-13")),
   
-  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_15.xlsx"),
+  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_11.xlsx"),
   
   
   tar_target(date_simulation_start, ymd("2021-11-01")),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
-  tar_target(plot_dir, str_c("results/", forecast_name, "/")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_retro")),
+  
+  tar_target(
+    plot_dir,
+    {
+      dir <- str_c("results/", forecast_name, "/")
+      dir.create(dir, showWarnings = FALSE)
+      return(dir)
+    }
+  ),
   
   
   tar_target(latest_mflux_files, get_latest_mflux_files(date_forecasting)),
@@ -97,7 +105,7 @@ pre_forecasting <- list(
     raw_nindss,
     download_mflux_file(
       remote_file = latest_mflux_files$nindss$file,
-      local_file = "data/mflux/downloads/raw_nindss.csv.zip"
+      local_file = "data/mflux/downloads/raw_nindss.xlsx"
     ),
     format = "file"),
   

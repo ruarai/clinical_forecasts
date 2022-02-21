@@ -58,7 +58,7 @@ get_latest_mflux_files <- function(date_limit) {
     "forecast-outputs",
     "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd,
     
-    date_limit) %>%
+    date_limit - ddays(7)) %>%
     mutate(file = paste0("forecast-outputs/", file),
            type = "ensemble")
   
