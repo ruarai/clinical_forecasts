@@ -31,7 +31,7 @@ source("R/model_parameters.R")
 
 source("R/data_various.R")
 
-source("R/clinical_probability_estimations.R")
+source("R/moving_window_clinical_probs.R")
 source("R/ensemble.R")
 
 source("R/occupancy_timeseries.R")
@@ -51,14 +51,14 @@ source("t_absenteeism.R")
 
 pre_forecasting <- list(
   
-  tar_target(date_forecasting, ymd("2022-01-13")),
-  tar_target(date_reporting_line, ymd("2022-01-13")),
+  tar_target(date_forecasting, ymd("2022-02-22")),
+  tar_target(date_reporting_line, ymd("2022-02-22")),
   
-  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_01_11.xlsx"),
+  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_15.xlsx"),
   
   
   tar_target(date_simulation_start, ymd("2021-11-01")),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_retro")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test")),
   
   tar_target(
     plot_dir,
@@ -148,6 +148,7 @@ pre_forecasting <- list(
       forecast_dates,
       clinical_parameters,
       "national",
+      
       NULL,
       
       plot_dir
