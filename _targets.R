@@ -1,51 +1,7 @@
-library(targets)
-library(tarchetypes)
 
-library(future.callr)
-plan(callr)
+source("_targets_dependencies.R")
 
-options(tidyverse.quiet = TRUE)
-tar_option_set(packages = c(
-  "tidyverse",
-  "lubridate"
-))
-
-
-state_tbl <- tibble::tibble(
-  state_modelled = c(
-    "VIC",
-    "ACT",
-    "QLD",
-    "NSW",
-    "NT",
-    "WA",
-    "SA",
-    "TAS"
-  )
-)
-
-source("R/clinical_parameters.R")
-source("R/mediaflux.R")
-source("R/nindss.R")
-source("R/model_parameters.R")
-
-source("R/data_various.R")
-
-source("R/moving_window_clinical_probs.R")
-source("R/ensemble.R")
-
-source("R/occupancy_timeseries.R")
-
-source("R/case_trajectories.R")
-source("R/progression_model.R")
-
-source("R/plotting/state_results.R")
-source("R/plotting/state_results_capacity.R")
-source("R/plotting/joint_results.R")
-
-source("R/plotting/diagnostics.R")
-
-source("t_absenteeism.R")
+state_tbl <- tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
 
 
 
@@ -57,8 +13,8 @@ pre_forecasting <- list(
   tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_15.xlsx"),
   
   
-  tar_target(date_simulation_start, ymd("2021-11-01")),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test")),
+  tar_target(date_simulation_start, ymd("2021-07-01")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test_sampled")),
   
   tar_target(
     plot_dir,
@@ -73,13 +29,11 @@ pre_forecasting <- list(
   tar_target(latest_mflux_files, get_latest_mflux_files(date_forecasting)),
   
   
-  
-  
   tar_target(
     clinical_parameters, 
     {
       read_csv(
-        "/home/forecast/source/los_analysis_competing_risks/results/NSW_2022-01-25_omi_mix/clinical_parameters.csv",
+        "/home/forecast/source/los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/clinical_parameters.csv",
         show_col_types = FALSE
       ) %>%
         # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)
@@ -87,6 +41,18 @@ pre_forecasting <- list(
                                        3.35, 3.35, 3.24, 3.24),
                shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
                                        1.7, 1.9, 1.9, 1.3))
+    }
+  ),
+  
+  tar_target(
+    clinical_parameter_samples, {
+      read_csv(
+        "../los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/estimate_samples_share_wide.csv"
+      ) %>%
+        mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41, 
+                                       3.35, 3.35, 3.24, 3.24) %>% rep(times = 1000),
+               shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
+                                       1.7, 1.9, 1.9, 1.3) %>% rep(times = 1000))
     }
   ),
   
@@ -141,26 +107,21 @@ pre_forecasting <- list(
   
   
   tar_target(
-    national_clinical_table,
+    national_morbidity_estimates,
     
-    make_clinical_prob_table(
+    make_morbidity_estimates(
       nindss,
-      forecast_dates,
+      forecast_dates$NNDSS,
+      forecast_dates$simulation_start,
       clinical_parameters,
       "national",
       
-      NULL,
-      
-      plot_dir
+      NULL
     ),
     
     garbage_collection = TRUE # Clear memory after reading NINDSS
-    
   )
 )
-
-
-
 
 state_results <- tar_map(
   values = state_tbl,
@@ -219,17 +180,17 @@ state_results <- tar_map(
   
   
   tar_target(
-    clinical_table,
-    make_clinical_prob_table(
+    morbidity_estimates_state,
+    make_morbidity_estimates(
       nindss_state,
       
-      forecast_dates,
+      forecast_dates$NNDSS,
+      forecast_dates$simulation_start,
+      
       clinical_parameters,
       
       state_modelled,
-      national_clinical_table,
-      
-      plot_dir
+      national_morbidity_estimates
     )
   ),
   
@@ -253,9 +214,10 @@ state_results <- tar_map(
     
     run_progression_model(
       case_trajectories,
-      clinical_table,
       nindss_state,
-      clinical_parameters,
+      
+      morbidity_estimates_state,
+      clinical_parameter_samples,
       
       forecast_dates
     ),
@@ -322,7 +284,7 @@ state_results <- tar_map(
       case_trajectories,
       forecast_dates,
       nindss_state,
-      clinical_table,
+      morbidity_estimates_state,
       plot_dir,
       
       state_modelled

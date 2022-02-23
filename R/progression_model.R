@@ -1,40 +1,16 @@
 
 run_progression_model <- function(
   case_trajectories,
-  clinical_table_state,
   nindss_state,
-  clinical_parameters,
+  
+  morbidity_estimates_state,
+  clinical_parameter_samples,
   
   forecast_dates
 ) {
   require(tidyverse)
   require(lubridate)
-  
   require(curvemush)
-  
-  clinical_table_ordered <- clinical_table_state %>%
-    filter(date_onset >= forecast_dates$simulation_start,
-           date_onset <= forecast_dates$forecast_horizon) %>%
-    arrange(date_onset, age_group)
-  
-  forecasting_clinical_table <- clinical_table_ordered %>%
-    filter(date_onset == max(date_onset)) %>%
-    select(age_group, pr_hosp, pr_ICU)
-  
-  # Make our estimated pr_ICU compatible with estimates from our one-off analysis
-  forecasting_table_adj_ICU <- clinical_parameters %>%
-    select(age_group, pr_ward_to_ICU, pr_ward_to_discharge) %>%
-    mutate(pr_ward_to_death = 1 - pr_ward_to_ICU - pr_ward_to_discharge) %>%
-    
-    left_join(forecasting_clinical_table %>% select(age_group, pr_ICU), by = "age_group") %>%
-    
-    mutate(pr_not_ICU_true = 1 - pr_ICU,
-           pr_ward_to_discharge_given_not_ICU = pr_ward_to_discharge / (pr_ward_to_discharge + pr_ward_to_death)) %>%
-    
-    mutate(pr_ward_to_discharge = pr_ward_to_discharge_given_not_ICU * pr_not_ICU_true,
-           pr_ward_to_ICU = pr_ICU) %>%
-    
-    select(age_group, pr_ward_to_discharge, pr_ward_to_ICU)
   
   
   nindss_recent <- nindss_state %>%
@@ -48,13 +24,22 @@ run_progression_model <- function(
     
     complete(age_group = age_groups, fill = list(pr_age_given_case = 0))
   
-  forecasting_parameters <- clinical_parameters %>%
-    select(-c(pr_ward_to_discharge, pr_ward_to_ICU)) %>%
+  forecasting_parameters <- clinical_parameter_samples %>%
     
-    left_join(forecasting_table_adj_ICU, by = "age_group") %>%
+    left_join(morbidity_estimates_state, by = c("age_group", "sample")) %>%
     
-    left_join(forecasting_clinical_table %>% select(-pr_ICU), by = 'age_group') %>%
+    mutate(pr_ward_to_death = 1 - pr_ward_to_ICU - pr_ward_to_discharge,
+           pr_not_ICU_true = 1 - pr_ICU,
+           pr_ward_to_discharge_given_not_ICU = pr_ward_to_discharge / (pr_ward_to_discharge + pr_ward_to_death)) %>%
+    
+    mutate(pr_ward_to_discharge = pr_ward_to_discharge_given_not_ICU * pr_not_ICU_true,
+           pr_ward_to_ICU = pr_ICU) %>%
+    
+    select(-c(pr_ICU, pr_ward_to_death)) %>%
+    
     left_join(recent_age_dist, by = 'age_group')
+  
+  
   
   case_curves <- case_trajectories$curve_set
   

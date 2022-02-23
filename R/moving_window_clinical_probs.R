@@ -30,54 +30,6 @@ make_clinical_prob_table <- function(
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
   
   
-  fn_score_hosp <- function(x, A, days_since_onset, delay_shape, delay_scale) {
-    prob_already_observed <- pgamma(days_since_onset,
-                                    shape = delay_shape,
-                                    scale = delay_scale)
-    
-    
-    A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
-  }
-  
-  
-  
-  F_icu_given_case <- function(x, 
-                               delay_hosp_shape, delay_hosp_scale,
-                               delay_ICU_shape, delay_ICU_scale) {
-    
-    numer <- integrate(function(y){
-      pgamma(x - y,
-             shape = delay_ICU_shape,
-             scale = delay_ICU_scale) *
-        dgamma(y,
-               shape = delay_hosp_shape,
-               scale = delay_hosp_scale)
-    },
-    
-    0 + .Machine$double.eps, x)$value
-    
-    denom <- pgamma(x,
-                    shape = delay_hosp_shape,
-                    scale = delay_hosp_scale)
-    
-    return(numer / denom)
-  }
-  
-  fn_score_ICU <- function(x, A, days_since_onset, 
-                           delay_hosp_shape, delay_hosp_scale,
-                           delay_ICU_shape, delay_ICU_scale) {
-    
-    prob_already_observed <- sapply(1:length(days_since_onset), function(i) {
-      F_icu_given_case(days_since_onset[i],
-                       delay_hosp_shape, delay_hosp_scale,
-                       delay_ICU_shape, delay_ICU_scale)
-    })
-    
-    
-    
-    A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
-  }
-  
   
   
   clinical_parameter_lookup <- clinical_parameters %>%
@@ -94,167 +46,189 @@ make_clinical_prob_table <- function(
   window_min_width_ICU <- ddays(10)
   window_min_cases <- 100
   
-  model_results_hosp <- map_dfr(age_groups, function(i_age_class) {
+  
+  model_results_hosp <- future_map_dfr(age_groups, function(i_age_class) {
     
-    model_data <- nindss_state %>%
-      filter(age_group == i_age_class,
-             date_onset >= date_start,
-             date_onset <= date_end)
-    
-    cases_in_window <- function(start, end) {
-      model_data %>% filter(date_onset >= start, date_onset <= end)
-    }
-    
-    window_end <- date_end
-    window_start <- window_end - window_min_width_hosp
-    
-    i_window <- 1
-    
-    window_data <- tibble()
-    
-    while(window_start > date_start - window_min_width_hosp) {
-      
-      while(nrow(cases_in_window(window_start, window_end)) < window_min_cases & window_start > date_start - window_min_width_hosp) {
-        window_start <- window_start - ddays(1)
-      }
-      
-      window_data <- bind_rows(
-        window_data,
-        cases_in_window(window_start, window_end) %>%
-          mutate(window = i_window,
-                 date_start = window_start,
-                 date_end = window_end)
-      )
-      
-      window_end <- window_start - ddays(1)
-      window_start <- window_start - ddays(5)
-      
-      
-      i_window <- i_window + 1
-      
-    }
-    
-    window_data_summ <- window_data %>%
-      group_by(window_s = window, date_start, date_end) %>%
-      summarise(n_hosp = sum(ever_in_hospital, na.rm = TRUE),
-                n_cases = n(), .groups = "drop") %>%
-      
-      rowwise() %>%
-      mutate(nothosp_days_since_onset = window_data %>%
-               filter(window_s == window) %>%
-               filter(!ever_in_hospital | is.na(ever_in_hospital)) %>%
-               mutate(days_since_onset = forecast_dates$NNDSS - date_onset) %>%
-               pull(days_since_onset) %>% as.numeric() %>% list())
-    
-    delay_hosp_shape <- clinical_parameter_lookup[i_age_class, "shape_onset_to_ward"]
-    delay_hosp_scale <- clinical_parameter_lookup[i_age_class, "scale_onset_to_ward"]
-    
-    window_data_summ_adj <- window_data_summ %>%
-    rowwise() %>%
-    mutate(
-      pr_hosp = n_hosp / n_cases,
-      pr_hosp_adj = tryCatch(pracma::fzero(
-        function(x) {
-          fn_score_hosp(x, 
-                        n_hosp,
-                        nothosp_days_since_onset,
-                        delay_shape = delay_hosp_shape, 
-                        delay_scale = delay_hosp_scale)
-        },
+    map_dfr(
+      1:10, function(i_sample) {
         
-        x = c(0+.Machine$double.eps,1-.Machine$double.eps),
-      )$x,
-      error = function(c) { return(pr_hosp) }),
-    ) %>%
-      
-      mutate(age_group = i_age_class)
+        model_data <- nindss_state %>%
+          filter(age_group == i_age_class,
+                 date_onset >= date_start,
+                 date_onset <= date_end) %>%
+          
+          sample_n(size = n(), replace = TRUE)
+        
+        cases_in_window <- function(start, end) {
+          model_data %>% filter(date_onset >= start, date_onset <= end)
+        }
+        
+        window_end <- date_end
+        window_start <- window_end - window_min_width_hosp
+        
+        i_window <- 1
+        
+        window_data <- tibble()
+        
+        while(window_start > date_start - window_min_width_hosp) {
+          
+          while(nrow(cases_in_window(window_start, window_end)) < window_min_cases & window_start > date_start - window_min_width_hosp) {
+            window_start <- window_start - ddays(1)
+          }
+          
+          window_data <- bind_rows(
+            window_data,
+            cases_in_window(window_start, window_end) %>%
+              mutate(window = i_window,
+                     date_start = window_start,
+                     date_end = window_end)
+          )
+          
+          window_end <- window_start - ddays(1)
+          window_start <- window_start - ddays(round(runif(1, min = 3, max = 7)))
+          
+          
+          i_window <- i_window + 1
+          
+        }
+        
+        window_data_summ <- window_data %>%
+          group_by(window_s = window, date_start, date_end) %>%
+          summarise(n_hosp = sum(ever_in_hospital, na.rm = TRUE),
+                    n_cases = n(), .groups = "drop") %>%
+          
+          rowwise() %>%
+          mutate(nothosp_days_since_onset = window_data %>%
+                   filter(window_s == window) %>%
+                   filter(!ever_in_hospital | is.na(ever_in_hospital)) %>%
+                   mutate(days_since_onset = forecast_dates$NNDSS - date_onset) %>%
+                   pull(days_since_onset) %>% as.numeric() %>% list())
+        
+        delay_hosp_shape <- clinical_parameter_lookup[i_age_class, "shape_onset_to_ward"]
+        delay_hosp_scale <- clinical_parameter_lookup[i_age_class, "scale_onset_to_ward"]
+        
+        window_data_summ_adj <- window_data_summ %>%
+          rowwise() %>%
+          mutate(
+            pr_hosp = n_hosp / n_cases,
+            pr_hosp_adj = tryCatch(pracma::fzero(
+              function(x) {
+                fn_score_hosp(x, 
+                              n_hosp,
+                              nothosp_days_since_onset,
+                              delay_shape = delay_hosp_shape, 
+                              delay_scale = delay_hosp_scale)
+              },
+              
+              x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+            )$x,
+            error = function(c) { return(pr_hosp) }),
+          ) %>%
+          
+          mutate(age_group = i_age_class,
+                 sample = i_sample)
+        
+        window_data_summ_adj
+      }
+    )
     
-    window_data_summ_adj
   }) %>%
     rowwise() %>%
     mutate(date_mid = mean.Date(c(date_start, date_end))) %>%
     ungroup()
   
   
-  model_results_ICU <- map_dfr(age_groups, function(i_age_class) {
+  model_results_ICU <- future_map_dfr(age_groups, function(i_age_class) {
     
-    model_data <- nindss_state %>%
-      filter(ever_in_hospital) %>%
-      filter(age_group == i_age_class,
-             date_onset >= date_start,
-             date_onset <= date_end)
-    
-    hosp_in_window <- function(start, end) {
-      model_data %>% filter(date_onset >= start, date_onset <= end)
-    }
-    
-    window_end <- date_end
-    window_start <- window_end - window_min_width_ICU
-    
-    i_window <- 1
-    
-    window_data <- tibble()
-    
-    while(window_start > date_start - window_min_width_ICU) {
-      
-      while(nrow(hosp_in_window(window_start, window_end)) < window_min_cases & window_start > date_start - window_min_width_ICU) {
-        window_start <- window_start - ddays(1)
-      }
-      
-      window_data <- bind_rows(
-        window_data,
-        hosp_in_window(window_start, window_end) %>%
-          mutate(window = i_window,
-                 date_start = window_start,
-                 date_end = window_end)
-      )
-      
-      window_end <- window_start - ddays(1)
-      window_start <- window_start - window_min_width_ICU
-      
-      
-      i_window <- i_window + 1
-      
-    }
-    
-    
-    window_data_summ <- window_data %>%
-      group_by(window_s = window, date_start, date_end) %>%
-      summarise(n_hosp = n(),
-                n_ICU = sum(ever_in_ICU, na.rm = TRUE), .groups = "drop") %>%
-      
-      rowwise() %>%
-      mutate(notICU_days_since_onset = window_data %>%
-               filter(window_s == window) %>%
-               filter(!ever_in_ICU | is.na(ever_in_ICU)) %>%
-               mutate(days_since_onset = forecast_dates$NNDSS - date_onset) %>%
-               pull(days_since_onset) %>% as.numeric() %>% list()) 
-    
-    window_data_summ_adj <- window_data_summ %>%
-      rowwise() %>%
-      mutate(
-        pr_ICU = n_ICU / n_hosp,
+    map_dfr(
+      1:10, function(i_sample) {
         
-        pr_ICU_adj = tryCatch(pracma::fzero(
-          function(x) {
-            fn_score_ICU(x,
-                         n_ICU,
-                         notICU_days_since_onset,
-                         delay_hosp_shape = clinical_parameter_lookup[i_age_class, "shape_onset_to_ward"],
-                         delay_hosp_scale = clinical_parameter_lookup[i_age_class, "scale_onset_to_ward"],
-                         
-                         delay_ICU_shape = clinical_parameter_lookup[i_age_class,  "shape_ward_to_ICU"],
-                         delay_ICU_scale = clinical_parameter_lookup[i_age_class, "scale_ward_to_ICU"])
-          },
+        model_data <- nindss_state %>%
+          filter(ever_in_hospital) %>%
+          filter(age_group == i_age_class,
+                 date_onset >= date_start,
+                 date_onset <= date_end) %>%
           
-          x = c(0+.Machine$double.eps,1-.Machine$double.eps),
-        )$x,
-        error = function(c) { return(pr_ICU) })
-      ) %>%
-      
-      mutate(age_group = i_age_class)
+          sample_n(size = n(), replace = TRUE)
+        
+        hosp_in_window <- function(start, end) {
+          model_data %>% filter(date_onset >= start, date_onset <= end)
+        }
+        
+        window_end <- date_end
+        window_start <- window_end - window_min_width_ICU
+        
+        i_window <- 1
+        
+        window_data <- tibble()
+        
+        while(window_start > date_start - window_min_width_ICU) {
+          
+          while(nrow(hosp_in_window(window_start, window_end)) < window_min_cases & window_start > date_start - window_min_width_ICU) {
+            window_start <- window_start - ddays(1)
+          }
+          
+          window_data <- bind_rows(
+            window_data,
+            hosp_in_window(window_start, window_end) %>%
+              mutate(window = i_window,
+                     date_start = window_start,
+                     date_end = window_end)
+          )
+          
+          window_end <- window_start - ddays(1)
+          window_start <- window_start - ddays(round(runif(1, 10, 14)))
+          
+          
+          i_window <- i_window + 1
+          
+        }
+        
+        
+        window_data_summ <- window_data %>%
+          group_by(window_s = window, date_start, date_end) %>%
+          summarise(n_hosp = n(),
+                    n_ICU = sum(ever_in_ICU, na.rm = TRUE), .groups = "drop") %>%
+          
+          rowwise() %>%
+          mutate(notICU_days_since_onset = window_data %>%
+                   filter(window_s == window) %>%
+                   filter(!ever_in_ICU | is.na(ever_in_ICU)) %>%
+                   mutate(days_since_onset = forecast_dates$NNDSS - date_onset) %>%
+                   pull(days_since_onset) %>% as.numeric() %>% list()) 
+        
+        window_data_summ_adj <- window_data_summ %>%
+          rowwise() %>%
+          mutate(
+            pr_ICU = n_ICU / n_hosp,
+            
+            pr_ICU_adj = if_else(
+              as.numeric(forecast_dates$NNDSS - date_end) > 40,
+              pr_ICU,
+              tryCatch(pracma::fzero(
+              function(x) {
+                fn_score_ICU(x,
+                             n_ICU,
+                             notICU_days_since_onset,
+                             delay_hosp_shape = clinical_parameter_lookup[i_age_class, "shape_onset_to_ward"],
+                             delay_hosp_scale = clinical_parameter_lookup[i_age_class, "scale_onset_to_ward"],
+                             
+                             delay_ICU_shape = clinical_parameter_lookup[i_age_class,  "shape_ward_to_ICU"],
+                             delay_ICU_scale = clinical_parameter_lookup[i_age_class, "scale_ward_to_ICU"])
+              },
+              
+              x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+            )$x,
+            error = function(c) { return(pr_ICU) }))
+          ) %>%
+          
+          mutate(age_group = i_age_class,
+                 sample = i_sample)
+        window_data_summ_adj
+      }
+    )
     
-    window_data_summ_adj
+    
   }) %>%
     rowwise() %>%
     mutate(date_mid = mean.Date(c(date_start, date_end))) %>%

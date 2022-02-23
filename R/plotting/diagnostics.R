@@ -3,7 +3,7 @@ plot_diagnostics <- function(
   case_trajectories,
   forecast_dates,
   nindss_state,
-  clinical_table_state,
+  morbidity_estimates_state,
   plot_dir,
   
   state_modelled
@@ -104,48 +104,36 @@ plot_diagnostics <- function(
     
     ggokabeito::scale_fill_okabe_ito() +
     xlab(NULL) + ylab("P(age|case)") +
-    coord_cartesian(ylim = c(0, 0.25)) + 
+    coord_cartesian(ylim = c(0, 0.4)) + 
     scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
     
     theme_minimal() +
     theme(legend.position = "none")
   
   
-  clinical_table_ordered <- clinical_table_state %>%
-    filter(date_onset >= forecast_dates$simulation_start,
-           date_onset <= forecast_dates$forecast_horizon) %>%
-    arrange(date_onset, age_group)
   
-  forecasting_clinical_table <- clinical_table_ordered %>%
-    filter(date_onset == max(date_onset)) %>%
-    select(age_group, pr_hosp, pr_ICU)
-  
-  p_pr_hosp_given_case <- ggplot(forecasting_clinical_table) +
-    geom_col(aes(x = age_group, y = pr_hosp, fill = age_group)) +
+  p_morbidity <- ggplot(morbidity_estimates_state %>% pivot_longer(c(pr_hosp, pr_ICU))) +
     
-    ggokabeito::scale_fill_okabe_ito() +
-    xlab(NULL) + ylab("P(hosp|case)") +
-    coord_cartesian(ylim = c(0, 0.25)) + 
-    scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+    stat_summary(aes(x = age_group, y = value, color = age_group),
+                 size = 0.5,
+                 fun = mean,
+                 fun.min = function(x) quantile(x, probs = 0.025),
+                 fun.max = function(x) quantile(x, probs = 0.975)) +
     
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  p_pr_ICU_given_hosp <- ggplot(forecasting_clinical_table) +
-    geom_col(aes(x = age_group, y = pr_ICU, fill = age_group)) +
+    facet_wrap(~name) +
     
-    ggokabeito::scale_fill_okabe_ito() +
-    xlab(NULL) + ylab("P(ICU|hosp)") +
-    coord_cartesian(ylim = c(0, 0.25)) + 
-    scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+    ggokabeito::scale_color_okabe_ito() +
+    coord_cartesian(ylim = c(0, 0.4)) +
+    xlab(NULL) + ylab(NULL) +
+    ggtitle("Adjusted probability over recent time window") +
     
     theme_minimal() +
     theme(legend.position = "none")
-  
   
   p_bottom <- cowplot::plot_grid(
-    p_pr_age_given_case, p_pr_hosp_given_case, p_pr_ICU_given_hosp,
-    ncol = 3
+    p_pr_age_given_case, p_morbidity,
+    ncol = 2,
+    rel_widths = c(1, 2)
   )
   
   
@@ -156,7 +144,7 @@ plot_diagnostics <- function(
   )
   
   ggsave(
-    paste0(plot_dir, "/_", state_modelled, "_diagnostics.png"),
+    paste0(plot_dir, "/diagnostics_", state_modelled, ".png"),
     bg = "white",
     height = 10, width = 12
   )
