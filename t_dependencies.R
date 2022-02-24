@@ -1,12 +1,3 @@
-library(targets)
-library(tarchetypes)
-
-options(tidyverse.quiet = TRUE)
-tar_option_set(packages = c(
-  "tidyverse",
-  "lubridate"
-))
-
 
 source("R/clinical_parameters.R")
 source("R/mediaflux.R")
@@ -30,3 +21,7 @@ source("R/plotting/joint_results.R")
 source("R/plotting/diagnostics.R")
 
 source("t_absenteeism.R")
+
+source("t_pre_forecasting.R")
+source("t_state_results.R")
+source("t_forecast.R")

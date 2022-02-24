@@ -7,7 +7,7 @@ process_NINDSS_linelist <- function(
   
   
   
-  nindss_data <- read_csv(raw_nindss)
+  nindss_data <- vroom::vroom(raw_nindss)
   
   
   print("Reading CSV data")

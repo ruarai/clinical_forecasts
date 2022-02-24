@@ -101,6 +101,10 @@ make_case_trajectories <- function(
   step_sampling_start <- nrow(backcast_curves) / 9
   n_days <- nrow(nowcasting_case_curves_imputed) + nrow(ensemble_curves) + step_sampling_start
   
+  if(any(is.na(final_curve_set))) {
+    print("NA values in case_trajectories!")
+  }
+  
   
   list(
     curve_set = final_curve_set,

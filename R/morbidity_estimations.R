@@ -25,6 +25,19 @@ make_morbidity_estimates <- function(
       filter(state %in% c("VIC", "NSW"))
   }
   
+  age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
+  
+  clinical_parameter_lookup <- clinical_parameters %>%
+    
+    
+    mutate(scale_onset_to_ward = scale_onset_to_ward * 0.7,
+           shape_onset_to_ward = shape_onset_to_ward * 0.7) %>%
+    
+    select(-age_group) %>%
+    as.matrix() %>%
+    `rownames<-`(clinical_parameters$age_group)
+  
+  
   nindss_state <- nindss_state %>%
     filter(date_onset >= nindss_date - ddays(60)) %>%
     select(date_onset, age_group, ever_in_hospital, ever_in_ICU)
@@ -38,54 +51,20 @@ make_morbidity_estimates <- function(
     A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
   }
   
+  F_ICU_lookup <- get_ICU_lookup(age_groups, clinical_parameter_lookup)
   
-  
-  F_icu_given_case <- function(x, 
-                               delay_hosp_shape, delay_hosp_scale,
-                               delay_ICU_shape, delay_ICU_scale) {
-    
-    numer <- integrate(function(y){
-      pgamma(x - y,
-             shape = delay_ICU_shape,
-             scale = delay_ICU_scale) *
-        dgamma(y,
-               shape = delay_hosp_shape,
-               scale = delay_hosp_scale)
-    },
-    
-    0 + .Machine$double.eps, x)$value
-    
-    denom <- pgamma(x,
-                    shape = delay_hosp_shape,
-                    scale = delay_hosp_scale)
-    
-    return(numer / denom)
+  F_icu_given_case <- function(x, age_group) {
+    F_ICU_lookup[min(round(x, digits = 2) * 10 + 1, 301), age_group]
   }
   
-  fn_score_ICU <- function(x, A, days_since_onset, 
-                           delay_hosp_shape, delay_hosp_scale,
-                           delay_ICU_shape, delay_ICU_scale) {
+  fn_score_ICU <- function(x, A, days_since_onset, age_group) {
     
     prob_already_observed <- sapply(1:length(days_since_onset), function(i) {
-      F_icu_given_case(days_since_onset[i],
-                       delay_hosp_shape, delay_hosp_scale,
-                       delay_ICU_shape, delay_ICU_scale)
+      F_icu_given_case(days_since_onset[i], age_group)
     })
-    
-    
     
     A / x - sum(prob_already_observed / (1 - x * prob_already_observed))
   }
-  
-  clinical_parameter_lookup <- clinical_parameters %>%
-    
-    
-    mutate(scale_onset_to_ward = scale_onset_to_ward * 0.7,
-           shape_onset_to_ward = shape_onset_to_ward * 0.7) %>%
-    
-    select(-age_group) %>%
-    as.matrix() %>%
-    `rownames<-`(clinical_parameters$age_group)
   
   
   cases_in_window <- function(model_data, start, end) {
@@ -94,12 +73,11 @@ make_morbidity_estimates <- function(
   
   window_min_sample <- 1000
   
-  age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
   
   
   library(furrr)
   library(future.callr)
-  plan(callr, workers = 8)
+  plan(callr, workers = 9)
   
   hosp_ests <- future_map_dfr(
     age_groups,
@@ -133,7 +111,7 @@ make_morbidity_estimates <- function(
       n_cases <- nrow(hosp_window_cases)
       
       pr_hosp_adj <- map_dbl(
-        1:25, function(i) {
+        1:100, function(i) {
           
           hosp_sampled_cases <- hosp_window_cases %>%
             sample_n(size = n(), replace = TRUE)
@@ -165,7 +143,7 @@ make_morbidity_estimates <- function(
     },
     .options = furrr_options(
       seed = TRUE,
-      
+
       globals = c("fn_score_hosp", "clinical_parameter_lookup", "cases_in_window", "nindss_state", "nindss_date", "simulation_start_date",
                   "window_min_sample")
     )
@@ -198,14 +176,12 @@ make_morbidity_estimates <- function(
         ICU_window_cases <- cases_in_window(model_data, ICU_window_start, ICU_window_end)
       }
       
-      delay_hosp_shape <- clinical_parameter_lookup[i_age_group, "shape_onset_to_ward"]
-      delay_hosp_scale <- clinical_parameter_lookup[i_age_group, "scale_onset_to_ward"]
       
       
       n_hosp <- nrow(ICU_window_cases)
       
       pr_ICU_adj <- map_dbl(
-        1:25, function(i) {
+        1:100, function(i) {
           
           ICU_sampled_cases <- ICU_window_cases %>%
             sample_n(size = n(), replace = TRUE)
@@ -221,11 +197,7 @@ make_morbidity_estimates <- function(
               fn_score_ICU(x,
                            n_ICU,
                            notICU_days_since_onset,
-                           delay_hosp_shape = clinical_parameter_lookup[i_age_group, "shape_onset_to_ward"],
-                           delay_hosp_scale = clinical_parameter_lookup[i_age_group, "scale_onset_to_ward"],
-                           
-                           delay_ICU_shape = clinical_parameter_lookup[i_age_group,  "shape_ward_to_ICU"],
-                           delay_ICU_scale = clinical_parameter_lookup[i_age_group, "scale_ward_to_ICU"])
+                           i_age_group)
             },
             
             x = c(0+.Machine$double.eps,1-.Machine$double.eps),
@@ -241,12 +213,12 @@ make_morbidity_estimates <- function(
         age_group = i_age_group
       )
     },
-    
+
     .options = furrr_options(
       seed = TRUE,
-      
+
       globals = c("fn_score_ICU", "F_icu_given_case", "clinical_parameter_lookup", "cases_in_window",
-                  "nindss_state", "nindss_date", "simulation_start_date", "window_min_sample")
+                  "nindss_state", "nindss_date", "simulation_start_date", "window_min_sample", "F_ICU_lookup")
     )
   )
   
@@ -270,3 +242,66 @@ make_morbidity_estimates <- function(
 
   morbidity_samples
 }
+
+
+
+get_ICU_lookup <- function(age_groups, clinical_parameter_lookup) {
+  
+  tbl_vars <- expand_grid(
+    x = seq(0, 30, by = 0.1),
+    age_group = age_groups
+  )
+  
+  
+  F_icu_given_case_exact <- function(x, 
+                                     delay_hosp_shape, delay_hosp_scale,
+                                     delay_ICU_shape, delay_ICU_scale) {
+    
+    numer <- integrate(function(y){
+      pgamma(x - y,
+             shape = delay_ICU_shape,
+             scale = delay_ICU_scale) *
+        dgamma(y,
+               shape = delay_hosp_shape,
+               scale = delay_hosp_scale)
+    },
+    
+    0 + .Machine$double.eps, x)$value
+    
+    denom <- pgamma(x,
+                    shape = delay_hosp_shape,
+                    scale = delay_hosp_scale)
+    
+    return(numer / denom)
+  }
+  
+  y_vals <- pmap_dbl(tbl_vars, function(x, age_group) {
+    
+    
+    F_icu_given_case_exact(
+      x, 
+      delay_hosp_shape = clinical_parameter_lookup[age_group, "shape_onset_to_ward"],
+      delay_hosp_scale = clinical_parameter_lookup[age_group, "scale_onset_to_ward"],
+      
+      delay_ICU_shape = clinical_parameter_lookup[age_group,  "shape_ward_to_ICU"],
+      delay_ICU_scale = clinical_parameter_lookup[age_group, "scale_ward_to_ICU"]
+    )
+  })
+  
+  
+  tbl_output <- tbl_vars %>%
+    mutate(y = y_vals,
+           
+           y = if_else(is.nan(y), 0, y))
+  
+  
+  F_ICU_lookup <- tbl_output %>%
+    pivot_wider(names_from = age_group,
+                values_from = y) %>%
+    select(-x) %>%
+    as.matrix()
+  
+}
+
+
+

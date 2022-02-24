@@ -87,7 +87,8 @@ make_absentee_case_trajectories <- function(
   )
   
   
-  curve_set_age_sampled
+  curve_set_age_sampled %>%
+    as_tibble()
 }
 
 

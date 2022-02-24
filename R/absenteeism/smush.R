@@ -3,17 +3,10 @@ do_smush <- function(
   absentee_case_trajectories,
   forecast_dates
 ) {
-    
+  absentee_case_trajectories <- as.matrix(absentee_case_trajectories)
   
   source("R/absenteeism/traj_plotting.R")
   
-  # 
-  # plot_trajs(absentee_case_trajectories) +
-  #   ggtitle("Total cases by age group (backcast and forecast)")
-  # 
-  # plot_trajs(absentee_case_trajectories, do_sum = TRUE) +
-  #   ggtitle("Total cases (backcast and forecast)")
-  # 
   source("R/demography.R")
   
   contact_mat <- get_contact_matrix()
@@ -28,14 +21,6 @@ do_smush <- function(
     2,
     function(x) sample_contacts(x, n_ages = 9, contacts_by_age, pr_contact)
   )
-  
-  # 
-  # plot_trajs(secondary_iso_contacts_age_sampled) +
-  #   ggtitle("Primary contacts by age group (backcast and forecast)")
-  # 
-  # plot_trajs(secondary_iso_contacts_age_sampled, do_sum = TRUE) +
-  #   ggtitle("Total contacts (backcast and forecast)")
-  # 
   
   age_demography <- get_age_distribution_by_state() %>%
     filter(state == "NSW") %>%
@@ -61,27 +46,12 @@ do_smush <- function(
   
   worker_absentee_case_trajectories <- direct_absentee_case_trajectories + contact_absentee_case_trajectories
   
-  # 
-  # plot_trajs(worker_absentee_case_trajectories) +
-  #   ggtitle("Total workforce beginning isolation by age group (backcast and forecast)")
-  # 
-  # 
   Rcpp::sourceCpp("cpp/roll_sum_aged.cpp")
   worker_absentee_n_isolated <- apply(
     worker_absentee_case_trajectories,
     2,
     function(x) rev(roll_sum_aged(rev(x), 9, 7))
   )
-  # 
-  # 
-  # plot_trajs(worker_absentee_n_isolated) +
-  #   
-  #   ggtitle("Isolated workers by age group (backcast and forecast), 7 day isolation period")
-  # 
-  # plot_trajs(worker_absentee_n_isolated, do_sum = TRUE) +
-  #   
-  #   ggtitle("Total isolated workers (backcast and forecast), 7 day isolation period")
-  # 
   
   worker_absentee_n_isolated
 }

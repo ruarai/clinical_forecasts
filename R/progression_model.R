@@ -8,6 +8,7 @@ run_progression_model <- function(
   
   forecast_dates
 ) {
+  
   require(tidyverse)
   require(lubridate)
   require(curvemush)
@@ -43,6 +44,7 @@ run_progression_model <- function(
   
   case_curves <- case_trajectories$curve_set
   
+  print("Starting...")
   
   a <- Sys.time()
   results <- curvemush::mush(
@@ -61,7 +63,6 @@ run_progression_model <- function(
   b <- Sys.time()
   
   print(str_c("Simulation mush ran in ", round(b - a, 2), " ", units(b - a)))
-  
   
   group_labels <- c("symptomatic_clinical", "ward", "ICU", "discharged", "died")
   compartment_labels <- c(
