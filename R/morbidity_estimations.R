@@ -15,14 +15,14 @@ make_morbidity_estimates <- function(
   
   
   # Return the national-average clinical probabilities for states without good data
-  if(!(state_modelled %in% c("VIC", "NSW", "national"))) {
+  if(state_modelled %in% c("SA", "NT", "WA")) {
     return(national_morbidity_estimates)
   }
   
   if(state_modelled == "national") {
-    # Producing national-average results across VIC and NSW (excluding all other states for data quality)
+    
     nindss_state <- nindss_state %>%
-      filter(state %in% c("VIC", "NSW"))
+      filter(!(state %in% c("SA", "NT", "WA")))
   }
   
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
@@ -122,17 +122,19 @@ make_morbidity_estimates <- function(
             filter(!ever_in_hospital) %>%
             pull(days_since_onset)
           
-          pr_hosp_adj <- tryCatch(pracma::fzero(
-            function(x) {
-              fn_score_hosp(x, n_hosp, nothosp_days_since_onset, delay_shape = delay_hosp_shape, delay_scale = delay_hosp_scale)
-            },
-            
-            x = c(0 + .Machine$double.eps, 1 - .Machine$double.eps),
-            tol = 0.0001
-          )$x,
-          error = function(c) { return(-1) })
-          
-          pr_hosp_adj
+          if(n_hosp == 0) {
+            return(0)
+          } else{
+            return(tryCatch(pracma::fzero(
+              function(x) {
+                fn_score_hosp(x, n_hosp, nothosp_days_since_onset, delay_shape = delay_hosp_shape, delay_scale = delay_hosp_scale)
+              },
+              
+              x = c(0 + .Machine$double.eps, 1 - .Machine$double.eps),
+              tol = 0.0001
+            )$x,
+            error = function(c) { return(NA) }))
+          }
         }
       )
       
@@ -192,19 +194,22 @@ make_morbidity_estimates <- function(
             filter(!ever_in_ICU) %>%
             pull(days_since_onset)
           
-          pr_ICU_adj <- tryCatch(pracma::fzero(
-            function(x) {
-              fn_score_ICU(x,
-                           n_ICU,
-                           notICU_days_since_onset,
-                           i_age_group)
-            },
-            
-            x = c(0+.Machine$double.eps,1-.Machine$double.eps),
-          )$x,
-          error = function(c) { return(-1) })
           
-          pr_ICU_adj
+          if(n_ICU == 0) {
+            return(0)
+          } else{
+            return(tryCatch(pracma::fzero(
+              function(x) {
+                fn_score_ICU(x,
+                             n_ICU,
+                             notICU_days_since_onset,
+                             i_age_group)
+              },
+              
+              x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+            )$x,
+            error = function(c) { return(NA) }))
+          }
         }
       )
       
@@ -230,16 +235,20 @@ make_morbidity_estimates <- function(
       slice(rep(1:nrow(ICU_ests), each = 9000 / nrow(ICU_ests))) # Repeat samples here
   )
   
-  if(any(all_morbidity_ests$value < 0)) {
-    print("Invalid morbidity estimate produced")
-  }
   
   
   morbidity_samples <- all_morbidity_ests %>% 
     group_by(age_group, name) %>%
-    mutate(sample = row_number()) %>% 
+    mutate(sample = row_number()) %>%
+    
+    fill(value, .direction = "updown") %>% # Replace failed MLE with neighbours
+    
     pivot_wider()
-
+  
+  if(any(morbidity_samples$pr_hosp < 0) | any(morbidity_samples$pr_ICU < 0)) {
+    print("Invalid morbidity estimate produced")
+  }
+  
   morbidity_samples
 }
 
@@ -295,7 +304,7 @@ get_ICU_lookup <- function(age_groups, clinical_parameter_lookup) {
            y = if_else(is.nan(y), 0, y))
   
   
-  F_ICU_lookup <- tbl_output %>%
+  tbl_output %>%
     pivot_wider(names_from = age_group,
                 values_from = y) %>%
     select(-x) %>%

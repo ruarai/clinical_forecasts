@@ -80,6 +80,7 @@ t_forecast <- list(
     
     plot_joint_results(
       all_state_quants,
+      all_state_known_occupancy_ts,
       forecast_dates,
       date_reporting_line,
       

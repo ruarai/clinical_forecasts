@@ -72,6 +72,20 @@ state_results <- tar_map(
     )
   ),
   
+  # tar_target(
+  #   morbidity_plots,
+  #   moving_window_morbidity_plots(
+  #     nindss_state,
+  #     
+  #     forecast_dates,
+  #     clinical_parameters,
+  #     
+  #     state_modelled,
+  #     
+  #     plot_dir
+  #   )
+  # ),
+  
   
   tar_target(
     case_trajectories,

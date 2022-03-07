@@ -1,6 +1,6 @@
 forecast_dates <- tar_read(forecast_dates)
 all_state_quants <- tar_read(all_state_quants) %>%
-  filter(date >= forecast_dates$forecast_start - ddays(21))
+  filter(date >= forecast_dates$forecast_start - ddays(60))
 
 all_state_known_occupancy_ts <- tar_read(all_state_known_occupancy_ts) %>%
   filter(!(state == "NSW" & source == "direct_ll"))
@@ -12,7 +12,7 @@ plot_dir <- tar_read(plot_dir)
 dir.create(plot_dir, showWarnings = FALSE)
 
 plots_common <- list(
-  coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(21),
+  coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(60),
                            forecast_dates$forecast_horizon)),
   scale_x_date("Date", date_labels = "%e/%m", breaks = "weeks", expand=c(0,0)),
   geom_vline(xintercept = forecast_dates$forecast_start,
@@ -39,16 +39,11 @@ plot_states <- function(states) {
     mutate(state = str_c("ICU - ", state))
   
   p_ward <- ggplot(all_state_quants %>% apply_ward()) +
-    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
+                fill = 'darkorchid', alpha = 0.2) +
     
     geom_line(aes(x = date, y = count, linetype = source),
               all_state_known_occupancy_ts %>% apply_ward()) +
-    
-    scale_fill_manual(values = c("99" = "#e7cff2",
-                                 "95" = "#d3a8e7",
-                                 "90" = "#c389de",
-                                 "75" = "#b770d7",
-                                 "50" = "#ad5cd2")) +
     
     scale_y_continuous("Number Occupied Beds", position = "right",
                        expand = c(0,0),
@@ -61,16 +56,11 @@ plot_states <- function(states) {
   
   
   p_ICU <- ggplot(all_state_quants %>% apply_ICU()) +
-    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
+                fill = 'green4', alpha = 0.2) +
     
     geom_line(aes(x = date, y = count, linetype = source),
               all_state_known_occupancy_ts %>% apply_ICU()) +
-    
-    scale_fill_manual(values = c("99" = "#cfe5cc",
-                                 "95" = "#a8d0a3",
-                                 "90" = "#89bf82",
-                                 "75" = "#70b168",
-                                 "50" = "#5ca653")) +
     
     scale_y_continuous("Number Occupied Beds\n ", position = "right",
                        expand = c(0,0),
@@ -89,14 +79,14 @@ states_B <- c("SA",  "TAS", "VIC", "WA")
 plot_states(states_A)
 
 scale <- 7.5
-
-ggsave(paste0(plot_dir, "_national_backcast_join_A.png"),
-       bg = 'white',
-       width = 1 * scale, height = 1 * scale,
-       dpi = 200)
+# 
+# ggsave(paste0(plot_dir, "_national_backcast_join_A.png"),
+#        bg = 'white',
+#        width = 1 * scale, height = 1 * scale,
+#        dpi = 200)
 plot_states(states_B)
-
-ggsave(paste0(plot_dir, "_national_backcast_join_B.png"),
-       bg = 'white',
-       width = 1 * scale, height = 1 * scale,
-       dpi = 200)
+# 
+# ggsave(paste0(plot_dir, "_national_backcast_join_B.png"),
+#        bg = 'white',
+#        width = 1 * scale, height = 1 * scale,
+#        dpi = 200)

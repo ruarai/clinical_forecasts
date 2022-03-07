@@ -1,17 +1,19 @@
 
 plot_joint_results <- function(
   all_state_quants,
+  known_occupancy_ts,
   forecast_dates,
   date_reporting_line,
   
   forecast_name,
   plot_dir
 ) {
-  dir.create(plot_dir, showWarnings = FALSE)
-  
   forecast_weeks <- seq(forecast_dates$forecast_start - 7,
                         forecast_dates$forecast_start + 28,
                         by = "weeks")
+  
+  known_occupancy_ts <- known_occupancy_ts %>%
+    filter(!(state == "NSW" & source == "c19"))
   
   
   plot_lims <- tribble(
@@ -70,13 +72,13 @@ plot_joint_results <- function(
       
       geom_vline(xintercept = date_reporting_line, colour = "grey80") +
       
-      geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant)) +
+      geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
+                  fill = 'darkorchid', alpha = 0.2) +
       
-      scale_fill_manual(values = c("99" = "#e7cff2",
-                                   "95" = "#d3a8e7",
-                                   "90" = "#c389de",
-                                   "75" = "#b770d7",
-                                   "50" = "#ad5cd2")) +
+      geom_point(aes(x = date, y = count),
+                 known_occupancy_ts %>% filter(group == "ward", state %in% states) %>%
+                   mutate(state = str_c("Ward - ", state)),
+                 pch = 1, size = 1, alpha = 0.8) +
       
       scale_y_continuous("Number Occupied Beds", position = "right",
                          expand = c(0,0),
@@ -98,13 +100,13 @@ plot_joint_results <- function(
       
       geom_vline(xintercept = date_reporting_line, colour = "grey80") +
       
-      geom_ribbon(aes(x = date, ymin = lower, ymax = upper, fill = quant))  +
+      geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
+                  fill = 'green4', alpha = 0.2) +
       
-      scale_fill_manual(values = c("99" = "#cfe5cc",
-                                   "95" = "#a8d0a3",
-                                   "90" = "#89bf82",
-                                   "75" = "#70b168",
-                                   "50" = "#5ca653")) +
+      geom_point(aes(x = date, y = count),
+                 known_occupancy_ts %>% filter(group == "ICU", state %in% states) %>%
+                   mutate(state = str_c("ICU - ", state)),
+                 pch = 1, size = 1, alpha = 0.8)  +
       
       scale_y_continuous("Number Occupied Beds\n ", position = "right",
                          expand = c(0,0),
