@@ -58,7 +58,9 @@ run_progression_model <- function(
     
     ensemble_curves = case_curves,
     
-    forecasting_parameters = forecasting_parameters
+    forecasting_parameters = forecasting_parameters,
+    
+    scale_los = 0
   )
   b <- Sys.time()
   
@@ -145,7 +147,7 @@ make_results_quants <- function(tbl) {
     matrixStats::rowMedians() %>%
     tibble(median = .)
   
-  probs <- c(0.5, 0.75, 0.9, 0.95, 0.99)
+  probs <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
   
   quant_probs <- c(rev(1 - probs) / 2, 0.5 + probs / 2)
   quant_names <- c(str_c("lower_", rev(probs) * 100), str_c("upper_", probs * 100))

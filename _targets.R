@@ -18,14 +18,14 @@ plan(callr)
 state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2022-02-18")),
-  tar_target(date_reporting_line, ymd("2022-02-18")),
+  tar_target(date_forecasting, ymd("2022-04-03")),
+  tar_target(date_reporting_line, ymd("2022-04-03")),
   
-  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_02_15.xlsx"),
+  tar_target(NSW_linelist_path, "~/data_private/NSW/NSW_out_episode_2022_03_01.xlsx"),
   
   
   tar_target(date_simulation_start, ymd("2021-11-01")),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test2"))
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test"))
 )
 
 
