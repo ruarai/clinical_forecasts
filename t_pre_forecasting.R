@@ -86,23 +86,23 @@ pre_forecasting <- c(
         local_cases_file = raw_local_cases,
         latest_mflux_files = latest_mflux_files
       )
-    ),
+    )#,
     
-    
-    tar_target(
-      national_morbidity_estimates,
-      
-      make_morbidity_estimates(
-        nindss,
-        forecast_dates$NNDSS,
-        forecast_dates$simulation_start,
-        clinical_parameters,
-        "national",
-        
-        NULL
-      ),
-      
-      garbage_collection = TRUE # Clear memory after reading NINDSS
-    )
+    # 
+    # tar_target(
+    #   national_morbidity_estimates,
+    #   
+    #   make_morbidity_estimates(
+    #     nindss,
+    #     forecast_dates$NNDSS,
+    #     forecast_dates$simulation_start,
+    #     clinical_parameters,
+    #     "national",
+    #     
+    #     NULL
+    #   ),
+    #   
+    #   garbage_collection = TRUE # Clear memory after reading NINDSS
+    # )
   )
 )

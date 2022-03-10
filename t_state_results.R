@@ -56,21 +56,33 @@ state_results <- tar_map(
     )
   ),
   
-  
   tar_target(
-    morbidity_estimates_state,
-    make_morbidity_estimates(
+    morbidity_trajectories,
+    
+    get_time_varying_morbidity_estimations(
       nindss_state,
       
-      forecast_dates$NNDSS,
-      forecast_dates$simulation_start,
+      forecast_dates,
       
-      clinical_parameters,
-      
-      state_modelled,
-      national_morbidity_estimates
+      clinical_parameters
     )
   ),
+  
+  
+  # tar_target(
+  #   morbidity_estimates_state,
+  #   make_morbidity_estimates(
+  #     nindss_state,
+  #     
+  #     forecast_dates$NNDSS,
+  #     forecast_dates$simulation_start,
+  #     
+  #     clinical_parameters,
+  #     
+  #     state_modelled,
+  #     national_morbidity_estimates
+  #   )
+  # ),
   
   # tar_target(
   #   morbidity_plots,
@@ -170,20 +182,20 @@ state_results <- tar_map(
     format = "fst"
   ),
   
-  t_state_absenteeism,
+  t_state_absenteeism#,
   
   
-  tar_target(
-    state_diag_plots,
-    
-    plot_diagnostics(
-      case_trajectories,
-      forecast_dates,
-      nindss_state,
-      morbidity_estimates_state,
-      plot_dir,
-      
-      state_modelled
-    )
-  )
+  # tar_target(
+  #   state_diag_plots,
+  #   
+  #   plot_diagnostics(
+  #     case_trajectories,
+  #     forecast_dates,
+  #     nindss_state,
+  #     morbidity_estimates_state,
+  #     plot_dir,
+  #     
+  #     state_modelled
+  #   )
+  # )
 )
