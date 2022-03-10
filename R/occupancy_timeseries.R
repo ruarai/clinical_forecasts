@@ -30,6 +30,7 @@ make_occupancy_timeseries <- function(
       mutate(count_ward = direct_linelist_state %>%
                filter(dt_hosp_discharge >= date | is.na(dt_hosp_discharge),
                       dt_hosp_admission < date,
+                      date_onset <= date,
                       
                       is.na(dt_first_icu) | dt_first_icu > date | dt_last_icu < date) %>%
                nrow(),
