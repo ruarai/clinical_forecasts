@@ -4,11 +4,45 @@ library(curvemush)
 library(lubridate)
 
 
-case_trajectories <- tar_read(case_trajectories_NSW)
-nindss_state <- tar_read(nindss_state_NSW)
-morbidity_estimates_state <- tar_read(morbidity_estimates_state_NSW)
+case_trajectories <- tar_read(case_trajectories_QLD)
+nindss_state <- tar_read(nindss_state_QLD)
+morbidity_estimates_state <- tar_read(morbidity_estimates_state_QLD)
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
 forecast_dates <- tar_read(forecast_dates)
+
+
+morbidity_trajectories <- tar_read(morbidity_trajectories_QLD)
+
+mat_pr_age_given_case <- morbidity_trajectories %>%
+  select(date, bootstrap, age_group, pr_age_given_case) %>%
+  pivot_wider(names_from = bootstrap,
+              values_from = pr_age_given_case) %>%
+  
+  arrange(date, age_group) %>%
+  select(-c(date, age_group)) %>%
+  as.matrix()
+
+
+mat_pr_hosp <- morbidity_trajectories %>%
+  select(date, bootstrap, age_group, pr_hosp) %>%
+  pivot_wider(names_from = bootstrap,
+              values_from = pr_hosp) %>%
+  
+  arrange(date, age_group) %>%
+  select(-c(date, age_group)) %>%
+  as.matrix()
+
+mat_pr_ICU <- morbidity_trajectories %>%
+  select(date, bootstrap, age_group, pr_ICU) %>%
+  pivot_wider(names_from = bootstrap,
+              values_from = pr_ICU) %>%
+  
+  arrange(date, age_group) %>%
+  select(-c(date, age_group)) %>%
+  as.matrix()
+
+
+
 
 
 
@@ -73,8 +107,8 @@ forecasting_parameters <- clinical_parameter_samples %>%
   
   left_join(recent_age_dist, by = 'age_group')
 
-true_occupancy_curve <- tar_read(known_occupancy_ts_NSW) %>%
-  filter(source == "c19", group == "ward", state == "NSW") %>%
+true_occupancy_curve <- tar_read(known_occupancy_ts_QLD) %>%
+  filter(source == "c19", state == "QLD") %>%
   
   filter(date >= forecast_dates$simulation_start)
 
@@ -85,20 +119,28 @@ occupancy_curve_match <- tibble(
   mutate(do_match = date >= forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7)) %>%
   
   left_join(
-    true_occupancy_curve %>% select(date, count)
+    
+    true_occupancy_curve %>%
+      filter(date >= forecast_dates$simulation_start) %>%
+      select(date, group, count) %>%
+      pivot_wider(names_from = group, values_from = count)
+    
   ) %>%
   
-  mutate(count_vec = if_else(do_match, count, -1))
+  mutate(ward_vec = if_else(do_match, ward, -1),
+         ICU_vec = if_else(do_match, ICU, -1))
 
 
 case_curves <- case_trajectories$curve_set
 
 print("Starting...")
 
+prior_sigma_los <- 0.5
+prior_sigma_hosp <- 0.8
+ward_threshold <- 100
+ICU_threshold <- 15
 save.image(file = "../curvemush/.debug")
 
-prior_sigma_los <- 0.3
-prior_sigma_hosp <- 0.5
 
 a <- Sys.time()
 results <- curvemush::mush_abc(
@@ -110,7 +152,8 @@ results <- curvemush::mush_abc(
   n_days = case_trajectories$n_days,
   steps_per_day = 16,
   
-  ward_threshold = 100,
+  ward_threshold = ward_threshold,
+  ICU_threshold = ICU_threshold,
   
   prior_sigma_los = prior_sigma_los,
   prior_sigma_hosp = prior_sigma_hosp,
@@ -121,12 +164,16 @@ results <- curvemush::mush_abc(
   
   forecasting_parameters = forecasting_parameters,
   
-  known_ward_vec = occupancy_curve_match$count_vec
+  known_ward_vec = occupancy_curve_match$ward_vec,
+  known_ICU_vec = occupancy_curve_match$ICU_vec,
+  
+  mat_pr_age_given_case = mat_pr_age_given_case,
+  mat_pr_hosp = mat_pr_hosp,
+  mat_pr_ICU = mat_pr_ICU
 )
 b <- Sys.time()
 
 
-print(str_c("Simulation mush ABC ran in ", round(b - a, 2), " ", units(b - a)))
 
 
 group_labels <- c("symptomatic_clinical", "ward", "ICU", "discharged", "died")
@@ -151,30 +198,13 @@ ggplot(results_formatted %>%
   
   geom_line(aes(x = date, y = count),
             color = 'red3',
-            true_occupancy_curve)
+            true_occupancy_curve %>%
+              filter(group == "ward"))
 
 prior_data <- tibble(
   los_scale = rnorm(nrow(plot_data), 0, prior_sigma_los),
   pr_hosp_scale = rnorm(nrow(plot_data), 0, prior_sigma_hosp),
 )
-
-ggplot() +
-  geom_histogram(aes(x = los_scale), binwidth = 0.05,
-                 plot_data) +
-  geom_histogram(aes(x = los_scale), binwidth = 0.05,
-                 alpha = 0.5, fill = 'blue',
-                 prior_data) +
-  
-  coord_cartesian(xlim = c(-3, 3))
-
-ggplot()  +
-  geom_histogram(aes(x = pr_hosp_scale), binwidth = 0.05,
-                 plot_data) +
-  geom_histogram(aes(x = pr_hosp_scale), binwidth = 0.05,
-                 alpha = 0.5, fill = 'blue',
-                 prior_data)  +
-  
-  coord_cartesian(xlim = c(-3 , 3))
 
 ggplot() +
   geom_point(aes(x = los_scale, y = pr_hosp_scale),
@@ -183,25 +213,8 @@ ggplot() +
   geom_point(aes(x = los_scale, y = pr_hosp_scale),
              plot_data) +
   
-  coord_cartesian(xlim = c(-3, 3), ylim = c(-3, 3))
-
-ggplot(plot_data  ) +
-  
-  geom_point(aes(x = los_scale, y = max)) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~group, scales = "free")
-
-ggplot(plot_data  ) +
-  
-  geom_point(aes(x = pr_hosp_scale, y = max)) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~group, scales = "free")
-
-
+  coord_cartesian(xlim = c(-3, 3), ylim = c(-3, 3)) +
+  theme_minimal()
 
 format_grouped <- . %>%
   mutate(date = forecast_dates$simulation_start + ddays(t_day),
@@ -216,35 +229,26 @@ results_count_quants <- results$grouped_results %>%
   make_results_quants() %>%
   format_grouped()
 
-
-ggplot(results_count_quants %>% filter(group == "ICU")) +
-  geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
-              fill = 'orangered', alpha = 0.2) +
-  
-  geom_line(aes(x = date, y = count, linetype = do_match, group = data.table::rleid(do_match)),
-            occupancy_curve_match) +
-  
-  
-  coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(7), NA))
+source("R/experiments/abc_test_null.R")
 
 cowplot::plot_grid(
   
-  ggplot(tar_read(state_result_quants_NSW) %>% filter(group == "ward")) +
+  ggplot(results_count_quants_null %>% filter(group == "ward")) +
     
     geom_vline(xintercept = forecast_dates$forecast_start, linetype = 'dashed') +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
                 fill = 'green4', alpha = 0.2) +
     
-    geom_line(aes(x = date, y = count, linetype = do_match, group = data.table::rleid(do_match)),
+    geom_line(aes(x = date, y = ward, linetype = do_match, group = data.table::rleid(do_match)),
               occupancy_curve_match) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(21), NA),
-                    ylim = c(0, 3000)) +
+    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+                    ylim = c(0, 1500)) +
     
     theme_minimal() +
     
-    ggtitle("NSW", "Without ABC") +
+    ggtitle("QLD", "Without ABC") +
     
     theme(legend.position = "none"),
   
@@ -252,20 +256,59 @@ cowplot::plot_grid(
     
     geom_vline(xintercept = forecast_dates$forecast_start, linetype = 'dashed') +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
-                fill = 'orangered', alpha = 0.2) +
+                fill = 'green4', alpha = 0.2) +
     
-    geom_line(aes(x = date, y = count, linetype = do_match, group = data.table::rleid(do_match)),
+    geom_line(aes(x = date, y = ward, linetype = do_match, group = data.table::rleid(do_match)),
               occupancy_curve_match) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(21), NA),
-                    ylim = c(0, 3000)) +
+    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+                    ylim = c(0, 1500)) +
     
     ggtitle(NULL, "With ABC + scaling factors") +
     
     theme_minimal() +
     theme(legend.position = "none"),
   
-  ncol = 1
+  ggplot(results_count_quants_null %>% filter(group == "ICU")) +
+    
+    geom_vline(xintercept = forecast_dates$forecast_start, linetype = 'dashed') +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
+                fill = 'purple', alpha = 0.2) +
+    
+    geom_line(aes(x = date, y = ICU, linetype = do_match, group = data.table::rleid(do_match)),
+              occupancy_curve_match) +
+    
+    
+    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+                    ylim = c(0, 150)) +
+    
+    theme_minimal() +
+    
+    ggtitle("", "Without ABC") +
+    
+    theme(legend.position = "none"),
+  
+  ggplot(results_count_quants %>% filter(group == "ICU")) +
+    
+    geom_vline(xintercept = forecast_dates$forecast_start, linetype = 'dashed') +
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
+                fill = 'purple', alpha = 0.2) +
+    
+    geom_line(aes(x = date, y = ICU, linetype = do_match, group = data.table::rleid(do_match)),
+              occupancy_curve_match) +
+    
+    
+    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+                    ylim = c(0, 150)) +
+    
+    ggtitle(NULL, "With ABC + scaling factors") +
+    
+    theme_minimal() +
+    theme(legend.position = "none"),
+  
+  ncol = 2, byrow = FALSE,
+  align = 'hv', axis = 'lrtb'
 )
 
+print(str_c("Simulation mush ABC ran in ", round(b - a, 2), " ", units(b - a)))
