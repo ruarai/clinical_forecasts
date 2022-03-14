@@ -1,5 +1,5 @@
 
-
+forecast_dates <- tar_read(forecast_dates)
 nindss <- tar_read(nindss_state_NSW) %>%
   mutate(
     age_group = case_when(
@@ -36,7 +36,7 @@ cases_nswh <- read_csv(
 
 
 cases_nswh_count <- cases_nswh %>%
-  filter(notification_date >= ymd("2021-12-01"))
+  filter(notification_date >= forecast_dates$simulation_start)
 
 nindss_count <- nindss %>%
   count(date_diagnosis, age_group)
@@ -91,17 +91,7 @@ ggplot(combined) +
 age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
 
 
-morbidity_trajectories <- tar_read(morbidity_trajectories_NSW) %>%
-  filter(date >= ymd("2021-12-01")) %>%
-  complete(date = seq(ymd("2021-12-01"), max(combined$date_diagnosis), by = 'days'),
-           bootstrap = 1:50,
-           age_group = age_groups) %>%
-  group_by(age_group, bootstrap) %>%
-  arrange(date) %>%
-  fill(pr_hosp, pr_ICU, pr_age_given_case, .direction = "downup") %>%
-  ungroup()
-
-adj_data <- morbidity_trajectories %>%
+adj_data <- tar_read(morbidity_trajectories_state_NSW) %>%
   mutate(
     age_group = case_when(
       age_group %in% c("0-9", "10-19") ~ "0-19",

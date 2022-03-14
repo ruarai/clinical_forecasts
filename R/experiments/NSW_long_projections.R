@@ -5,6 +5,8 @@ library(lubridate)
 
 source("R/experiments/adj_for_missing_RATs.R")
 
+run_name <- "14-03-2022"
+
 projections <- read_csv("~/random_data/projectionsBA2.csv") %>%
   
   mutate(date = dmy(Date), n = BA.1 + BA.2) %>%
@@ -26,8 +28,7 @@ combined_incidence <- bind_rows(
 forecast_dates <- tibble(
   forecast_start = min(projections$date),
   simulation_start = min(combined_incidence$date_onset),
-  forecast_horizon = max(combined_incidence$date_onset),
-  
+  forecast_horizon = max(combined_incidence$date_onset)
 )
 
 
@@ -44,32 +45,8 @@ ggplot(combined_incidence) +
 age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
 
 
-
-recent_age_dist <- tar_read(nindss_state_NSW) %>%
-  filter(date_onset <= forecast_dates$forecast_start,
-         date_onset > forecast_dates$forecast_start - ddays(14)) %>%
-  group_by(age_group) %>%
-  summarise(pr_age_given_case = n() / nrow(.)) %>%
-  
-  complete(age_group = age_groups, fill = list(pr_age_given_case = 0))
-
-forecasting_parameters <- tar_read(clinical_parameter_samples) %>%
-  
-  left_join(tar_read(morbidity_estimates_state_NSW), by = c("age_group", "sample")) %>%
-  
-  mutate(pr_ward_to_death = 1 - pr_ward_to_ICU - pr_ward_to_discharge,
-         pr_not_ICU_true = 1 - pr_ICU,
-         pr_ward_to_discharge_given_not_ICU = pr_ward_to_discharge / (pr_ward_to_discharge + pr_ward_to_death)) %>%
-  
-  mutate(pr_ward_to_discharge = pr_ward_to_discharge_given_not_ICU * pr_not_ICU_true,
-         pr_ward_to_ICU = pr_ICU) %>%
-  
-  select(-c(pr_ICU, pr_ward_to_death)) %>%
-  
-  left_join(recent_age_dist, by = 'age_group') %>%
-  
-  mutate(shape_onset_to_ward = 0.7 * shape_onset_to_ward,
-         scale_onset_to_ward = 0.7 * scale_onset_to_ward)
+forecasting_parameters <- tar_read(clinical_parameter_samples)
+#date_age_scenario <- ymd("2022-01-15")
 
 morbidity_trajectories <- tar_read(morbidity_trajectories_NSW) %>%
   filter(date >= forecast_dates$simulation_start) %>%
@@ -100,23 +77,42 @@ morbidity_trajectories <- tar_read(morbidity_trajectories_NSW) %>%
   group_by(age_group, bootstrap) %>%
   arrange(date) %>%
   fill(pr_hosp, pr_ICU, pr_age_given_case, .direction = "downup") %>%
-  ungroup()
+  ungroup()# %>%
+  
+  # left_join(
+  #   morbidity_trajectories %>%
+  #     filter(date == date_age_scenario) %>%
+  #     select(date, bootstrap, age_group, pr_age_given_case) %>%
+  #     complete(date = seq(forecast_dates$forecast_start, forecast_dates$forecast_horizon, by = 'days'),
+  #              bootstrap = 1:50,
+  #              age_group = age_groups) %>%
+  #     arrange(date) %>%
+  # 
+  #     group_by(bootstrap, age_group) %>%
+  #     fill(pr_age_given_case, .direction = "down") %>%
+  #     ungroup() %>%
+  # 
+  #     rename(pr_age_adj = pr_age_given_case) %>%
+  #     filter(date != date_age_scenario)
+  # ) %>%
+  # 
+  # mutate(pr_age_given_case = if_else(!is.na(pr_age_adj), pr_age_adj, pr_age_given_case))
 
 plot_morbidity_trajectories <- morbidity_trajectories %>%
   pivot_longer(c(pr_age_given_case, pr_hosp, pr_ICU))
-# 
-# ggplot(plot_morbidity_trajectories) +
-#   geom_line(aes(x = date, y = value, group = bootstrap),
-#             color = ggokabeito::palette_okabe_ito()[3],
-#             size = 0.5, alpha = 0.5) +
-# 
-#   facet_wrap(~age_group * name, ncol = 3, scales = "free_y", labeller = label_wrap_gen(multi_line=FALSE)) +
-# 
-#   geom_vline(xintercept = forecast_dates$forecast_start, linetype = "dashed") +
-#   
-#   coord_cartesian(xlim = c(NA_Date_, forecast_dates$forecast_start + ddays(14))) +
-# 
-#   theme_minimal()
+
+ggplot(plot_morbidity_trajectories) +
+  geom_line(aes(x = date, y = value, group = bootstrap),
+            color = ggokabeito::palette_okabe_ito()[3],
+            size = 0.5, alpha = 0.5) +
+
+  facet_wrap(~age_group * name, ncol = 3, scales = "free_y", labeller = label_wrap_gen(multi_line=FALSE)) +
+
+  geom_vline(xintercept = forecast_dates$forecast_start, linetype = "dashed") +
+
+  coord_cartesian(xlim = c(NA_Date_, forecast_dates$forecast_start + ddays(14))) +
+
+  theme_minimal()
 
 #ggsave("results/NSW_Jwood_forecasts/morbidity.png", width = 8, height = 10, bg = "white")
 
@@ -184,8 +180,9 @@ results <- curvemush::mush_abc(
   n_days = nrow(case_matrix),
   steps_per_day = 16,
   
-  ward_threshold = 3000000,
-  ICU_threshold = 300000,
+  do_ABC = FALSE,
+  thresholds = c(10000),
+  rejections_per_selections = 1,
   
   prior_sigma_los = 0,
   prior_sigma_hosp = 0,
@@ -320,3 +317,37 @@ cowplot::plot_grid(
   ncol = 1,
   align = "hv", axis = "lr"
 )
+
+
+
+
+
+
+results$grouped_results  %>%
+  format_grouped() %>%
+  select(sample, date, group, count) %>%
+  filter(group == "ward" | group == "ICU") %>%
+  pivot_wider(names_from = group, values_from = count) %>%
+  
+  group_by(date) %>%
+  
+  summarise(
+    ward_median = median(ward),
+    ward_lower90 = quantile(ward, 0.05),
+    ward_upper90 = quantile(ward, 0.95),
+    ward_lower95 = quantile(ward, 0.025),
+    ward_upper95 = quantile(ward, 0.975),
+    
+    ICU_median = median(ICU),
+    ICU_lower90 = quantile(ICU, 0.05),
+    ICU_upper90 = quantile(ICU, 0.95),
+    ICU_lower95 = quantile(ICU, 0.025),
+    ICU_upper95 = quantile(ICU, 0.975),
+  ) %>%
+  
+  write_csv(paste0("results/NSW_Jwood_forecasts/", run_name, "_result_summaries.csv"))
+
+
+
+
+

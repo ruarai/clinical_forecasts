@@ -4,14 +4,14 @@ library(curvemush)
 library(lubridate)
 
 
-case_trajectories <- tar_read(case_trajectories_QLD)
-nindss_state <- tar_read(nindss_state_QLD)
-morbidity_estimates_state <- tar_read(morbidity_estimates_state_QLD)
+case_trajectories <- tar_read(case_trajectories_VIC)
+nindss_state <- tar_read(nindss_state_VIC)
+morbidity_estimates_state <- tar_read(morbidity_estimates_state_VIC)
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
 forecast_dates <- tar_read(forecast_dates)
 
 
-morbidity_trajectories <- tar_read(morbidity_trajectories_QLD)
+morbidity_trajectories <- tar_read(morbidity_trajectories_VIC)
 
 mat_pr_age_given_case <- morbidity_trajectories %>%
   select(date, bootstrap, age_group, pr_age_given_case) %>%
@@ -107,8 +107,8 @@ forecasting_parameters <- clinical_parameter_samples %>%
   
   left_join(recent_age_dist, by = 'age_group')
 
-true_occupancy_curve <- tar_read(known_occupancy_ts_QLD) %>%
-  filter(source == "c19", state == "QLD") %>%
+true_occupancy_curve <- tar_read(known_occupancy_ts_VIC) %>%
+  filter(source == "c19", state == "VIC") %>%
   
   filter(date >= forecast_dates$simulation_start)
 
@@ -137,11 +137,11 @@ print("Starting...")
 
 prior_sigma_los <- 0.5
 prior_sigma_hosp <- 0.8
-ward_threshold <- 100
-ICU_threshold <- 15
+
+thresholds <- c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
+
+
 save.image(file = "../curvemush/.debug")
-
-
 a <- Sys.time()
 results <- curvemush::mush_abc(
   n_samples = 4000,
@@ -152,8 +152,9 @@ results <- curvemush::mush_abc(
   n_days = case_trajectories$n_days,
   steps_per_day = 16,
   
-  ward_threshold = ward_threshold,
-  ICU_threshold = ICU_threshold,
+  thresholds_vec = thresholds,
+  rejections_per_selections = 100,
+  do_ABC = TRUE,
   
   prior_sigma_los = prior_sigma_los,
   prior_sigma_hosp = prior_sigma_hosp,
@@ -229,6 +230,14 @@ results_count_quants <- results$grouped_results %>%
   make_results_quants() %>%
   format_grouped()
 
+
+ggplot(tibble(threshold = thresholds, accepted = results$n_accepted, rejected = results$n_rejected)) +
+  geom_col(aes(y = as.character(threshold), x = accepted)) +
+  
+  geom_vline(xintercept = 1000) +
+  theme_minimal()
+
+
 source("R/experiments/abc_test_null.R")
 
 cowplot::plot_grid(
@@ -248,7 +257,7 @@ cowplot::plot_grid(
     
     theme_minimal() +
     
-    ggtitle("QLD", "Without ABC") +
+    ggtitle("VIC", "Without ABC") +
     
     theme(legend.position = "none"),
   
@@ -281,7 +290,7 @@ cowplot::plot_grid(
     
     
     coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
-                    ylim = c(0, 150)) +
+                    ylim = c(0, 300)) +
     
     theme_minimal() +
     
@@ -300,7 +309,7 @@ cowplot::plot_grid(
     
     
     coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
-                    ylim = c(0, 150)) +
+                    ylim = c(0, 300)) +
     
     ggtitle(NULL, "With ABC + scaling factors") +
     
@@ -312,3 +321,5 @@ cowplot::plot_grid(
 )
 
 print(str_c("Simulation mush ABC ran in ", round(b - a, 2), " ", units(b - a)))
+
+

@@ -9,8 +9,9 @@ results_null <- curvemush::mush_abc(
   n_days = case_trajectories$n_days,
   steps_per_day = 16,
   
-  ward_threshold = 1000000,
-  ICU_threshold = 1000000,
+  thresholds_vec = c(1000),
+  rejections_per_selections = 1,
+  do_ABC = FALSE,
   
   prior_sigma_los = 0,
   prior_sigma_hosp = 0,
@@ -28,7 +29,6 @@ results_null <- curvemush::mush_abc(
   mat_pr_hosp = mat_pr_hosp,
   mat_pr_ICU = mat_pr_ICU
 )
-
 
 results_count_quants_null <- results_null$grouped_results %>%
   select(-c(transitions, los_scale, pr_hosp_scale)) %>%
