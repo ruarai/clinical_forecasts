@@ -13,7 +13,7 @@ plot_joint_results <- function(
                         by = "weeks")
   
   known_occupancy_ts <- known_occupancy_ts %>%
-    filter(!(state == "NSW" & source == "c19"))
+    filter(!(state == "NSW" & source == "direct_ll"))
   
   
   plot_lims <- tribble(

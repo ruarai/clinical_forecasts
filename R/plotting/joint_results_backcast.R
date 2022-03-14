@@ -79,14 +79,14 @@ states_B <- c("SA",  "TAS", "VIC", "WA")
 plot_states(states_A)
 
 scale <- 7.5
-# 
-# ggsave(paste0(plot_dir, "_national_backcast_join_A.png"),
-#        bg = 'white',
-#        width = 1 * scale, height = 1 * scale,
-#        dpi = 200)
+
+ggsave(paste0(plot_dir, "_national_backcast_join_A.png"),
+       bg = 'white',
+       width = 1 * scale, height = 1 * scale,
+       dpi = 200)
 plot_states(states_B)
-# 
-# ggsave(paste0(plot_dir, "_national_backcast_join_B.png"),
-#        bg = 'white',
-#        width = 1 * scale, height = 1 * scale,
-#        dpi = 200)
+
+ggsave(paste0(plot_dir, "_national_backcast_join_B.png"),
+       bg = 'white',
+       width = 1 * scale, height = 1 * scale,
+       dpi = 200)

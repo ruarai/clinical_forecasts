@@ -3,9 +3,6 @@ make_case_trajectories <- function(
   ensemble_state,
   local_cases_state,
   
-  linelist_state,
-  linelist_state_date,
-  
   forecast_dates
 ) {
   
@@ -63,7 +60,6 @@ make_case_trajectories <- function(
   )
   
   
-  ## Backcasting
   final_curve_set <- rbind(
     nowcasting_case_curves_imputed,
     
