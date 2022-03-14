@@ -11,6 +11,15 @@ pre_forecasting <- c(
       }
     ),
     
+    tar_target(
+      backup_dir,
+      {
+        path <- str_c("historical_inputs/", date_forecasting)
+        dir.create(path, showWarnings = FALSE)
+        return(path)
+      }
+    ),
+    
     
     tar_target(latest_mflux_files, get_latest_mflux_files(date_forecasting)),
     
@@ -86,23 +95,28 @@ pre_forecasting <- c(
         local_cases_file = raw_local_cases,
         latest_mflux_files = latest_mflux_files
       )
-    )#,
-    
-    # 
-    # tar_target(
-    #   national_morbidity_estimates,
-    #   
-    #   make_morbidity_estimates(
-    #     nindss,
-    #     forecast_dates$NNDSS,
-    #     forecast_dates$simulation_start,
-    #     clinical_parameters,
-    #     "national",
-    #     
-    #     NULL
-    #   ),
-    #   
-    #   garbage_collection = TRUE # Clear memory after reading NINDSS
-    # )
-  )
+    ),
+
+
+    tar_target(
+      morbidity_trajectories_national,
+      
+      get_time_varying_morbidity_estimations(
+        nindss,
+        
+        forecast_dates,
+        
+        clinical_parameters,
+        
+        "national",
+        
+        NULL
+      ),
+
+      garbage_collection = TRUE # Clear memory after reading NINDSS
+    )
+  ),
+  
+  
+  t_backup_inputs
 )

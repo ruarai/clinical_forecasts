@@ -26,77 +26,38 @@ state_results <- tar_map(
   ),
   
   tar_target(
-    linelist_state,
-    get_state_linelist(
-      state_modelled,
-      nindss_state,
-      
-      NSW_linelist_path
-    ),
-    
-    format = "fst"
-  ),
-  
-  tar_target(
-    linelist_state_date,
-    get_state_linelist_date(
-      state_modelled,
-      NSW_linelist_path,
-      
-      forecast_dates$NNDSS
-    )
-  ),
-  
-  tar_target(
     known_occupancy_ts,
     make_occupancy_timeseries(
-      linelist_state,
-      c19data,
-      state_modelled
+      c19data
     )
   ),
   
   tar_target(
-    morbidity_trajectories,
+    morbidity_trajectories_state,
     
     get_time_varying_morbidity_estimations(
       nindss_state,
       
       forecast_dates,
       
-      clinical_parameters
+      clinical_parameters,
+      
+      state_modelled,
+      
+      morbidity_trajectories_national
     )
   ),
   
-  
-  # tar_target(
-  #   morbidity_estimates_state,
-  #   make_morbidity_estimates(
-  #     nindss_state,
-  #     
-  #     forecast_dates$NNDSS,
-  #     forecast_dates$simulation_start,
-  #     
-  #     clinical_parameters,
-  #     
-  #     state_modelled,
-  #     national_morbidity_estimates
-  #   )
-  # ),
-  
-  # tar_target(
-  #   morbidity_plots,
-  #   moving_window_morbidity_plots(
-  #     nindss_state,
-  #     
-  #     forecast_dates,
-  #     clinical_parameters,
-  #     
-  #     state_modelled,
-  #     
-  #     plot_dir
-  #   )
-  # ),
+  tar_target(
+    morbidity_trajectories_plot,
+    
+    plot_morbidity_trajectories(
+      morbidity_trajectories_state,
+      
+      state_modelled,
+      plot_dir
+    )
+  ),
   
   
   tar_target(
@@ -104,9 +65,6 @@ state_results <- tar_map(
     make_case_trajectories(
       ensemble_state,
       local_cases_state,
-      
-      linelist_state,
-      linelist_state_date,
       
       forecast_dates
     )
@@ -118,12 +76,14 @@ state_results <- tar_map(
     
     run_progression_model(
       case_trajectories,
-      nindss_state,
+      known_occupancy_ts,
       
-      morbidity_estimates_state,
+      morbidity_trajectories_state,
       clinical_parameter_samples,
       
-      forecast_dates
+      forecast_dates,
+      
+      state_modelled
     ),
     format = "qs",
     resources = tar_resources(

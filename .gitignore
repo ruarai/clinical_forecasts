@@ -2,7 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-
 # Don't share results/data/etc
 data
 results
@@ -11,8 +10,6 @@ results
 *.xlsx
 *.pdf
 _targets
-
-
 R/capacity_table.R
-
 forecast
+historical_inputs

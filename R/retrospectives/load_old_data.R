@@ -4,12 +4,10 @@ library(tidyverse)
 library(lubridate)
 
 past_forecasts <- c(
-  "fc_2022-01-05_retro",
-  "fc_2022-01-13_retro",
-  "fc_2022-01-21_retro",
-  "fc_2022-01-28_retro",
-  "fc_2022-02-04_retro",
-  "fc_2022-02-11_final"
+  "fc_2022-04-03_test_3",
+  "fc_2022-02-25_test_3",
+  "fc_2022-02-18_test_3",
+  "fc_2022-02-11_test_3"
 )
 
 
@@ -80,19 +78,20 @@ traj_data <- map_dfr(
   }, .id = "source"
 )
 
-fc_dates <- map_dfr(
-  past_forecast_datefiles, ~ read_csv(., show_col_types = FALSE), .id = "source"
-)
-
-
 plot_data <- traj_data %>%
-  left_join(fc_dates %>% select(source, forecast_start)) %>%
+  #left_join(fc_dates %>% select(source, forecast_start)) %>%
   
-  filter(date >= forecast_start - ddays(7)) %>%
+  group_by(source) %>%
+  filter(date >= max(date) - ddays(7 + 28)) %>%
+  ungroup() %>%
   
-  mutate(lower = pmin(lower, 10000),
-         upper = pmin(upper, 10000))
+  mutate(lower = pmin(lower, 3000),
+         upper = pmin(upper, 3000))
 
+fc_dates <- traj_data %>%
+  group_by(source) %>%
+  summarise(forecast_start = max(date) - ddays(28),
+            fit_end = max(date) - ddays(21))
 
 
 known_occupancy <- tar_read(all_state_known_occupancy_ts) %>%
@@ -114,13 +113,15 @@ state_plots <- map(
     ggplot(plot_data %>% filt_plot) +
       
       geom_line(aes(x = date, y = count, group = ts_source),
-                known_occupancy %>% filt_plot %>% filter(ts_source == "c19")) +
+                known_occupancy %>% filt_plot %>% filter(!(ts_source == "c19" & state == "NSW"))) +
       
       
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = group), 
                   alpha = 0.2) +
       
       geom_vline(aes(xintercept = forecast_start), fc_dates) +
+      
+      geom_vline(aes(xintercept = fit_end), fc_dates, linetype = 'dotted') +
       
       facet_wrap(~source * group, ncol = 2,
                  scales = "free_y") +
@@ -141,8 +142,8 @@ state_plots <- map(
 
 
 
-pdf("results/retrospectives/retro_2022-02-21.pdf",
-    width = 8, height = 10)
+pdf("results/retrospectives/retro_2022-03-11.pdf",
+    width = 10, height = 10)
 for (i in 1:length(state_plots)){
   plot(state_plots[[i]])
 }
