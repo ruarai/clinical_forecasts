@@ -5,12 +5,14 @@ library(lubridate)
 
 source("R/experiments/adj_for_missing_RATs.R")
 
-run_name <- "14-03-2022"
+run_name <- "18-03-2022"
+run_subname <- "v1"
 
-projections <- read_csv("~/random_data/projectionsBA2.csv") %>%
+projections <- read_csv("~/random_data/Projections_20220318.csv") %>%
+  mutate(date = dmy(Date), n = Cases) %>%
+  select(date, n) %>%
   
-  mutate(date = dmy(Date), n = BA.1 + BA.2) %>%
-  select(date, n)
+  filter(date >= ymd("2022-03-10"))
 
 local_cases <- tar_read(local_cases_state_NSW)
 
@@ -19,7 +21,7 @@ combined_incidence <- bind_rows(
     select(date_onset = date, count = n),
   
   local_cases %>% 
-    filter(date_onset >= ymd("2021-12-01"),
+    filter(date_onset >= ymd("2021-11-01"),
            date_onset < min(projections$date)) %>%
     
     mutate(count = count / detection_probability)
@@ -77,7 +79,7 @@ morbidity_trajectories <- tar_read(morbidity_trajectories_NSW) %>%
   group_by(age_group, bootstrap) %>%
   arrange(date) %>%
   fill(pr_hosp, pr_ICU, pr_age_given_case, .direction = "downup") %>%
-  ungroup()# %>%
+  ungroup() #%>%
   
   # left_join(
   #   morbidity_trajectories %>%
@@ -172,10 +174,10 @@ occupancy_curve_match <- tibble(
          ICU_vec = if_else(do_match, ICU, -1))
 
 results <- curvemush::mush_abc(
-  n_samples = 2000,
+  n_samples = 4000,
   n_delay_samples = 512,
   
-  n_outputs = 1000,
+  n_outputs = 4000,
   
   n_days = nrow(case_matrix),
   steps_per_day = 16,
@@ -186,8 +188,6 @@ results <- curvemush::mush_abc(
   
   prior_sigma_los = 0,
   prior_sigma_hosp = 0,
-  
-  t_forecast_start = 0,
   
   ensemble_curves = case_matrix,
   
@@ -201,6 +201,8 @@ results <- curvemush::mush_abc(
   mat_pr_ICU = mat_pr_ICU
 )
 
+results %>%
+  write_rds(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_results.rds"))
 
 source("R/progression_model.R")
 group_labels <- c("symptomatic_clinical", "ward", "ICU", "discharged", "died")
@@ -221,7 +223,7 @@ format_ungrouped <- . %>%
 
 
 results_count_quants <- results$grouped_results %>%
-  select(-c(transitions, los_scale, pr_hosp_scale)) %>%
+  select(-c(transitions)) %>%
   pivot_wider(names_from = "sample",
               names_prefix = "sim_",
               values_from = "count") %>%
@@ -229,7 +231,7 @@ results_count_quants <- results$grouped_results %>%
   format_grouped()
 
 results_ungrouped_count_quants <- results$results %>%
-  select(-c(transitions, los_scale)) %>%
+  select(-c(transitions)) %>%
   pivot_wider(names_from = "sample",
               names_prefix = "sim_",
               values_from = "count") %>%
@@ -237,7 +239,7 @@ results_ungrouped_count_quants <- results$results %>%
   format_ungrouped()
 
 results_transitions_quants <- results$grouped_results %>%
-  select(-c(count, los_scale, pr_hosp_scale)) %>%
+  select(-c(count)) %>%
   pivot_wider(names_from = "sample",
               names_prefix = "sim_",
               values_from = "transitions") %>%
@@ -245,7 +247,7 @@ results_transitions_quants <- results$grouped_results %>%
   format_grouped()
 
 results_ungrouped_transitions_quants <- results$results %>%
-  select(-c(count, los_scale)) %>%
+  select(-c(count)) %>%
   pivot_wider(names_from = "sample",
               names_prefix = "sim_",
               values_from = "transitions") %>%
@@ -264,6 +266,9 @@ true_occupancy_curve <- tar_read(known_occupancy_ts_NSW) %>%
   filter(state == "NSW", source == "c19") %>%
   
   filter(date >= forecast_dates$simulation_start)
+
+results_count_quants %>%
+  write_rds(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_quants.rds"))
 
 
 p_ward <- ggplot(results_count_quants %>%
@@ -318,7 +323,10 @@ cowplot::plot_grid(
   align = "hv", axis = "lr"
 )
 
-
+ggsave(
+  paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_estimates.png"),
+  width = 10, height = 8, bg = "white"
+)
 
 
 
@@ -345,7 +353,7 @@ results$grouped_results  %>%
     ICU_upper95 = quantile(ICU, 0.975),
   ) %>%
   
-  write_csv(paste0("results/NSW_Jwood_forecasts/", run_name, "_result_summaries.csv"))
+  write_csv(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_result_summaries.csv"))
 
 
 
