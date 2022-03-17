@@ -1,5 +1,6 @@
 make_occupancy_timeseries <- function(
-  c19data
+  c19data,
+  state_modelled
 ) {
   
   ts <- c19data %>%

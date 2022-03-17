@@ -28,7 +28,9 @@ state_results <- tar_map(
   tar_target(
     known_occupancy_ts,
     make_occupancy_timeseries(
-      c19data
+      c19data,
+      
+      state_modelled
     )
   ),
   
@@ -94,6 +96,9 @@ state_results <- tar_map(
     garbage_collection = TRUE
     
   ),
+  
+  tar_target(state_ABC_parameters, sim_results$ABC_parameters %>% mutate(state = state_modelled)),
+  tar_target(state_ABC_diagnostics, sim_results$ABC_fit_diagnostics %>% mutate(state = state_modelled)),
   
   tar_target(
     state_plots,

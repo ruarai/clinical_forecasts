@@ -52,8 +52,8 @@ pre_forecasting <- c(
     ),
     
     
-    tar_target(c19data, get_c19data()),
-    
+    tar_target(c19data, { print(date_reporting_line); get_c19data() }),
+
     tar_target(
       raw_local_cases,
       download_mflux_file(
@@ -61,7 +61,7 @@ pre_forecasting <- c(
         local_file = "data/mflux/downloads/raw_local_cases.csv"
       ),
       format = "file"),
-    
+
     tar_target(
       raw_nindss,
       download_mflux_file(
@@ -69,7 +69,7 @@ pre_forecasting <- c(
         local_file = "data/mflux/downloads/raw_nindss.xlsx"
       ),
       format = "file"),
-    
+
     tar_target(
       raw_ensemble,
       download_mflux_file(
@@ -77,14 +77,17 @@ pre_forecasting <- c(
         local_file = "data/mflux/downloads/raw_ensemble.csv"
       ),
       format = "file"),
-    
-    
+
+
     tar_target(
       nindss,
       process_NINDSS_linelist(raw_nindss, date_simulation_start),
       format = "fst"
     ),
-    
+    # 
+    # tar_target(raw_local_cases, paste0(backup_dir, "/local_cases.csv")),
+    # tar_target(raw_ensemble, paste0(backup_dir, "/ensemble.csv")),
+    # tar_target(nindss, fst::read_fst(paste0(backup_dir, "/nindss.fst"))),
     
     tar_target(
       forecast_dates,

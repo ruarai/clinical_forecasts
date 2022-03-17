@@ -92,23 +92,29 @@ run_progression_model <- function(
   print("Starting...")
   
   a <- Sys.time()
+  prior_sigma_los <- 0.5
+  prior_sigma_hosp <- 0.8
+  
   results <- curvemush::mush_abc(
     n_samples = 8000,
-    n_delay_samples = 512,
+    #n_delay_samples = 512,
+    n_delay_samples = 256,
     
-    n_outputs = 8000,
+    n_outputs = 1000,
     
     n_days = case_trajectories$n_days,
-    steps_per_day = 16,
+    #steps_per_day = 16,
+    steps_per_day = 4,
     
     thresholds_vec = thresholds,
     rejections_per_selections = 100,
-    do_ABC = FALSE,
-    
-    prior_sigma_los = 0, 
-    prior_sigma_hosp = 0,
-    
-    t_forecast_start = case_trajectories$step_sampling_start,
+    do_ABC = TRUE,
+
+    prior_sigma_los = prior_sigma_los,
+    prior_sigma_hosp = prior_sigma_hosp,
+    # 
+    # prior_sigma_los = 0,
+    # prior_sigma_hosp = 0,
     
     ensemble_curves = case_trajectories$curve_set,
     
@@ -143,7 +149,7 @@ run_progression_model <- function(
     
   
   results_count_quants <- results$grouped_results %>%
-    select(-c(transitions, los_scale, pr_hosp_scale)) %>%
+    select(-transitions) %>%
     pivot_wider(names_from = "sample",
                 names_prefix = "sim_",
                 values_from = "count") %>%
@@ -151,7 +157,7 @@ run_progression_model <- function(
     format_grouped()
   
   results_ungrouped_count_quants <- results$results %>%
-    select(-c(transitions, los_scale)) %>%
+    select(-transitions) %>%
     pivot_wider(names_from = "sample",
                 names_prefix = "sim_",
                 values_from = "count") %>%
@@ -159,7 +165,7 @@ run_progression_model <- function(
     format_ungrouped()
   
   results_transitions_quants <- results$grouped_results %>%
-    select(-c(count, los_scale, pr_hosp_scale)) %>%
+    select(-count) %>%
     pivot_wider(names_from = "sample",
                 names_prefix = "sim_",
                 values_from = "transitions") %>%
@@ -167,7 +173,7 @@ run_progression_model <- function(
     format_grouped()
   
   results_ungrouped_transitions_quants <- results$results %>%
-    select(-c(count, los_scale)) %>%
+    select(-count) %>%
     pivot_wider(names_from = "sample",
                 names_prefix = "sim_",
                 values_from = "transitions") %>%
@@ -181,6 +187,21 @@ run_progression_model <- function(
   results_ungrouped_formatted <- results$results  %>%
     format_ungrouped()
   
+  
+  posterior_data <- tibble(
+    pr_hosp_scale = results$prior_pr_hosp[results$prior_chosen + 1],
+    los_scale = results$prior_los_scale[results$prior_chosen + 1],
+    source = "posterior"
+  )
+  
+  prior_data <- tibble(
+    los_scale = rnorm(1000, sd = prior_sigma_los),
+    pr_hosp_scale = rnorm(1000, sd = prior_sigma_hosp),
+    source = "prior"
+  )
+  
+  ABC_parameters <- bind_rows(posterior_data, prior_data)
+  
   list(
     trajectories = results_formatted,
     quants_count = results_count_quants,
@@ -188,7 +209,10 @@ run_progression_model <- function(
     
     trajectories_ungrouped = results_ungrouped_formatted,
     quants_ungrouped_count = results_ungrouped_count_quants,
-    quants_ungrouped_transitions = results_ungrouped_transitions_quants
+    quants_ungrouped_transitions = results_ungrouped_transitions_quants,
+    
+    ABC_fit_diagnostics = tibble(thresholds = thresholds, accepted = results$n_accepted),
+    ABC_parameters = ABC_parameters
   )
 }
 

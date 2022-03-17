@@ -5,14 +5,8 @@ t_forecast <- list(
   state_results,
   
   
-  tar_combine(
-    all_state_absenteeism_trajs,
-    state_results[["absentee_trajs"]],
-    
-    command = dplyr::bind_rows(!!!.x),
-    
-    format = "fst"
-  ),
+  tar_combine(all_state_absenteeism_trajs, state_results[["absentee_trajs"]],
+    command = dplyr::bind_rows(!!!.x), format = "fst"),
   
   tar_target(
     absenteeism_plots,
@@ -20,23 +14,11 @@ t_forecast <- list(
     make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, plot_dir)
   ),
   
-  tar_combine(
-    all_state_quants,
-    state_results[["state_result_quants"]],
-    
-    command = dplyr::bind_rows(!!!.x),
-    
-    format = "fst"
-  ),
+  tar_combine(all_state_quants, state_results[["state_result_quants"]],
+    command = dplyr::bind_rows(!!!.x), format = "fst"),
   
-  tar_combine(
-    all_state_trajs,
-    state_results[["state_results_traj"]],
-    
-    command = dplyr::bind_rows(!!!.x),
-    
-    format = "fst"
-  ),
+  tar_combine(all_state_trajs, state_results[["state_results_traj"]],
+    command = dplyr::bind_rows(!!!.x), format = "fst"),
   
   tar_target(
     backup_trajs,
@@ -61,19 +43,21 @@ t_forecast <- list(
     format = "file"
   ),
   
-  tar_combine(
-    all_state_known_occupancy_ts,
-    state_results[["known_occupancy_ts"]],
-    
-    command = dplyr::bind_rows(!!!.x)
+  tar_combine(all_state_known_occupancy_ts, state_results[["known_occupancy_ts"]],
+    command = dplyr::bind_rows(!!!.x)),
+  
+  tar_combine(all_state_capacity, state_results[["state_capacity_table"]],
+    command = dplyr::bind_rows(!!!.x)),
+  
+  tar_combine(all_state_ABC_parameters, state_results[["state_ABC_parameters"]]),
+  tar_combine(all_state_ABC_diagnostics, state_results[["state_ABC_diagnostics"]]),
+  
+  
+  tar_target(
+    ABC_diagnostic_plots,
+    plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir)
   ),
   
-  tar_combine(
-    all_state_capacity,
-    state_results[["state_capacity_table"]],
-    
-    command = dplyr::bind_rows(!!!.x)
-  ),
   
   tar_target(
     national_plots,
