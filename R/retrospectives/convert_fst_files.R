@@ -6,6 +6,9 @@ for(i in 1:length(past_forecast_trajs)){
   
   trajs <- fst::read_fst(past_forecast_trajs[i])
   
+  label <- if_else(str_detect(forecast_name, "ABC_null"), "null", "ABC")
+  forecast_date <- max(trajs$date) - ddays(20)
+  
   wide_trajs <- trajs %>%
     select(state, group, date, sample, count) %>%
     
@@ -14,9 +17,9 @@ for(i in 1:length(past_forecast_trajs)){
                 values_from = count)
   
   
-  write_csv(
+  fst::write_fst(
     wide_trajs,
-    paste0("results/retrospectives/export_trajs/", forecast_name, ".csv")
+    paste0("results/retrospectives/export_trajs/", str_c("forecast_retro_", label, "_", forecast_date), ".fst")
   )
 }
 

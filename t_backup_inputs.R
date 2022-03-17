@@ -5,6 +5,9 @@ t_backup_inputs <- list(
     backup_nindss,
     {
       file_path <- paste0(backup_dir, "/nindss.fst")
+      if(file.exists(file_path))
+        return(file_path)
+      
       fst::write_fst(nindss, path = file_path, compress = 100)
       return(file_path)
     },
@@ -16,6 +19,9 @@ t_backup_inputs <- list(
     backup_local_cases,
     {
       file_path <- paste0(backup_dir, "/local_cases.csv")
+      if(file.exists(file_path))
+        return(file_path)
+      
       file.copy(tar_read(raw_local_cases), file_path, overwrite = TRUE)
       return(file_path)
     },
@@ -27,6 +33,9 @@ t_backup_inputs <- list(
     backup_ensemble,
     {
       file_path <- paste0(backup_dir, "/ensemble.csv")
+      if(file.exists(file_path))
+        return(file_path)
+      
       file.copy(tar_read(raw_ensemble), file_path, overwrite = TRUE)
       return(file_path)
     },

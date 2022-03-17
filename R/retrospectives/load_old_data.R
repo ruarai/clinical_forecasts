@@ -3,29 +3,14 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-past_forecasts <- c(
-  "fc_2022-04-03_test_3",
-  "fc_2022-02-25_test_3",
-  "fc_2022-02-18_test_3",
-  "fc_2022-02-11_test_3"
-)
+past_forecast_dirs <- list.files(path = "results", include.dirs = TRUE, pattern = "retro_ABC", full.names = TRUE)
 
 
-
-past_forecast_dirs <- str_c(
-  "results/", past_forecasts, "/"
-)
 
 past_forecast_trajs <- str_c(
-  past_forecast_dirs, "trajectories.fst"
+  past_forecast_dirs, "/trajectories.fst"
 ) %>%
-  `names<-`(past_forecasts)
-
-past_forecast_datefiles <- str_c(
-  past_forecast_dirs, "forecast_dates.csv"
-) %>%
-  `names<-`(past_forecasts)
-
+  `names<-`(past_forecast_dirs)
 
 make_results_quants <- function(tbl) {
   data_matrix <- tbl %>%
@@ -83,10 +68,13 @@ plot_data <- traj_data %>%
   
   group_by(source) %>%
   filter(date >= max(date) - ddays(7 + 28)) %>%
+  mutate(forecast_start = max(date) - ddays(28)) %>%
   ungroup() %>%
   
   mutate(lower = pmin(lower, 3000),
-         upper = pmin(upper, 3000))
+         upper = pmin(upper, 3000)) %>%
+  
+  mutate(abc_label = if_else(str_detect(source, "null"), "no ABC", "with ABC"))
 
 fc_dates <- traj_data %>%
   group_by(source) %>%
@@ -113,7 +101,7 @@ state_plots <- map(
     ggplot(plot_data %>% filt_plot) +
       
       geom_line(aes(x = date, y = count, group = ts_source),
-                known_occupancy %>% filt_plot %>% filter(!(ts_source == "c19" & state == "NSW"))) +
+                known_occupancy %>% filt_plot) +
       
       
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = group), 
@@ -123,8 +111,8 @@ state_plots <- map(
       
       geom_vline(aes(xintercept = fit_end), fc_dates, linetype = 'dotted') +
       
-      facet_wrap(~source * group, ncol = 2,
-                 scales = "free_y") +
+      facet_wrap(~forecast_start * group * abc_label, ncol = 4,
+                 scales = "free_y", labeller = labeller(.multi_line = FALSE)) +
       
       scale_fill_manual(values = c("ward" = "green4", "ICU" = "purple2")) +
       
@@ -138,12 +126,12 @@ state_plots <- map(
       theme(legend.position = "none")
   }
 )
+state_plots[[8]]
 
 
 
-
-pdf("results/retrospectives/retro_2022-03-11.pdf",
-    width = 10, height = 10)
+pdf("results/retrospectives/retro_2022-03-16.pdf",
+    width = 12, height = 10)
 for (i in 1:length(state_plots)){
   plot(state_plots[[i]])
 }
