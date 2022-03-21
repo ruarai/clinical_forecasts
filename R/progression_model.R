@@ -97,8 +97,7 @@ run_progression_model <- function(
   
   results <- curvemush::mush_abc(
     n_samples = 8000,
-    #n_delay_samples = 512,
-    n_delay_samples = 256,
+   n_delay_samples = 512,
     
     n_outputs = 1000,
     

@@ -18,8 +18,8 @@ plan(callr)
 state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2022-03-11")),
-  tar_target(date_reporting_line, ymd("2022-03-11")),
+  tar_target(date_forecasting, ymd("2022-03-18")),
+  tar_target(date_reporting_line, ymd("2022-03-18")),
   
   
   tar_target(date_simulation_start, ymd("2021-11-01")),

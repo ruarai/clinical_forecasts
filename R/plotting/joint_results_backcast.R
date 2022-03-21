@@ -1,3 +1,8 @@
+require(targets)
+require(tidyverse)
+require(lubridate)
+
+
 forecast_dates <- tar_read(forecast_dates)
 all_state_quants <- tar_read(all_state_quants) %>%
   filter(date >= forecast_dates$forecast_start - ddays(60))

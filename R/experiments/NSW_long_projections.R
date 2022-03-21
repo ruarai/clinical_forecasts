@@ -287,6 +287,8 @@ p_ward <- ggplot(results_count_quants %>%
     labels = scales::label_date_short()
   ) +
   
+  coord_cartesian(xlim = c(ymd("2021-12-01"), NA)) +
+  
   xlab(NULL) + ylab("Count") +
   
   ggtitle(NULL, "Ward beds occupied") +
@@ -309,6 +311,8 @@ p_ICU <- ggplot(results_count_quants %>%
     date_breaks = "months",
     labels = scales::label_date_short()
   ) +
+  
+  coord_cartesian(xlim = c(ymd("2021-12-01"), NA)) +
   
   xlab(NULL) + ylab("Count") +
   
