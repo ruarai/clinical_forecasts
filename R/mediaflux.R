@@ -1,11 +1,17 @@
 
-get_latest_file_path <- function(mediaflux_dir,
+mediaflux_project_shared <- "/projects/proj-6200_nndss_covid19_data_repository-1128.4.270/"
+mediaflux_project_unimelb <- "/projects/proj-6200_covid19_internal_sit_assessment-1128.4.505/"
+
+
+get_latest_file_path <- function(mediaflux_project,
+                                 mediaflux_dir,
                                  file_pattern,
                                  date_pattern,
                                  str_to_date_fn,
                                  
-                                 date_limit = NULL) {
-  mediaflux_dir <- paste0("/projects/proj-6200_nndss_covid19_data_repository-1128.4.270/", mediaflux_dir)
+                                 date_limit = NULL,
+                                 config_file = "~/auth_keys/mflux.cfg") {
+  mediaflux_dir <- paste0(mediaflux_project, mediaflux_dir)
   
   require(tidyverse)
   require(lubridate)
@@ -16,7 +22,7 @@ get_latest_file_path <- function(mediaflux_dir,
   
   
   mediaflux_call <- paste0("~/unimelb-mf-clients-0.6.3/bin/unix/unimelb-mf-check",
-                           " --mf.config ~/auth_keys/mflux.cfg",
+                           " --mf.config ", config_file,
                            " --output ", file_listing_csv,
                            " --direction down",
                            " ", empty_dir,
@@ -49,12 +55,16 @@ get_latest_file_path <- function(mediaflux_dir,
   print(paste0("Which is dated ", likely_file$date, 
                " (", today() - ymd(likely_file$date), " days ago)"))
   
-  tibble(file = likely_file$source, date = likely_file$date)
+  tibble(file = likely_file$source,
+         date = likely_file$date,
+         project = mediaflux_project,
+         config_file = config_file)
 }
 
 
 get_latest_mflux_files <- function(date_limit) {
   latest_ensemble_file <- get_latest_file_path(
+    mediaflux_project_shared,
     "forecast-outputs",
     "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd,
     
@@ -63,6 +73,7 @@ get_latest_mflux_files <- function(date_limit) {
            type = "ensemble")
   
   latest_nindss_file <- get_latest_file_path(
+    mediaflux_project_shared,
     "Health Uploads",
     "COVID-19 UoM", "\\ \\d{1,2}\\D{3}\\d{4}", dmy,
     
@@ -71,11 +82,13 @@ get_latest_mflux_files <- function(date_limit) {
            type = "NNDSS")
   
   latest_local_cases_file <- get_latest_file_path(
-    "past_local_cases",
-    "local_cases", "\\d{8}", ymd,
+    mediaflux_project_unimelb,
+    "local_cases_input",
+    "local_cases_input", "\\d{4}-\\d{2}-\\d{2}", ymd,
     
+    config_file = "~/auth_keys/mflux_unimelb.cfg",
     date_limit) %>%
-    mutate(file = paste0("past_local_cases/", file),
+    mutate(file = paste0("local_cases_input/", file),
            type = "local_cases")
   
   list(
@@ -86,30 +99,24 @@ get_latest_mflux_files <- function(date_limit) {
 }
 
 
-download_mediaflux_files <- function(mf_files) {
-  for(i in 1:nrow(mf_files)) {
-    mf_file <- mf_files[i,]
-    
-    mf_dir <- "/projects/proj-6200_nndss_covid19_data_repository-1128.4.270/"
-    mf_path_remote <- paste0(mf_dir, mf_file$remote_file)
-    
-    mediaflux_call <- paste0("~/unimelb-mf-clients-0.6.3/bin/unix/unimelb-mf-download ",
-                             "--out data/mflux/downloads_raw/ ",
-                             "--mf.config '/home/forecast/auth_keys/mflux.cfg' ",
-                             "'", mf_path_remote, "'")
-    
-    system(mediaflux_call)
-    
-    file.copy(paste0("data/mflux/downloads_raw/", basename(mf_path_remote)),
-              mf_file$local_file,
-              overwrite = TRUE)
-  }
-}
-
-download_mflux_file <- function(remote_file, local_file) {
-  download_mediaflux_files(
-    tibble(remote_file = remote_file, local_file = local_file)
-  )
+download_mediaflux_file <- function(mf_files) {
+  mf_file <- mf_files[1,]
   
-  return(local_file)
+  mf_dir <- mf_file$project
+  mf_path_remote <- paste0(mf_dir, mf_file$remote_file)
+  
+  config_file <- str_replace(mf_file$config_file, "~", "/home/forecast")
+  
+  mediaflux_call <- paste0("~/unimelb-mf-clients-0.6.3/bin/unix/unimelb-mf-download ",
+                           "--out data/mflux/downloads_raw/ ",
+                           "--mf.config '", config_file ,"' ",
+                           "'", mf_path_remote, "'")
+  
+  system(mediaflux_call)
+  
+  file.copy(paste0("data/mflux/downloads_raw/", basename(mf_path_remote)),
+            mf_file$local_file,
+            overwrite = TRUE)
+  
+  return(mf_file$local_file)
 }
