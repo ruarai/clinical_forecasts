@@ -5,14 +5,15 @@ library(lubridate)
 
 source("R/experiments/adj_for_missing_RATs.R")
 
-run_name <- "18-03-2022"
-run_subname <- "v1"
+run_name <- "05-04-2022"
+run_subname <- "v2"
 
-projections <- read_csv("~/random_data/Projections_20220318.csv") %>%
+projections <- read_csv("~/random_data/Projections_20220405v2.csv") %>%
   mutate(date = dmy(Date), n = Cases) %>%
+  drop_na(n) %>%
   select(date, n) %>%
   
-  filter(date >= ymd("2022-03-10"))
+  filter(date >= ymd("2022-03-25"))
 
 local_cases <- tar_read(local_cases_state_NSW)
 
@@ -39,6 +40,8 @@ ggplot(combined_incidence) +
   
   theme_minimal() +
   
+  scale_x_date(date_breaks = "months", labels = scales::label_date_short()) +
+  
   geom_vline(xintercept = forecast_dates$forecast_start, linetype = "dashed") +
   xlab(NULL) + ylab(NULL) +
   ggtitle("Case incidence (backcast and forecast)")
@@ -48,9 +51,8 @@ age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70
 
 
 forecasting_parameters <- tar_read(clinical_parameter_samples)
-#date_age_scenario <- ymd("2022-01-15")
 
-morbidity_trajectories <- tar_read(morbidity_trajectories_NSW) %>%
+morbidity_trajectories <- tar_read(morbidity_trajectories_state_NSW) %>%
   filter(date >= forecast_dates$simulation_start) %>%
   complete(date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days'),
            bootstrap = 1:50,
@@ -100,21 +102,34 @@ morbidity_trajectories <- tar_read(morbidity_trajectories_NSW) %>%
   # 
   # mutate(pr_age_given_case = if_else(!is.na(pr_age_adj), pr_age_adj, pr_age_given_case))
 
-plot_morbidity_trajectories <- morbidity_trajectories %>%
-  pivot_longer(c(pr_age_given_case, pr_hosp, pr_ICU))
+quants_plot <- morbidity_trajectories %>%
+  pivot_longer(starts_with("pr_")) %>%
+  group_by(date, age_group, name) %>%
+  summarise(q95_lower = quantile(value, 0.025),
+            q95_upper = quantile(value, 0.975),
+            q50_lower = quantile(value, 0.25),
+            q50_upper = quantile(value, 0.75),
+            median = median(value))
 
-ggplot(plot_morbidity_trajectories) +
-  geom_line(aes(x = date, y = value, group = bootstrap),
-            color = ggokabeito::palette_okabe_ito()[3],
-            size = 0.5, alpha = 0.5) +
-
+ggplot(quants_plot %>% filter(date >= ymd("2021-12-15"))) +
+  # 
+  # geom_line(aes(x = date, y = value, group = bootstrap, color = name),
+  #           line_plot %>% filter(date >= ymd("2021-12-15")),
+  #           size = 0.3, alpha = 0.1) +
+  geom_ribbon(aes(x = date, ymin = q95_lower, ymax = q95_upper, fill = name),
+              alpha = 0.5) +
+  geom_ribbon(aes(x = date, ymin = q50_lower, ymax = q50_upper, fill = name),
+              alpha = 0.75) +
+  
+  ggokabeito::scale_fill_okabe_ito() +
+  ggokabeito::scale_color_okabe_ito() +
+  
+  #coord_cartesian(ylim = c(0, 0.1)) +
+  
   facet_wrap(~age_group * name, ncol = 3, scales = "free_y", labeller = label_wrap_gen(multi_line=FALSE)) +
-
-  geom_vline(xintercept = forecast_dates$forecast_start, linetype = "dashed") +
-
-  coord_cartesian(xlim = c(NA_Date_, forecast_dates$forecast_start + ddays(14))) +
-
-  theme_minimal()
+  
+  theme_minimal() +
+  theme(legend.position = "none")
 
 #ggsave("results/NSW_Jwood_forecasts/morbidity.png", width = 8, height = 10, bg = "white")
 
@@ -274,7 +289,7 @@ results_count_quants %>%
 p_ward <- ggplot(results_count_quants %>%
          filter(group == "ward")) +
   geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
-              fill = 'green4', alpha = 0.2) +
+              fill = 'purple', alpha = 0.2) +
   
   geom_line(aes(x = date, y = count),
             true_occupancy_curve %>%
@@ -299,7 +314,7 @@ p_ward <- ggplot(results_count_quants %>%
 p_ICU <- ggplot(results_count_quants %>%
          filter(group == "ICU")) +
   geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
-              fill = 'purple', alpha = 0.2) +
+              fill = 'green4', alpha = 0.2) +
   
   geom_line(aes(x = date, y = count),
             true_occupancy_curve %>%

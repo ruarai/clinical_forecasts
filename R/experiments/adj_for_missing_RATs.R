@@ -72,7 +72,7 @@ combined <- nindss_count %>%
   ) %>%
   
   mutate(pr_in_nindss = count_nindss / count_nsw) %>%
-  filter(date_diagnosis <= ymd("2022-02-27"))
+  filter(date_diagnosis <= forecast_dates$NNDSS - ddays(1))
 
 
 ggplot(combined) +
