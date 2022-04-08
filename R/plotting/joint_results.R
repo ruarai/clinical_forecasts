@@ -8,37 +8,57 @@ plot_joint_results <- function(
   forecast_name,
   plot_dir
 ) {
-  forecast_weeks <- seq(forecast_dates$forecast_start - 7,
-                        forecast_dates$forecast_start + 28,
-                        by = "weeks")
   
-  known_occupancy_ts <- known_occupancy_ts %>%
-    filter(!(state == "NSW" & source == "direct_ll"))
+  source("R/capacity_table.R")
+  
+  capacity_limits_tbl <- capacity_limits %>%
+    map_dfr(function(x) tibble_row(capacity_ward = x$ward, capacity_ICU = x$ICU),
+            .id = "state") %>%
+    pivot_longer(cols = c(capacity_ward, capacity_ICU),
+                 names_prefix = "capacity_",
+                 names_to = "group", values_to = "capacity")
   
   
-  plot_lims <- tribble(
-    ~state, ~group ,~y_lim,
-    "WA", "ICU", 60,
-    "WA", "ward", 750,
-    "TAS", "ICU", 40,
-    "SA", "ICU", 50,
-    "NSW", "ICU", 500,
-    "ACT", "ICU", 50
+  source("R/plotting/get_joint_plot_limits.R")
+  
+  plot_lims <- get_joint_plot_limits(
+    all_state_quants,
+    known_occupancy_ts,
+    capacity_limits_tbl,
+    
+    forecast_dates
   )
   
+  known_occupancy_ts <- known_occupancy_ts %>%
+    
+    filter(date >= forecast_dates$forecast_start - ddays(10)) %>%
+    
+    mutate(do_match = date > forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7))
+  
+  
+  
   all_state_quants <- all_state_quants %>%
+    
+    filter(date > forecast_dates$forecast_start - ddays(10)) %>%
     
     left_join(plot_lims) %>%
     
     mutate(upper = if_else(is.na(y_lim), upper, pmin(upper, y_lim)),
            lower = if_else(is.na(y_lim), lower, pmin(lower, y_lim)))
   
+  
+  forecast_weeks <- seq(forecast_dates$forecast_start - 7,
+                        forecast_dates$forecast_start + 28,
+                        by = "weeks")
+  
   plots_common <- list(
     coord_cartesian(xlim = c(forecast_dates$forecast_start - 7,
                              forecast_dates$forecast_horizon)),
     scale_x_date("Date", date_labels = "%e/%m", breaks = forecast_weeks, expand=c(0,0)),
-    geom_vline(xintercept = forecast_dates$forecast_start,
-               lty = 5, colour = "grey60"),
+    
+    scale_shape_manual(
+      values = c("FALSE" = 1, "TRUE" = 16)
+    ),
     cowplot::theme_cowplot(),
     theme(legend.position = "none",
           text=element_text(size=12),
@@ -52,33 +72,30 @@ plot_joint_results <- function(
                scales = "free_y")
   )
   
-  source("R/capacity_table.R")
-  
-  capacity_limits_tbl <- capacity_limits %>%
-    map_dfr(function(x) tibble_row(capacity_ward = x$ward, capacity_ICU = x$ICU),
-            .id = "state") %>%
-    pivot_longer(cols = c(capacity_ward, capacity_ICU),
-                 names_prefix = "capacity_",
-                 names_to = "group", values_to = "capacity") %>%
-    
+  capacity_limits_tbl <- capacity_limits_tbl %>%
+
     left_join(plot_lims) %>%
-    
-    filter(is.na(y_lim) | (capacity < y_lim))
-  
+
+    filter(capacity < y_lim)
+
   
   plot_states <- function(states) {
-    p_ward <- ggplot(all_state_quants %>% filter(group == "ward", state %in% states) %>%
-                       mutate(state = str_c("Ward - ", state))) +
+    adj_ward <- . %>% filter(group == "ward", state %in% states) %>%
+      mutate(state = str_c("Ward - ", state))
+    
+    p_ward <- ggplot(all_state_quants %>% adj_ward()) +
       
-      geom_vline(xintercept = date_reporting_line, colour = "grey80") +
+      geom_vline(xintercept = date_reporting_line, colour = "grey60") +
       
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
                   fill = 'darkorchid', alpha = 0.2) +
       
-      geom_point(aes(x = date, y = count),
-                 known_occupancy_ts %>% filter(group == "ward", state %in% states) %>%
-                   mutate(state = str_c("Ward - ", state)),
-                 pch = 1, size = 1, alpha = 0.8) +
+      geom_vline(xintercept = forecast_dates$forecast_start + 7,
+                 colour = "grey60", linetype = 'longdash') +
+      
+      geom_point(aes(x = date, y = count, pch = do_match),
+                 known_occupancy_ts %>% adj_ward(),
+                 size = 1, alpha = 0.8) +
       
       scale_y_continuous("Number Occupied Beds", position = "right",
                          expand = c(0,0),
@@ -88,25 +105,31 @@ plot_joint_results <- function(
       plots_common +
       
       geom_hline(aes(yintercept = capacity),
-                 capacity_limits_tbl %>% filter(group == "ward", state %in% states) %>%
-                   mutate(state = str_c("Ward - ", state)),
+                 capacity_limits_tbl %>% adj_ward(),
                  linetype = 'dashed', size = 0.3) +
+      
+      geom_blank(aes(yintercept = y_lim),
+                 plot_lims %>% adj_ward()) +
       
       theme(axis.title.y = element_blank())
     
     
-    p_ICU <- ggplot(all_state_quants %>% filter(group == "ICU", state %in% states) %>%
-                      mutate(state = str_c("ICU - ", state))) +
+    adj_ICU <- . %>% filter(group == "ICU", state %in% states) %>%
+      mutate(state = str_c("ICU - ", state))
+    
+    p_ICU <- ggplot(all_state_quants %>% adj_ICU()) +
       
       geom_vline(xintercept = date_reporting_line, colour = "grey80") +
       
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
                   fill = 'green4', alpha = 0.2) +
       
-      geom_point(aes(x = date, y = count),
-                 known_occupancy_ts %>% filter(group == "ICU", state %in% states) %>%
-                   mutate(state = str_c("ICU - ", state)),
-                 pch = 1, size = 1, alpha = 0.8)  +
+      geom_vline(xintercept = forecast_dates$forecast_start + 7,
+                 colour = "grey60", linetype = 'longdash') +
+      
+      geom_point(aes(x = date, y = count, pch = do_match),
+                 known_occupancy_ts %>% adj_ICU(),
+                 size = 1, alpha = 0.8)  +
       
       scale_y_continuous("Number Occupied Beds\n ", position = "right",
                          expand = c(0,0),
@@ -116,9 +139,11 @@ plot_joint_results <- function(
       plots_common +
       
       geom_hline(aes(yintercept = capacity),
-                 capacity_limits_tbl %>% filter(group == "ICU", state %in% states) %>%
-                   mutate(state = str_c("ICU - ", state)),
-                 linetype = 'dashed', size = 0.3)
+                 capacity_limits_tbl %>% adj_ICU(),
+                 linetype = 'dashed', size = 0.3) +
+      
+      geom_blank(aes(yintercept = y_lim),
+                 plot_lims %>% adj_ICU())
     
     cowplot::plot_grid(p_ward, p_ICU, ncol = 2)
   }

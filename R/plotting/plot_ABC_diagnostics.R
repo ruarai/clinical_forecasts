@@ -22,17 +22,17 @@ plot_ABC_diagnostics <- function(
     ggplot() +
       geom_point(aes(x = los_scale, y = pr_hosp_scale, color = source),
                  all_state_ABC_parameters %>% filter(source == "prior"),
-                 size = 0.2) +
+                 size = 0.1) +
       geom_point(aes(x = los_scale, y = pr_hosp_scale, color = source),
                  all_state_ABC_parameters %>% filter(source == "posterior"),
-                 size = 0.2) +
+                 size = 0.1) +
       ggtitle(NULL, "Scale parameters prior/posterior") +
       
       facet_wrap(~state, ncol = 2)  +
       
       xlab("L (sigma_los)") + ylab("H (sigma_pr_hosp)") +
       
-      coord_cartesian(xlim = c(-2.5, 2.5), ylim = c(-2.5, 2.5)) +
+      coord_cartesian(xlim = c(-5, 5), ylim = c(-5, 5)) +
       
       scale_color_manual(values = c("prior" = "grey50",
                                     "posterior" = ggokabeito::palette_okabe_ito(3))) +

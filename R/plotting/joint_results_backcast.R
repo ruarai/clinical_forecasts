@@ -95,3 +95,11 @@ ggsave(paste0(plot_dir, "_national_backcast_join_B.png"),
        bg = 'white',
        width = 1 * scale, height = 1 * scale,
        dpi = 200)
+
+
+
+
+
+
+
+

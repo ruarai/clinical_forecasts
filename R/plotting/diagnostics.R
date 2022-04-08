@@ -3,48 +3,12 @@ plot_diagnostics <- function(
   case_trajectories,
   forecast_dates,
   nindss_state,
-  morbidity_estimates_state,
   plot_dir,
   
   state_modelled
 ) {
   
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
-  
-  n_days <- case_trajectories$n_days
-  t_start <- case_trajectories$step_sampling_start
-  
-  plot_backcast <- case_trajectories$curve_set[1:(t_start*9), 1] %>%
-    as_tibble() %>%
-    mutate(age_group = rep(age_groups, times = t_start),
-           
-           t = rep(1:t_start, each = 9),
-           
-           date = t + forecast_dates$simulation_start)
-  
-  
-  p1_backcast <- ggplot(plot_backcast) +
-    geom_line(aes(x = date, y = value, color = age_group)) +
-    
-    ggokabeito::scale_color_okabe_ito() +
-    xlab(NULL) + ylab(NULL) +
-    ggtitle(NULL, "Backcast (hospitalised cases by onset date)") +
-    
-    theme_minimal()
-  
-  
-  p2_backcast <- ggplot(plot_backcast %>%
-                          group_by(date) %>%
-                          summarise(value = sum(value))) +
-    geom_col(aes(x = date, y = value)) +
-    
-    xlab(NULL) + ylab(NULL) +
-    ggtitle(NULL, "Backcast (total hospitalised cases by onset date)") +
-    
-    theme_minimal()
-  
-  
-  
   
   
   plot_forecast <- case_trajectories$curve_set[(t_start * 9 + 1):(t_start * 9 + n_days - t_start), ] %>%
@@ -74,74 +38,11 @@ plot_diagnostics <- function(
       theme_minimal()
   }
   
-  p_top <- cowplot::plot_grid(
-    
-    cowplot::plot_grid(p1_backcast, p2_backcast, ncol = 1, align = "v", axis = "lr"),
-    
-    cowplot::plot_grid(
-      plot_fc("gar"), plot_fc("uoa"), plot_fc("moss"), plot_fc("dst"), ncol = 1
-    ),
-    ncol = 2
-  )
-  
-  
-  
-  
-  nindss_recent <- nindss_state %>%
-    filter(date_onset <= forecast_dates$forecast_start,
-           date_onset > forecast_dates$forecast_start - ddays(14))
-  
-  age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
-  recent_age_dist <- nindss_recent %>%
-    group_by(age_group) %>%
-    summarise(pr_age_given_case = n() / nrow(.)) %>%
-    
-    complete(age_group = age_groups, fill = list(pr_age_given_case = 0))
-  
-  
-  p_pr_age_given_case <- ggplot(recent_age_dist) +
-    geom_col(aes(x = age_group, y = pr_age_given_case, fill = age_group)) +
-    
-    ggokabeito::scale_fill_okabe_ito() +
-    xlab(NULL) + ylab("P(age|case)") +
-    coord_cartesian(ylim = c(0, 0.4)) + 
-    scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
-    
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  
-  
-  p_morbidity <- ggplot(morbidity_estimates_state %>% pivot_longer(c(pr_hosp, pr_ICU))) +
-    
-    stat_summary(aes(x = age_group, y = value, color = age_group),
-                 size = 0.5,
-                 fun = mean,
-                 fun.min = function(x) quantile(x, probs = 0.025),
-                 fun.max = function(x) quantile(x, probs = 0.975)) +
-    
-    facet_wrap(~name) +
-    
-    ggokabeito::scale_color_okabe_ito() +
-    coord_cartesian(ylim = c(0, 0.4)) +
-    xlab(NULL) + ylab(NULL) +
-    ggtitle("Adjusted probability over recent time window") +
-    
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  p_bottom <- cowplot::plot_grid(
-    p_pr_age_given_case, p_morbidity,
-    ncol = 2,
-    rel_widths = c(1, 2)
-  )
-  
-  
   cowplot::plot_grid(
-    p_top,
-    p_bottom,
-    ncol = 1, rel_heights = c(3, 1)
+    plot_fc("gar"), plot_fc("uoa"), plot_fc("moss"), plot_fc("dst"), ncol = 1
   )
+  
+  
   
   ggsave(
     paste0(plot_dir, "/diagnostics_", state_modelled, ".png"),

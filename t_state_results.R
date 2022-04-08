@@ -97,6 +97,43 @@ state_results <- tar_map(
     
   ),
   
+  
+  tar_target(
+    sim_results_prior,
+    
+    run_progression_model(
+      case_trajectories,
+      known_occupancy_ts,
+      
+      morbidity_trajectories_state,
+      clinical_parameter_samples,
+      
+      forecast_dates,
+      
+      state_modelled,
+      
+      do_ABC = FALSE
+    ),
+    format = "qs",
+    resources = tar_resources(
+      qs = tar_resources_qs(preset = "fast")
+    ),
+    
+    memory = "transient",
+    garbage_collection = TRUE
+  ),
+  
+  tar_target(
+    prior_posterior_plots,
+    make_prior_posterior_plot(
+      sim_results_prior, sim_results,
+      
+      forecast_dates,
+      known_occupancy_ts,
+      plot_dir, state_modelled
+    )
+  ),
+  
   tar_target(state_ABC_parameters, sim_results$ABC_parameters %>% mutate(state = state_modelled)),
   tar_target(state_ABC_diagnostics, sim_results$ABC_fit_diagnostics %>% mutate(state = state_modelled)),
   
