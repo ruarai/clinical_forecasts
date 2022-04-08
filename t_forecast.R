@@ -25,6 +25,12 @@ t_forecast <- list(
     {
       file_path <- paste0(plot_dir, "/trajectories.fst")
       fst::write_fst(all_state_trajs, path = file_path, compress = 100)
+      
+      sync_file <- paste0("results/trajectories/trajectories_", date_forecasting, ".fst")
+      file.copy(file_path, sync_file, overwrite = TRUE)
+      
+      upload_mediaflux_trajectories()
+      
       return(file_path)
     },
     

@@ -26,4 +26,4 @@ for(i in 1:length(past_forecast_trajs)){
 a <- read_csv(file = "results/retrospectives/export_trajs/fc_2022-01-05_retro.csv")
 
 
-a <- fst::read_fst("results/retrospectives/export_trajs/fc_2022-01-05_retro.fst")
+a <- fst::read_fst("/home/forecast/source/clinical_forecasting/results/trajectories/trajectories_2022_03_18.fst")

@@ -7,6 +7,7 @@ source("R/model_parameters.R")
 source("R/data_various.R")
 
 source("R/time_varying_morbidity_estimations.R")
+source("R/plotting/plot_time_varying_morbidity.R")
 
 source("R/ensemble.R")
 
@@ -21,6 +22,7 @@ source("R/plotting/joint_results.R")
 
 source("R/plotting/diagnostics.R")
 source("R/plotting/plot_ABC_diagnostics.R")
+source("R/plotting/prior_posterior_plots.R")
 
 source("t_absenteeism.R")
 
@@ -29,3 +31,4 @@ source("t_backup_inputs.R")
 source("t_pre_forecasting.R")
 source("t_state_results.R")
 source("t_forecast.R")
+

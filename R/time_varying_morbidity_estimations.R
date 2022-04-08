@@ -7,7 +7,8 @@ get_time_varying_morbidity_estimations <- function(
   morbidity_trajectories_national
 ) {
   
-  bad_states <- c("NT", "SA", "WA", "QLD")
+  bad_states <- c("NT", "WA", "SA", "QLD")
+  
   
   do_estimate_morbidity <- TRUE
   
@@ -26,10 +27,10 @@ get_time_varying_morbidity_estimations <- function(
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
   
   clinical_parameter_lookup <- clinical_parameters %>%
-    
-    
-    mutate(scale_onset_to_ward = scale_onset_to_ward * 0.7,
-           shape_onset_to_ward = shape_onset_to_ward * 0.7) %>%
+
+
+    # mutate(scale_onset_to_ward = scale_onset_to_ward * 0.7,
+    #        shape_onset_to_ward = shape_onset_to_ward * 0.7) %>%
     
     select(-age_group) %>%
     as.matrix() %>%
@@ -443,37 +444,6 @@ get_ICU_lookup <- function(age_groups, clinical_parameter_lookup) {
     as.matrix()
   
 }
-
-plot_morbidity_trajectories <- function(
-  morbidity_trajectories,
-  state_modelled,
-  
-  plot_dir
-) {
-  p <- morbidity_trajectories %>%
-    pivot_longer(starts_with("pr_")) %>%
-    
-    ggplot() +
-    geom_line(aes(x = date, y = value, group = bootstrap),
-              size = 0.3, alpha = 0.3) +
-    
-    facet_wrap(~age_group * name, ncol = 3, scales = "free_y", labeller = label_wrap_gen(multi_line=FALSE)) +
-    
-    theme_minimal() +
-    
-    ggtitle(state_modelled)
-  
-  path <- paste0(plot_dir, "/", state_modelled, "_morbidity_ests.png")
-  
-  ggsave(
-    path, plot = p,
-    width = 8, height = 10, bg = "white"
-  )
-  
-  
-  return(path)
-}
-
 
 
 

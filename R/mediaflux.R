@@ -120,3 +120,16 @@ download_mediaflux_file <- function(mf_files) {
   
   return(mf_file$local_file)
 }
+
+
+upload_mediaflux_trajectories <- function() {
+  mediaflux_call <- paste0("~/unimelb-mf-clients-0.6.3/bin/unix/unimelb-mf-upload ",
+                           "--mf.config '", "/home/forecast/auth_keys/mflux_unimelb.cfg", "' ",  
+                           "--namespace /projects/proj-6200_covid19_internal_sit_assessment-1128.4.505/clinical_forecasts ",
+                           "/home/forecast/source/clinical_forecasting/results/trajectories/")
+  
+  system(mediaflux_call)
+  
+  
+  
+}

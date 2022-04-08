@@ -32,10 +32,13 @@ pre_forecasting <- c(
           show_col_types = FALSE
         ) %>%
           # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)
-          mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41, 
+          mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41,
                                          3.35, 3.35, 3.24, 3.24),
                  shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
                                          1.7, 1.9, 1.9, 1.3))
+          # 
+          # mutate(scale_onset_to_ward = c(18.2, 19.9, 18.8, 17.5, 15.2, 19.1, 15.2, 13.4, 7.82),
+          #        shape_onset_to_ward = c(0.564, 0.629, 0.545, 0.584, 0.573, 0.417, 0.401, 0.353, 0.456))
       }
     ),
     

@@ -8,7 +8,9 @@ run_progression_model <- function(
   
   forecast_dates,
   
-  state_modelled
+  state_modelled,
+  
+  do_ABC = TRUE
 ) {
   
   require(tidyverse)
@@ -73,7 +75,7 @@ run_progression_model <- function(
   occupancy_curve_match <- tibble(
     date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
   ) %>%
-    mutate(do_match = date >= forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7)) %>%
+    mutate(do_match = date > forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7)) %>%
     
     left_join(
       
@@ -92,28 +94,36 @@ run_progression_model <- function(
   print("Starting...")
   
   a <- Sys.time()
-  prior_sigma_los <- 0.5
-  prior_sigma_hosp <- 0.8
+  
+  if(do_ABC) {
+    if(state_modelled == "NT") {
+      prior_sigma_los <- 2
+      prior_sigma_hosp <- 2
+    } else{
+      prior_sigma_los <- 0.5
+      prior_sigma_hosp <- 0.8
+    }
+  } else{
+    prior_sigma_los <- 0
+    prior_sigma_hosp <- 0
+  }
   
   results <- curvemush::mush_abc(
     n_samples = 8000,
-   n_delay_samples = 512,
+    n_delay_samples = 512,
     
     n_outputs = 1000,
     
     n_days = case_trajectories$n_days,
-    #steps_per_day = 16,
     steps_per_day = 4,
     
     thresholds_vec = thresholds,
     rejections_per_selections = 100,
-    do_ABC = TRUE,
+    do_ABC = do_ABC,
 
     prior_sigma_los = prior_sigma_los,
     prior_sigma_hosp = prior_sigma_hosp,
-    # 
-    # prior_sigma_los = 0,
-    # prior_sigma_hosp = 0,
+   
     
     ensemble_curves = case_trajectories$curve_set,
     
