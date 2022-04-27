@@ -5,14 +5,15 @@ admission_capacity_plot <- function(
   sim_results,
   
   state_modelled,
-  forecast_dates
+  forecast_dates, 
+  state_forecast_start
 ) {
-  forecast_weeks <- seq(forecast_dates$forecast_start,
+  forecast_weeks <- seq(state_forecast_start,
                         forecast_dates$forecast_horizon,
                         by = "weeks")
   
   plots_common <- list(
-    geom_vline(xintercept = forecast_dates$forecast_start,
+    geom_vline(xintercept = state_forecast_start,
                lty = 2, colour = "grey60"),
     scale_x_date("Date", date_labels = "%e/%m", breaks = forecast_weeks, expand=c(0,0.01)),
     cowplot::theme_cowplot(),
@@ -37,7 +38,7 @@ admission_capacity_plot <- function(
                        position = 'right') +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(4),
+    coord_cartesian(xlim = c(state_forecast_start - ddays(4),
                              forecast_dates$forecast_horizon)) +
     
     ggtitle(state_modelled, "Hospital admissions") +
@@ -51,7 +52,7 @@ admission_capacity_plot <- function(
   
   over_capacity_trajectories <- sim_results$trajectories_ungrouped %>% 
     filter(compartment == "ward",
-           date >= forecast_dates$forecast_start) %>%
+           date >= state_forecast_start) %>%
     group_by(sample) %>%
     
     filter(any(transitions > capacity_limit))
@@ -60,7 +61,7 @@ admission_capacity_plot <- function(
   n_trajs_total <- length(unique(sim_results$trajectories_ungrouped$sample))
   
   
-  forecast_days <- seq(forecast_dates$forecast_start,
+  forecast_days <- seq(state_forecast_start,
                        forecast_dates$forecast_horizon - ddays(1),
                        by = "days")
   
@@ -87,14 +88,14 @@ admission_capacity_plot <- function(
     geom_line(aes(x = date, y = y_adj * 100),
               plot_ecdf) +
     
-    geom_vline(xintercept = forecast_dates$forecast_start,
+    geom_vline(xintercept = state_forecast_start,
                lty = 2, colour = "grey60") +
     
     scale_y_continuous("Percent",
                        breaks = scales::breaks_extended(),
                        position = 'right') +
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(4),
+    coord_cartesian(xlim = c(state_forecast_start - ddays(4),
                              forecast_dates$forecast_horizon),
                     
                     ylim = c(0, 100)) +

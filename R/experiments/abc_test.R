@@ -4,14 +4,13 @@ library(curvemush)
 library(lubridate)
 
 
-case_trajectories <- tar_read(case_trajectories_VIC)
-nindss_state <- tar_read(nindss_state_VIC)
-morbidity_estimates_state <- tar_read(morbidity_estimates_state_VIC)
+case_trajectories <- tar_read(case_trajectories_NSW)
+nindss_state <- tar_read(nindss_state_NSW)
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
 forecast_dates <- tar_read(forecast_dates)
 
 
-morbidity_trajectories <- tar_read(morbidity_trajectories_VIC)
+morbidity_trajectories <- tar_read(morbidity_trajectories_state_NSW)
 
 mat_pr_age_given_case <- morbidity_trajectories %>%
   select(date, bootstrap, age_group, pr_age_given_case) %>%
@@ -81,34 +80,10 @@ make_results_quants <- function(tbl) {
 
 
 
-nindss_recent <- nindss_state %>%
-  filter(date_onset <= forecast_dates$forecast_start,
-         date_onset > forecast_dates$forecast_start - ddays(14))
+forecasting_parameters <- clinical_parameter_samples
 
-age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
-recent_age_dist <- nindss_recent %>%
-  group_by(age_group) %>%
-  summarise(pr_age_given_case = n() / nrow(.)) %>%
-  
-  complete(age_group = age_groups, fill = list(pr_age_given_case = 0))
-
-forecasting_parameters <- clinical_parameter_samples %>%
-  
-  left_join(morbidity_estimates_state, by = c("age_group", "sample")) %>%
-  
-  mutate(pr_ward_to_death = 1 - pr_ward_to_ICU - pr_ward_to_discharge,
-         pr_not_ICU_true = 1 - pr_ICU,
-         pr_ward_to_discharge_given_not_ICU = pr_ward_to_discharge / (pr_ward_to_discharge + pr_ward_to_death)) %>%
-  
-  mutate(pr_ward_to_discharge = pr_ward_to_discharge_given_not_ICU * pr_not_ICU_true,
-         pr_ward_to_ICU = pr_ICU) %>%
-  
-  select(-c(pr_ICU, pr_ward_to_death)) %>%
-  
-  left_join(recent_age_dist, by = 'age_group')
-
-true_occupancy_curve <- tar_read(known_occupancy_ts_VIC) %>%
-  filter(source == "c19", state == "VIC") %>%
+true_occupancy_curve <- tar_read(known_occupancy_ts_NSW) %>%
+  filter(source == "c19", state == "NSW") %>%
   
   filter(date >= forecast_dates$simulation_start)
 
@@ -116,7 +91,7 @@ true_occupancy_curve <- tar_read(known_occupancy_ts_VIC) %>%
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
 ) %>%
-  mutate(do_match = date >= forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7)) %>%
+  mutate(do_match = date >= forecast_dates$forecast_start - ddays(120) & date <= forecast_dates$forecast_start + ddays(7)) %>%
   
   left_join(
     
@@ -135,31 +110,24 @@ case_curves <- case_trajectories$curve_set
 
 print("Starting...")
 
-prior_sigma_los <- 0.5
-prior_sigma_hosp <- 0.8
-
 thresholds <- c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
 
+devtools::load_all("../curvemush/")
 
 save.image(file = "../curvemush/.debug")
 a <- Sys.time()
-results <- curvemush::mush_abc(
+results <- curvemush::mush_abc_spline(
   n_samples = 4000,
   n_delay_samples = 512,
   
   n_outputs = 1000,
   
   n_days = case_trajectories$n_days,
-  steps_per_day = 16,
+  steps_per_day = 4,
   
   thresholds_vec = thresholds,
-  rejections_per_selections = 100,
-  do_ABC = TRUE,
-  
-  prior_sigma_los = prior_sigma_los,
-  prior_sigma_hosp = prior_sigma_hosp,
-  
-  t_forecast_start = case_trajectories$step_sampling_start,
+  rejections_per_selections = 1,
+  do_ABC = FALSE,
   
   ensemble_curves = case_curves,
   
@@ -186,12 +154,6 @@ results_formatted <- results$grouped_results %>%
 
 
 
-plot_data <- results_formatted %>%
-  group_by(sample, group) %>%
-  summarise(los_scale = first(los_scale),
-            pr_hosp_scale = first(pr_hosp_scale),
-            max = max(count))
-
 ggplot(results_formatted %>%
          filter(group == "ward")) +
   geom_line(aes(x = date, y = count, group = sample),
@@ -202,20 +164,6 @@ ggplot(results_formatted %>%
             true_occupancy_curve %>%
               filter(group == "ward"))
 
-prior_data <- tibble(
-  los_scale = rnorm(nrow(plot_data), 0, prior_sigma_los),
-  pr_hosp_scale = rnorm(nrow(plot_data), 0, prior_sigma_hosp),
-)
-
-ggplot() +
-  geom_point(aes(x = los_scale, y = pr_hosp_scale),
-             alpha = 0.05,
-             prior_data) +
-  geom_point(aes(x = los_scale, y = pr_hosp_scale),
-             plot_data) +
-  
-  coord_cartesian(xlim = c(-3, 3), ylim = c(-3, 3)) +
-  theme_minimal()
 
 format_grouped <- . %>%
   mutate(date = forecast_dates$simulation_start + ddays(t_day),
@@ -223,7 +171,7 @@ format_grouped <- . %>%
 
 
 results_count_quants <- results$grouped_results %>%
-  select(-c(transitions, los_scale, pr_hosp_scale)) %>%
+  select(-c(transitions)) %>%
   pivot_wider(names_from = "sample",
               names_prefix = "sim_",
               values_from = "count") %>%
@@ -252,12 +200,12 @@ cowplot::plot_grid(
               occupancy_curve_match) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
-                    ylim = c(0, 1500)) +
+    coord_cartesian(#xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+                    ylim = c(0, 6000)) +
     
     theme_minimal() +
     
-    ggtitle("VIC", "Without ABC") +
+    ggtitle("NSW", "Without ABC") +
     
     theme(legend.position = "none"),
   
@@ -271,8 +219,8 @@ cowplot::plot_grid(
               occupancy_curve_match) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
-                    ylim = c(0, 1500)) +
+    coord_cartesian(#xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+                    ylim = c(0, 6000)) +
     
     ggtitle(NULL, "With ABC + scaling factors") +
     
@@ -289,7 +237,7 @@ cowplot::plot_grid(
               occupancy_curve_match) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+    coord_cartesian(#xlim = c(forecast_dates$forecast_start - ddays(120), NA),
                     ylim = c(0, 300)) +
     
     theme_minimal() +
@@ -308,7 +256,7 @@ cowplot::plot_grid(
               occupancy_curve_match) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(120), NA),
+    coord_cartesian(#xlim = c(forecast_dates$forecast_start - ddays(120), NA),
                     ylim = c(0, 300)) +
     
     ggtitle(NULL, "With ABC + scaling factors") +

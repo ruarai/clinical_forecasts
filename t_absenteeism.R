@@ -13,7 +13,7 @@ t_state_absenteeism <- list(
       local_cases_state,
       nindss_state,
       
-      forecast_dates
+      forecast_dates, state_forecast_start
     ),
     
     format = "fst"

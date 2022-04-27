@@ -36,9 +36,6 @@ pre_forecasting <- c(
                                          3.35, 3.35, 3.24, 3.24),
                  shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
                                          1.7, 1.9, 1.9, 1.3))
-          # 
-          # mutate(scale_onset_to_ward = c(18.2, 19.9, 18.8, 17.5, 15.2, 19.1, 15.2, 13.4, 7.82),
-          #        shape_onset_to_ward = c(0.564, 0.629, 0.545, 0.584, 0.573, 0.417, 0.401, 0.353, 0.456))
       }
     ),
     
@@ -47,10 +44,11 @@ pre_forecasting <- c(
         read_csv(
           "../los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/estimate_samples_share_wide.csv"
         ) %>%
-          mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41, 
+          mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41,
                                          3.35, 3.35, 3.24, 3.24) %>% rep(times = 1000),
                  shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
                                          1.7, 1.9, 1.9, 1.3) %>% rep(times = 1000))
+      
       }
     ),
     

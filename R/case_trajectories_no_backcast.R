@@ -3,7 +3,8 @@ make_case_trajectories <- function(
   ensemble_state,
   local_cases_state,
   
-  forecast_dates
+  forecast_dates,
+  state_forecast_start
 ) {
   
   ## Forecasting
@@ -45,7 +46,7 @@ make_case_trajectories <- function(
   
   local_cases_to_impute <- local_cases_state %>%
     filter(date_onset >= date_nowcast_start,
-           date_onset <= forecast_dates$forecast_start) %>%
+           date_onset <= state_forecast_start) %>%
     select(date_onset, count, detection_probability)
   
   nowcasting_case_curves <- local_cases_to_impute$count %>%
@@ -71,7 +72,9 @@ make_case_trajectories <- function(
   n_days <- nrow(nowcasting_case_curves_imputed) + nrow(ensemble_curves) + step_sampling_start
   
   if(any(is.na(final_curve_set))) {
-    print("NA values in case_trajectories!")
+    print("NA values in case_trajectories, imputing...")
+    
+    final_curve_set <- apply(final_curve_set, 2, function(x) zoo::na.locf(x))
   }
   
   

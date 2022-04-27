@@ -4,6 +4,7 @@ make_prior_posterior_plot <- function(
   prior_results, posterior_results,
   
   forecast_dates,
+  state_forecast_start,
   known_occupancy_ts,
   plot_dir,
   state_modelled
@@ -11,7 +12,7 @@ make_prior_posterior_plot <- function(
   
   known_occupancy_ts <- known_occupancy_ts %>%
     mutate(group = factor(group, levels = c("ward", "ICU")),
-           do_match = date > forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7))
+           do_match = date > state_forecast_start & date <= state_forecast_start + ddays(7))
   
   plot_data <- bind_rows(
     prior_results$quants_count %>%
@@ -25,7 +26,7 @@ make_prior_posterior_plot <- function(
            group = factor(group, levels = c("ward", "ICU"))) %>%
     
     filter(quant %in% c("90", "50", "20"),
-           date >= forecast_dates$forecast_start - ddays(35))
+           date >= state_forecast_start - ddays(35))
   
   
   library(tidyverse)
@@ -70,7 +71,7 @@ make_prior_posterior_plot <- function(
                        labels = scales::label_comma()) +
     
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(30), NA)) +
+    coord_cartesian(xlim = c(state_forecast_start - ddays(30), NA)) +
     ggtitle(NULL, state_modelled) +
     
     theme_minimal() +

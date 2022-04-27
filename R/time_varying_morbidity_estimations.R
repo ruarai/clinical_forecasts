@@ -28,9 +28,9 @@ get_time_varying_morbidity_estimations <- function(
   
   clinical_parameter_lookup <- clinical_parameters %>%
 
-
-    # mutate(scale_onset_to_ward = scale_onset_to_ward * 0.7,
-    #        shape_onset_to_ward = shape_onset_to_ward * 0.7) %>%
+  
+    mutate(scale_onset_to_ward = scale_onset_to_ward * 0.7,
+           shape_onset_to_ward = shape_onset_to_ward * 0.7) %>%
     
     select(-age_group) %>%
     as.matrix() %>%
@@ -185,7 +185,7 @@ get_time_varying_morbidity_estimations <- function(
                 if(sum(n_not_hosp) == 0)
                   return(1)
                 
-                if(max(days_since_onset) > 30)
+                if(max(days_since_onset) > 45)
                   return(sum(n_hosp) / sum(n_hosp + n_not_hosp))
                 
                 tryCatch(pracma::fzero(

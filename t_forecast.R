@@ -8,17 +8,20 @@ t_forecast <- list(
   tar_combine(all_state_absenteeism_trajs, state_results[["absentee_trajs"]],
     command = dplyr::bind_rows(!!!.x), format = "fst"),
   
+  tar_combine(forecast_starts, state_results[["state_forecast_start_tbl"]],
+              command = dplyr::bind_rows(!!!.x)),
+  
   tar_target(
     absenteeism_plots,
     
-    make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, plot_dir)
+    make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, forecast_starts, plot_dir)
   ),
   
   tar_combine(all_state_quants, state_results[["state_result_quants"]],
     command = dplyr::bind_rows(!!!.x), format = "fst"),
   
   tar_combine(all_state_trajs, state_results[["state_results_traj"]],
-    command = dplyr::bind_rows(!!!.x), format = "fst"),
+              command = dplyr::bind_rows(!!!.x), format = "fst"),
   
   tar_target(
     backup_trajs,
@@ -71,7 +74,7 @@ t_forecast <- list(
     plot_joint_results(
       all_state_quants,
       all_state_known_occupancy_ts,
-      forecast_dates,
+      forecast_dates, forecast_starts,
       date_reporting_line,
       
       forecast_name,

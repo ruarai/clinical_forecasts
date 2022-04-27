@@ -2,8 +2,10 @@
 make_absenteeism_plots <- function(
   absenteeism_trajs,
   forecast_dates,
+  forecast_starts,
   
   plot_dir
+  
 ) {
   
   source("R/absenteeism/traj_plotting.R")
@@ -31,7 +33,6 @@ make_absenteeism_plots <- function(
       breaks = scales::breaks_extended(),
       labels = scales::label_comma()
     ),
-    geom_vline(xintercept = forecast_dates$forecast_start, alpha = 0.5),
     theme(legend.position = "none"),
     coord_cartesian(xlim = c(ymd("2021-12-01"), NA)),
     xlab(NULL),
@@ -47,6 +48,8 @@ make_absenteeism_plots <- function(
   
   ggplot(quant_state_data) +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant)) +
+    
+    geom_vline(aes(xintercept = date), data = forecast_starts, alpha = 0.5) +
     
     scale_fill_brewer(palette = "PuBu") +
     
@@ -67,6 +70,8 @@ make_absenteeism_plots <- function(
   
   ggplot(quant_national_data) +
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant)) +
+    
+    geom_vline(xintercept = min(forecast_starts$date), alpha = 0.5) +
     
     scale_fill_brewer(palette = "PuBu") +
     

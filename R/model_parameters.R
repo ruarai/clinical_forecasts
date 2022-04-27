@@ -13,10 +13,9 @@ make_forecast_dates <- function(
   
   
   date_forecast_start <- local_cases %>%
-    filter(state == "NSW", detection_probability > 0.95) %>%
-    pull(date_onset) %>% max()
+    filter(detection_probability > 0.95)
   
-  date_forecast_horizon <- date_forecast_start + ddays(28)
+  date_forecast_horizon <- max(date_forecast_start$date_onset) + ddays(28)
   
   mf_dates_wide <- latest_mflux_files %>% 
     bind_rows() %>%
@@ -29,12 +28,23 @@ make_forecast_dates <- function(
       file_limit = date_file_limit,
       simulation_start = date_simulation_start,
       
-      forecast_start = date_forecast_start,
       forecast_horizon = date_forecast_horizon
     ),
     
     mf_dates_wide
   )
-  
+}
+
+get_state_forecast_start <- function(
+  local_cases_state,
+  state_modelled
+) {
+  if(state_modelled == "VIC") {
+    ymd("2022-04-11")
+  } else {
+    local_cases_state %>%
+      filter(detection_probability > 0.95) %>%
+      pull(date_onset) %>% max()
+  }
   
 }

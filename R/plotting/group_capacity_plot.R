@@ -2,12 +2,12 @@
 group_capacity_plot <- function(
   capacity_group, capacity_limit,
   sim_results, p_title, ribbon_col,
-  forecast_dates
+  forecast_dates, state_forecast_start
 ) {
   
   over_capacity_trajectories <- sim_results$trajectories %>% 
     filter(group == capacity_group,
-           date >= forecast_dates$forecast_start) %>%
+           date >= state_forecast_start) %>%
     group_by(sample) %>%
     
     filter(any(count > capacity_limit))
@@ -20,12 +20,12 @@ group_capacity_plot <- function(
     summarise(date_over = min(date[count > capacity_limit]))
   
   
-  forecast_days <- seq(forecast_dates$forecast_start,
+  forecast_days <- seq(state_forecast_start,
                        forecast_dates$forecast_horizon - ddays(1),
                        by = "days")
   
   
-  forecast_weeks <- seq(forecast_dates$forecast_start,
+  forecast_weeks <- seq(state_forecast_start,
                         forecast_dates$forecast_horizon,
                         by = "weeks")
   
@@ -41,7 +41,7 @@ group_capacity_plot <- function(
   }
   
   plots_common <- list(
-    geom_vline(xintercept = forecast_dates$forecast_start,
+    geom_vline(xintercept = state_forecast_start,
                lty = 2, colour = "grey60"),
     scale_x_date("Date", date_labels = "%e/%m", breaks = forecast_weeks, expand=c(0,0.01)),
     cowplot::theme_cowplot(),
@@ -61,7 +61,7 @@ group_capacity_plot <- function(
     geom_hline(yintercept = capacity_limit,
                linetype = 'longdash', size = 0.6) +
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(4),
+    coord_cartesian(xlim = c(state_forecast_start - ddays(4),
                              forecast_dates$forecast_horizon)) +
     
     scale_y_continuous("Number occupied beds", position = "right",
@@ -79,7 +79,7 @@ group_capacity_plot <- function(
     geom_line(aes(x = date, y = y_adj * 100),
               plot_ecdf) +
     
-    geom_vline(xintercept = forecast_dates$forecast_start,
+    geom_vline(xintercept = state_forecast_start,
                lty = 2, colour = "grey60") +
     
     scale_y_continuous("Percent",
@@ -88,7 +88,7 @@ group_capacity_plot <- function(
     
     plots_common +
     
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - ddays(4),
+    coord_cartesian(xlim = c(state_forecast_start - ddays(4),
                              forecast_dates$forecast_horizon),
                     
                     ylim = c(0, 100)) +

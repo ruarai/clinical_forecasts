@@ -6,6 +6,7 @@ plot_state_results <- function(
   
   state_modelled,
   forecast_dates,
+  state_forecast_start,
   forecast_name,
   plot_dir
 ) {
@@ -16,6 +17,7 @@ plot_state_results <- function(
     
     state_modelled,
     forecast_dates,
+    state_forecast_start,
     forecast_name,
     plot_dir
   )

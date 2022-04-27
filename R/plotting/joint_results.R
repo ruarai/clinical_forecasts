@@ -3,6 +3,8 @@ plot_joint_results <- function(
   all_state_quants,
   known_occupancy_ts,
   forecast_dates,
+  forecast_starts,
+  
   date_reporting_line,
   
   forecast_name,
@@ -18,41 +20,46 @@ plot_joint_results <- function(
                  names_prefix = "capacity_",
                  names_to = "group", values_to = "capacity")
   
+  all_state_quants <- all_state_quants %>%
+    left_join(forecast_starts %>% rename(forecast_start = date), by = "state")
+  known_occupancy_ts <- known_occupancy_ts %>%
+    left_join(forecast_starts %>% rename(forecast_start = date), by = "state")
+  
   
   source("R/plotting/get_joint_plot_limits.R")
   
   plot_lims <- get_joint_plot_limits(
     all_state_quants,
     known_occupancy_ts,
-    capacity_limits_tbl,
-    
-    forecast_dates
+    capacity_limits_tbl
   )
   
   known_occupancy_ts <- known_occupancy_ts %>%
     
-    filter(date >= forecast_dates$forecast_start - ddays(10)) %>%
+    filter(date >= forecast_start - ddays(10)) %>%
     
-    mutate(do_match = date > forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7))
+    mutate(do_match = date > forecast_start & date <= forecast_start + ddays(7))
   
   
   
   all_state_quants <- all_state_quants %>%
     
-    filter(date > forecast_dates$forecast_start - ddays(10)) %>%
+    filter(date > forecast_start - ddays(10)) %>%
     
     left_join(plot_lims) %>%
     
     mutate(upper = if_else(is.na(y_lim), upper, pmin(upper, y_lim)),
            lower = if_else(is.na(y_lim), lower, pmin(lower, y_lim)))
   
+  min_forecast_start <- min(forecast_starts$date)
+  max_forecast_start <- min(forecast_starts$date)
   
-  forecast_weeks <- seq(forecast_dates$forecast_start - 7,
-                        forecast_dates$forecast_start + 28,
+  forecast_weeks <- seq(min_forecast_start - 7,
+                        forecast_dates$forecast_horizon,
                         by = "weeks")
   
   plots_common <- list(
-    coord_cartesian(xlim = c(forecast_dates$forecast_start - 7,
+    coord_cartesian(xlim = c(min_forecast_start - 7,
                              forecast_dates$forecast_horizon)),
     scale_x_date("Date", date_labels = "%e/%m", breaks = forecast_weeks, expand=c(0,0)),
     
@@ -90,7 +97,7 @@ plot_joint_results <- function(
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
                   fill = 'darkorchid', alpha = 0.2) +
       
-      geom_vline(xintercept = forecast_dates$forecast_start + 7,
+      geom_vline(aes(xintercept = date + 7), data = forecast_starts %>% filter(state %in% states) %>% mutate(state = str_c("Ward - ", state)),
                  colour = "grey60", linetype = 'longdash') +
       
       geom_point(aes(x = date, y = count, pch = do_match),
@@ -124,7 +131,7 @@ plot_joint_results <- function(
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
                   fill = 'green4', alpha = 0.2) +
       
-      geom_vline(xintercept = forecast_dates$forecast_start + 7,
+      geom_vline(aes(xintercept = date + 7), data = forecast_starts %>% filter(state %in% states) %>% mutate(state = str_c("ICU - ", state)),
                  colour = "grey60", linetype = 'longdash') +
       
       geom_point(aes(x = date, y = count, pch = do_match),

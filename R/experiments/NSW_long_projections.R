@@ -5,15 +5,16 @@ library(lubridate)
 
 source("R/experiments/adj_for_missing_RATs.R")
 
-run_name <- "05-04-2022"
-run_subname <- "v2"
+run_name <- "26-04-2022"
+run_subname <- "v1_normal_delay"
+save <- TRUE
 
-projections <- read_csv("~/random_data/Projections_20220405v2.csv") %>%
-  mutate(date = dmy(Date), n = Cases) %>%
+projections <- read_csv("~/random_data/JWood/Projections_20220426.csv") %>%
+  mutate(date = ymd(Date), n = Cases) %>%
   drop_na(n) %>%
   select(date, n) %>%
   
-  filter(date >= ymd("2022-03-25"))
+  filter(date >= ymd("2022-04-15"))
 
 local_cases <- tar_read(local_cases_state_NSW)
 
@@ -28,6 +29,7 @@ combined_incidence <- bind_rows(
     mutate(count = count / detection_probability)
 )
 
+
 forecast_dates <- tibble(
   forecast_start = min(projections$date),
   simulation_start = min(combined_incidence$date_onset),
@@ -39,7 +41,7 @@ ggplot(combined_incidence) +
   geom_line(aes(x = date_onset, y = count)) +
   
   theme_minimal() +
-  
+    
   scale_x_date(date_breaks = "months", labels = scales::label_date_short()) +
   
   geom_vline(xintercept = forecast_dates$forecast_start, linetype = "dashed") +
@@ -50,7 +52,9 @@ ggplot(combined_incidence) +
 age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
 
 
-forecasting_parameters <- tar_read(clinical_parameter_samples)
+forecasting_parameters <- tar_read(clinical_parameter_samples)# %>%
+  # mutate(shape_onset_to_ward = 1.1 * shape_onset_to_ward,
+  #        scale_onset_to_ward = 1.1 * scale_onset_to_ward)
 
 morbidity_trajectories <- tar_read(morbidity_trajectories_state_NSW) %>%
   filter(date >= forecast_dates$simulation_start) %>%
@@ -81,26 +85,7 @@ morbidity_trajectories <- tar_read(morbidity_trajectories_state_NSW) %>%
   group_by(age_group, bootstrap) %>%
   arrange(date) %>%
   fill(pr_hosp, pr_ICU, pr_age_given_case, .direction = "downup") %>%
-  ungroup() #%>%
-  
-  # left_join(
-  #   morbidity_trajectories %>%
-  #     filter(date == date_age_scenario) %>%
-  #     select(date, bootstrap, age_group, pr_age_given_case) %>%
-  #     complete(date = seq(forecast_dates$forecast_start, forecast_dates$forecast_horizon, by = 'days'),
-  #              bootstrap = 1:50,
-  #              age_group = age_groups) %>%
-  #     arrange(date) %>%
-  # 
-  #     group_by(bootstrap, age_group) %>%
-  #     fill(pr_age_given_case, .direction = "down") %>%
-  #     ungroup() %>%
-  # 
-  #     rename(pr_age_adj = pr_age_given_case) %>%
-  #     filter(date != date_age_scenario)
-  # ) %>%
-  # 
-  # mutate(pr_age_given_case = if_else(!is.na(pr_age_adj), pr_age_adj, pr_age_given_case))
+  ungroup()
 
 quants_plot <- morbidity_trajectories %>%
   pivot_longer(starts_with("pr_")) %>%
@@ -112,10 +97,7 @@ quants_plot <- morbidity_trajectories %>%
             median = median(value))
 
 ggplot(quants_plot %>% filter(date >= ymd("2021-12-15"))) +
-  # 
-  # geom_line(aes(x = date, y = value, group = bootstrap, color = name),
-  #           line_plot %>% filter(date >= ymd("2021-12-15")),
-  #           size = 0.3, alpha = 0.1) +
+  
   geom_ribbon(aes(x = date, ymin = q95_lower, ymax = q95_upper, fill = name),
               alpha = 0.5) +
   geom_ribbon(aes(x = date, ymin = q50_lower, ymax = q50_upper, fill = name),
@@ -124,14 +106,10 @@ ggplot(quants_plot %>% filter(date >= ymd("2021-12-15"))) +
   ggokabeito::scale_fill_okabe_ito() +
   ggokabeito::scale_color_okabe_ito() +
   
-  #coord_cartesian(ylim = c(0, 0.1)) +
-  
   facet_wrap(~age_group * name, ncol = 3, scales = "free_y", labeller = label_wrap_gen(multi_line=FALSE)) +
   
   theme_minimal() +
   theme(legend.position = "none")
-
-#ggsave("results/NSW_Jwood_forecasts/morbidity.png", width = 8, height = 10, bg = "white")
 
 
 mat_pr_age_given_case <- morbidity_trajectories %>%
@@ -216,8 +194,10 @@ results <- curvemush::mush_abc(
   mat_pr_ICU = mat_pr_ICU
 )
 
-results %>%
-  write_rds(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_results.rds"))
+if(save) {
+  results %>%
+    write_rds(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_results.rds")) 
+}
 
 source("R/progression_model.R")
 group_labels <- c("symptomatic_clinical", "ward", "ICU", "discharged", "died")
@@ -282,8 +262,10 @@ true_occupancy_curve <- tar_read(known_occupancy_ts_NSW) %>%
   
   filter(date >= forecast_dates$simulation_start)
 
-results_count_quants %>%
-  write_rds(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_quants.rds"))
+if(save) {
+  results_count_quants %>%
+    write_rds(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_quants.rds"))
+}
 
 
 p_ward <- ggplot(results_count_quants %>%
@@ -302,7 +284,7 @@ p_ward <- ggplot(results_count_quants %>%
     labels = scales::label_date_short()
   ) +
   
-  coord_cartesian(xlim = c(ymd("2021-12-01"), NA)) +
+  coord_cartesian(xlim = c(ymd("2022-02-01"), NA)) +
   
   xlab(NULL) + ylab("Count") +
   
@@ -327,7 +309,7 @@ p_ICU <- ggplot(results_count_quants %>%
     labels = scales::label_date_short()
   ) +
   
-  coord_cartesian(xlim = c(ymd("2021-12-01"), NA)) +
+  coord_cartesian(xlim = c(ymd("2022-02-01"), NA)) +
   
   xlab(NULL) + ylab("Count") +
   
@@ -342,39 +324,40 @@ cowplot::plot_grid(
   align = "hv", axis = "lr"
 )
 
-ggsave(
-  paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_estimates.png"),
-  width = 10, height = 8, bg = "white"
-)
-
-
-
-
-results$grouped_results  %>%
-  format_grouped() %>%
-  select(sample, date, group, count) %>%
-  filter(group == "ward" | group == "ICU") %>%
-  pivot_wider(names_from = group, values_from = count) %>%
+if(save) {
   
-  group_by(date) %>%
+  ggsave(
+    paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_estimates.png"),
+    width = 10, height = 8, bg = "white"
+  )
   
-  summarise(
-    ward_median = median(ward),
-    ward_lower90 = quantile(ward, 0.05),
-    ward_upper90 = quantile(ward, 0.95),
-    ward_lower95 = quantile(ward, 0.025),
-    ward_upper95 = quantile(ward, 0.975),
+  
+  
+  
+  results$grouped_results  %>%
+    format_grouped() %>%
+    select(sample, date, group, count) %>%
+    filter(group == "ward" | group == "ICU") %>%
+    pivot_wider(names_from = group, values_from = count) %>%
     
-    ICU_median = median(ICU),
-    ICU_lower90 = quantile(ICU, 0.05),
-    ICU_upper90 = quantile(ICU, 0.95),
-    ICU_lower95 = quantile(ICU, 0.025),
-    ICU_upper95 = quantile(ICU, 0.975),
-  ) %>%
-  
-  write_csv(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_result_summaries.csv"))
-
-
+    group_by(date) %>%
+    
+    summarise(
+      ward_median = median(ward),
+      ward_lower90 = quantile(ward, 0.05),
+      ward_upper90 = quantile(ward, 0.95),
+      ward_lower95 = quantile(ward, 0.025),
+      ward_upper95 = quantile(ward, 0.975),
+      
+      ICU_median = median(ICU),
+      ICU_lower90 = quantile(ICU, 0.05),
+      ICU_upper90 = quantile(ICU, 0.95),
+      ICU_lower95 = quantile(ICU, 0.025),
+      ICU_upper95 = quantile(ICU, 0.975),
+    ) %>%
+    
+    write_csv(paste0("results/NSW_Jwood_forecasts/", run_name, "_", run_subname, "_result_summaries.csv"))
+}
 
 
 

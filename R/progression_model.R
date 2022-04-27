@@ -7,6 +7,7 @@ run_progression_model <- function(
   clinical_parameter_samples,
   
   forecast_dates,
+  state_forecast_start,
   
   state_modelled,
   
@@ -75,7 +76,7 @@ run_progression_model <- function(
   occupancy_curve_match <- tibble(
     date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
   ) %>%
-    mutate(do_match = date > forecast_dates$forecast_start & date <= forecast_dates$forecast_start + ddays(7)) %>%
+    mutate(do_match = date > state_forecast_start & date <= state_forecast_start + ddays(7)) %>%
     
     left_join(
       

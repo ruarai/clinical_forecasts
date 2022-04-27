@@ -35,6 +35,12 @@ state_results <- tar_map(
   ),
   
   tar_target(
+    state_forecast_start,
+    get_state_forecast_start(local_cases_state, state_modelled)
+  ),
+  tar_target(state_forecast_start_tbl, tibble(date = state_forecast_start, state = state_modelled)),
+  
+  tar_target(
     morbidity_trajectories_state,
     
     get_time_varying_morbidity_estimations(
@@ -68,7 +74,8 @@ state_results <- tar_map(
       ensemble_state,
       local_cases_state,
       
-      forecast_dates
+      forecast_dates,
+      state_forecast_start
     )
   ),
   
@@ -84,6 +91,7 @@ state_results <- tar_map(
       clinical_parameter_samples,
       
       forecast_dates,
+      state_forecast_start,
       
       state_modelled
     ),
@@ -109,6 +117,7 @@ state_results <- tar_map(
       clinical_parameter_samples,
       
       forecast_dates,
+      state_forecast_start,
       
       state_modelled,
       
@@ -128,7 +137,7 @@ state_results <- tar_map(
     make_prior_posterior_plot(
       sim_results_prior, sim_results,
       
-      forecast_dates,
+      forecast_dates, state_forecast_start,
       known_occupancy_ts,
       plot_dir, state_modelled
     )
@@ -144,7 +153,8 @@ state_results <- tar_map(
       sim_results,
       
       state_modelled,
-      forecast_dates,
+      forecast_dates, 
+      state_forecast_start,
       forecast_name,
       plot_dir
     )
@@ -159,6 +169,7 @@ state_results <- tar_map(
       
       state_modelled,
       forecast_dates,
+      state_forecast_start,
       forecast_name,
       plot_dir
     )

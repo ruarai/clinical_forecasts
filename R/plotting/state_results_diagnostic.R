@@ -6,11 +6,12 @@ plot_state_results_diagnostic <- function(
   
   state_modelled,
   forecast_dates,
+  state_forecast_start,
   forecast_name,
   plot_dir
 ) {
   plot_common <- list(
-    geom_vline(xintercept = forecast_dates$forecast_start,
+    geom_vline(xintercept = state_forecast_start,
                lty = 2, colour = "grey60"),
     
     scale_x_date(

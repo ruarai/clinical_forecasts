@@ -3,7 +3,8 @@ make_absentee_case_trajectories <- function(
   local_cases_state,
   nindss_state,
   
-  forecast_dates
+  forecast_dates,
+  state_forecast_start
 ) {
   
   
@@ -39,7 +40,7 @@ make_absentee_case_trajectories <- function(
   
   local_cases_to_impute <- local_cases_state %>%
     filter(date_onset > forecast_dates$simulation_start,
-           date_onset <= forecast_dates$forecast_start) %>%
+           date_onset <= state_forecast_start) %>%
     select(date_onset, count, detection_probability)
   
   nowcasting_case_curves <- local_cases_to_impute$count %>%
@@ -59,15 +60,22 @@ make_absentee_case_trajectories <- function(
     ensemble_curves
   )
   
+  
+  if(any(is.na(curve_set_not_yet_age_sampled))) {
+    print("NA values in curve_set_not_yet_age_sampled, imputing...")
+    
+    curve_set_not_yet_age_sampled <- apply(curve_set_not_yet_age_sampled, 2, function(x) zoo::na.locf(x))
+  }
+  
   nindss_date_at_least_1000 <- nindss_state %>% 
     group_by(date_onset) %>% summarise(n = n()) %>% 
     arrange(desc(date_onset)) %>% mutate(n_c = cumsum(n)) %>%
     filter(n_c > 1000) %>% slice(1) %>% pull(date_onset)
   
-  date_cutoff <- min(forecast_dates$forecast_start - ddays(14), nindss_date_at_least_1000)
+  date_cutoff <- min(state_forecast_start - ddays(14), nindss_date_at_least_1000)
   
   nindss_recent <- nindss_state %>%
-    filter(date_onset <= forecast_dates$forecast_start,
+    filter(date_onset <= state_forecast_start,
            date_onset >= date_cutoff)
   
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")

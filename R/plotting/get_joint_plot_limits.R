@@ -3,14 +3,12 @@
 get_joint_plot_limits <- function(
   all_state_quants,
   known_occupancy_ts,
-  capacity_limits_tbl,
-  
-  forecast_dates
+  capacity_limits_tbl
 ) {
   
   all_state_quants %>%
     
-    filter(date > forecast_dates$forecast_start - ddays(10)) %>%
+    filter(date > forecast_start - ddays(10)) %>%
     filter(group %in% c("ward", "ICU")) %>%
     group_by(state, group)  %>%
     
@@ -19,10 +17,11 @@ get_joint_plot_limits <- function(
     left_join(
       known_occupancy_ts %>%
         
-        filter(date > forecast_dates$forecast_start - ddays(10)) %>%
+        filter(date > forecast_start - ddays(10)) %>%
         group_by(state, group)  %>%
         
-        summarise(peak_observed = max(count), .groups = "drop")
+        summarise(peak_observed = max(count), .groups = "drop"),
+      by = c("state", "group")
     ) %>%
     
     left_join(

@@ -5,7 +5,7 @@ plot_state_results_capacity <- function(
   sim_results,
   
   state_modelled,
-  forecast_dates,
+  forecast_dates, state_forecast_start,
   forecast_name,
   plot_dir
 ) {
@@ -16,19 +16,19 @@ plot_state_results_capacity <- function(
   
   results_ward <- group_capacity_plot(
     "ward", capacity_limits[[state_modelled]]$ward,
-    sim_results, "Ward occupancy", "darkorchid", forecast_dates
+    sim_results, "Ward occupancy", "darkorchid", forecast_dates, state_forecast_start
   )
   
   results_ICU <- group_capacity_plot(
     "ICU", capacity_limits[[state_modelled]]$ICU, 
-    sim_results, "ICU occupancy", "green4", forecast_dates
+    sim_results, "ICU occupancy", "green4", forecast_dates, state_forecast_start
   )
   
   source("R/plotting/admission_capacity_plot.R")
   
   results_admission <- admission_capacity_plot(
     capacity_limits[[state_modelled]]$admissions,
-    sim_results, state_modelled, forecast_dates
+    sim_results, state_modelled, forecast_dates, state_forecast_start
   )
   
   
