@@ -60,7 +60,8 @@ plot_joint_results <- function(
   
   plots_common <- list(
     coord_cartesian(xlim = c(min_forecast_start - 7,
-                             forecast_dates$forecast_horizon)),
+                             forecast_dates$forecast_horizon),
+                    ylim = c(0, NA)),
     scale_x_date("Date", date_labels = "%e/%m", breaks = forecast_weeks, expand=c(0,0)),
     
     scale_shape_manual(
@@ -117,6 +118,7 @@ plot_joint_results <- function(
       
       geom_blank(aes(yintercept = y_lim),
                  plot_lims %>% adj_ward()) +
+      geom_blank(aes(yintercept = 0)) +
       
       theme(axis.title.y = element_blank())
     
@@ -150,7 +152,8 @@ plot_joint_results <- function(
                  linetype = 'dashed', size = 0.3) +
       
       geom_blank(aes(yintercept = y_lim),
-                 plot_lims %>% adj_ICU())
+                 plot_lims %>% adj_ICU()) +
+      geom_blank(aes(yintercept = 0))
     
     cowplot::plot_grid(p_ward, p_ICU, ncol = 2)
   }
