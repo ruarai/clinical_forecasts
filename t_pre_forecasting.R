@@ -28,7 +28,7 @@ pre_forecasting <- c(
       clinical_parameters, 
       {
         read_csv(
-          "/home/forecast/source/los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/clinical_parameters.csv",
+          "/home/forecast/source/los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/clinical_parameters_bkp.csv",
           show_col_types = FALSE
         ) %>%
           # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)

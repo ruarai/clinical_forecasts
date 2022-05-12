@@ -39,12 +39,9 @@ get_state_forecast_start <- function(
   local_cases_state,
   state_modelled
 ) {
-  if(state_modelled == "VIC") {
-    ymd("2022-04-11")
-  } else {
-    local_cases_state %>%
-      filter(detection_probability > 0.95) %>%
-      pull(date_onset) %>% max()
-  }
+  local_cases_state %>%
+    filter(detection_probability > 0.95) %>%
+    pull(date_onset) %>% max()
+
   
 }

@@ -1,4 +1,6 @@
 
+
+
 run_progression_model <- function(
   case_trajectories,
   known_occupancy_ts,
@@ -49,27 +51,31 @@ run_progression_model <- function(
       ungroup()
   }
   
-  
+  estimates_to_matrix <- function(x, variable) {
+    col <- deparse(substitute(variable))
+    
+    x %>%
+      select(date, bootstrap, age_group, all_of(col)) %>%
+      pivot_wider(names_from = bootstrap,
+                  values_from = all_of(col)) %>%
+      
+      arrange(date, age_group) %>%
+      select(-c(date, age_group)) %>%
+      as.matrix()
+  }
   
   mat_pr_age_given_case <- morbidity_trajectories_state %>%
-    select(date, bootstrap, age_group, pr_age_given_case) %>%
-    pivot_wider(names_from = bootstrap, values_from = pr_age_given_case) %>%
-    
-    arrange(date, age_group) %>% select(-c(date, age_group)) %>% as.matrix()
+    group_by(date, bootstrap) %>%
+    mutate(pr_age_given_case = pr_age_given_case / sum(pr_age_given_case)) %>%
+    ungroup() %>%
+    estimates_to_matrix(pr_age_given_case)
   
   
   mat_pr_hosp <- morbidity_trajectories_state %>%
-    select(date, bootstrap, age_group, pr_hosp) %>%
-    pivot_wider(names_from = bootstrap, values_from = pr_hosp) %>%
-    
-    arrange(date, age_group) %>% select(-c(date, age_group)) %>% as.matrix()
+    estimates_to_matrix(pr_hosp)
   
   mat_pr_ICU <- morbidity_trajectories_state %>%
-    select(date, bootstrap, age_group, pr_ICU) %>%
-    pivot_wider(names_from = bootstrap, values_from = pr_ICU) %>%
-    
-    arrange(date, age_group) %>% select(-c(date, age_group)) %>% as.matrix()
-  
+    estimates_to_matrix(pr_ICU)
   
   
   
@@ -88,7 +94,9 @@ run_progression_model <- function(
     ) %>%
     
     mutate(ward_vec = if_else(do_match, ward, -1),
-           ICU_vec = if_else(do_match, ICU, -1))
+           ward_vec = replace_na(ward_vec, -1),
+           ICU_vec = if_else(do_match, ICU, -1),
+           ICU_vec = replace_na(ICU_vec, -1))
     
   thresholds <- c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
   
@@ -119,7 +127,7 @@ run_progression_model <- function(
     steps_per_day = 4,
     
     thresholds_vec = thresholds,
-    rejections_per_selections = 100,
+    rejections_per_selections = 300,
     do_ABC = do_ABC,
 
     prior_sigma_los = prior_sigma_los,
@@ -140,6 +148,8 @@ run_progression_model <- function(
   b <- Sys.time()
   
   print(str_c("Simulation mush ran in ", round(b - a, 2), " ", units(b - a)))
+  
+  source("R/make_result_quants.R")
   
   group_labels <- c("symptomatic_clinical", "ward", "ICU", "discharged", "died")
   compartment_labels <- c(
@@ -227,34 +237,3 @@ run_progression_model <- function(
 }
 
 
-
-make_results_quants <- function(tbl, probs = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)) {
-  data_matrix <- tbl %>%
-    select(starts_with("sim_")) %>%
-    as.matrix()
-  
-  id_tbl <- tbl %>%
-    select(!starts_with("sim_"))
-  
-  medians <- data_matrix %>%
-    matrixStats::rowMedians() %>%
-    tibble(median = .)
-  
-  quant_probs <- c(rev(1 - probs) / 2, 0.5 + probs / 2)
-  quant_names <- c(str_c("lower_", rev(probs) * 100), str_c("upper_", probs * 100))
-  
-  quants <- data_matrix %>%
-    matrixStats::rowQuantiles(probs = quant_probs) %>%
-    `colnames<-`(quant_names) %>%
-    as_tibble() %>%
-    bind_cols(id_tbl, .) %>%
-    pivot_longer(cols = -all_of(colnames(id_tbl)),
-                 names_to = c("type", "quant"),
-                 names_sep = "_") %>%
-    pivot_wider(names_from = "type",
-                values_from = "value") %>%
-    
-    mutate(quant = factor(quant, levels = as.character(probs * 100)) %>% fct_rev())
-  
-  quants
-}
