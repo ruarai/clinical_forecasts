@@ -16,11 +16,6 @@ process_NSW_linelist <- function(linelist_raw_path) {
   
   
   return(NSW_linelist)
-  
-  
-  NSW_linelist %>%
-    write_csv("~/data_private/NSW/NSW_processed_strict_clinical_linelist_2022-01-04.csv")
-  
 }
 
 
