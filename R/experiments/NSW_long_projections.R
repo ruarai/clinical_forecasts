@@ -7,7 +7,7 @@ source("R/experiments/adj_for_missing_RATs.R")
 
 run_name <- "26-04-2022"
 run_subname <- "v1_normal_delay"
-save <- TRUE
+save <- FALSE
 
 projections <- read_csv("~/random_data/JWood/Projections_20220426.csv") %>%
   mutate(date = ymd(Date), n = Cases) %>%

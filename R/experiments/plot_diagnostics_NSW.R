@@ -15,7 +15,11 @@ p_common <- list(
   theme_minimal(),
   scale_x_date(date_breaks = "months", labels = scales::label_date_short()),
   scale_y_continuous(breaks = scales::extended_breaks(), labels = scales::label_comma()),
-  coord_cartesian(xlim = c(forecast_dates$simulation_start, forecast_dates$forecast_start))
+    
+  geom_vline(aes(xintercept = forecast_dates$forecast_start), linetype = 'dashed'),
+    
+    
+  coord_cartesian(xlim = c(ymd("2022-02-01"), NA))
 )
 
 
