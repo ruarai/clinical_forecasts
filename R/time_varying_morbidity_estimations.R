@@ -7,8 +7,8 @@ get_time_varying_morbidity_estimations <- function(
   morbidity_trajectories_national
 ) {
   
-  bad_states <- c("NT", "WA", "SA", "QLD")
-  
+  #bad_states <- c("NT", "WA", "SA", "QLD")
+  bad_states <- c("NT", "SA", "QLD")
   
   do_estimate_morbidity <- TRUE
   

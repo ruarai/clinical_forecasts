@@ -193,9 +193,9 @@ state_results <- tar_map(
       mutate(state = state_modelled),
     
     format = "fst"
-  ),
+  )
   
-  t_state_absenteeism#,
+  #t_state_absenteeism,
   
   
   # tar_target(

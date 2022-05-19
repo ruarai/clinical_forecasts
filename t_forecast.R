@@ -5,17 +5,17 @@ t_forecast <- list(
   state_results,
   
   
-  tar_combine(all_state_absenteeism_trajs, state_results[["absentee_trajs"]],
-    command = dplyr::bind_rows(!!!.x), format = "fst"),
+  # tar_combine(all_state_absenteeism_trajs, state_results[["absentee_trajs"]],
+  #   command = dplyr::bind_rows(!!!.x), format = "fst"),
   
   tar_combine(forecast_starts, state_results[["state_forecast_start_tbl"]],
               command = dplyr::bind_rows(!!!.x)),
   
-  tar_target(
-    absenteeism_plots,
-    
-    make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, forecast_starts, plot_dir)
-  ),
+  # tar_target(
+  #   absenteeism_plots,
+  #   
+  #   make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, forecast_starts, plot_dir)
+  # ),
   
   tar_combine(all_state_quants, state_results[["state_result_quants"]],
     command = dplyr::bind_rows(!!!.x), format = "fst"),
@@ -29,10 +29,12 @@ t_forecast <- list(
       file_path <- paste0(plot_dir, "/trajectories.fst")
       fst::write_fst(all_state_trajs, path = file_path, compress = 100)
       
-      sync_file <- paste0("results/trajectories/trajectories_", date_forecasting, ".fst")
-      file.copy(file_path, sync_file, overwrite = TRUE)
-      
-      upload_mediaflux_trajectories()
+      if(do_upload_trajectories) {
+        sync_file <- paste0("results/trajectories/trajectories_", date_forecasting, ".fst")
+        file.copy(file_path, sync_file, overwrite = TRUE)
+        
+        upload_mediaflux_trajectories()
+      }
       
       return(file_path)
     },
