@@ -55,6 +55,7 @@ pre_forecasting <- c(
     
     tar_target(c19data, { print(date_reporting_line); get_c19data() }),
 
+    # If files are downloaded automatically. See below for manual option
     tar_target(
       raw_local_cases,
       download_mediaflux_file(
@@ -63,7 +64,8 @@ pre_forecasting <- c(
           local_file = "data/mflux/downloads/raw_local_cases.csv"
         )
       ),
-      format = "file"),
+      format = "file"
+    ),
 
     tar_target(
       raw_nindss,
@@ -73,7 +75,8 @@ pre_forecasting <- c(
           local_file = "data/mflux/downloads/raw_nindss.xlsx"
         )
       ),
-      format = "file"),
+      format = "file"
+    ),
 
     tar_target(
       raw_ensemble,
@@ -83,7 +86,15 @@ pre_forecasting <- c(
           local_file = "data/mflux/downloads/raw_ensemble.csv"
         )
       ),
-      format = "file"),
+      format = "file"
+    ),
+    
+    # If you want to specify one of NINDSS/local cases/ensemble manually,
+    # comment the above three items, uncomment below and modify the paths
+    
+    #tar_target(raw_nindss, "data/mflux/downloads/raw_ensemble_manual.csv"),
+    #tar_target(raw_local_cases, "data/mflux/downloads/raw_ensemble_manual.csv"),
+    #tar_target(raw_ensemble, "data/mflux/downloads/raw_ensemble_manual.csv"),
 
 
     tar_target(
@@ -92,6 +103,8 @@ pre_forecasting <- c(
       format = "fst"
     ),
     
+    # Ignore this usually, just for running historical forecasts:
+     
     # tar_target(raw_local_cases, paste0(backup_dir, "/local_cases.csv")),
     # tar_target(raw_ensemble, paste0(backup_dir, "/ensemble.csv")),
     # tar_target(nindss, fst::read_fst(paste0(backup_dir, "/nindss.fst"))),

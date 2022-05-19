@@ -1,7 +1,8 @@
 
 
 read_ensemble_state <- function(raw_ensemble,
-                                state_modelled) {
+                                state_modelled,
+                                models_included) {
   
   ensemble_spec <- cols(
     state = col_character(), .model = col_character(),
@@ -11,5 +12,6 @@ read_ensemble_state <- function(raw_ensemble,
   
   vroom::vroom(raw_ensemble,
                col_types = ensemble_spec) %>%
-    filter(state == state_modelled)
+    filter(state == state_modelled,
+           .model %in% models_included)
 }
