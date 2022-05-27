@@ -29,6 +29,7 @@ state_results <- tar_map(
     known_occupancy_ts,
     make_occupancy_timeseries(
       c19data,
+      NULL,
       
       state_modelled
     )
@@ -67,17 +68,28 @@ state_results <- tar_map(
     )
   ),
   
-  
+
   tar_target(
     case_trajectories,
     make_case_trajectories(
       ensemble_state,
       local_cases_state,
-      
+
       forecast_dates,
       state_forecast_start
     )
   ),
+  
+  # tar_target(
+  #   case_trajectories,
+  #   make_case_trajectories_oracle(
+  #     read_csv("historical_inputs/2022-05-19/local_cases.csv", show_col_types = FALSE),
+  #     local_cases_state,
+  #     
+  #     forecast_dates,
+  #     state_forecast_start
+  #   )
+  # ),
   
   
   tar_target(

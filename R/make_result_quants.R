@@ -18,8 +18,8 @@ make_results_quants <- function(tbl, probs = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8
     matrixStats::rowQuantiles(probs = quant_probs) %>%
     `colnames<-`(quant_names) %>%
     as_tibble() %>%
-    bind_cols(id_tbl, .) %>%
-    pivot_longer(cols = -all_of(colnames(id_tbl)),
+    bind_cols(id_tbl, medians, .) %>%
+    pivot_longer(cols = -all_of(c(colnames(id_tbl), colnames(medians))),
                  names_to = c("type", "quant"),
                  names_sep = "_") %>%
     pivot_wider(names_from = "type",

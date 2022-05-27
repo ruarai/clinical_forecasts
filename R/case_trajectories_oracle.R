@@ -1,6 +1,6 @@
 
-make_case_trajectories <- function(
-  ensemble_state,
+make_case_trajectories_oracle <- function(
+  local_cases_latest,
   local_cases_state,
   
   forecast_dates,
@@ -11,27 +11,19 @@ make_case_trajectories <- function(
   
   # Transform the ensemble data CSV into a matrix of ~8,000 columns, 28 rows
   
-  ensemble_curves_df <- ensemble_state %>%
-    filter(date <= forecast_dates$forecast_horizon) %>%
-    
-    select(-c(state, forecast_origin)) %>%
-    
-    pivot_wider(names_from = ".model",
-                values_from = starts_with("sim")) %>%
-    
-    mutate(across(starts_with("sim"), ~ round(.))) %>%
-    
-    arrange(date) %>%
-    select(-date)
+  oracle_forecast_cases <- local_cases_latest %>% 
+    filter(state == local_cases_state$state[1],
+           date_onset > state_forecast_start,
+           date_onset <= forecast_dates$forecast_horizon) %>%
+    select(date_onset, count) %>%
+    arrange(date_onset)
   
+  n_curves <- 1
   
-  na_cols <- map_lgl(1:ncol(ensemble_curves_df), ~ all(is.na(ensemble_curves_df[,.])))
+  ensemble_curves <- matrix(oracle_forecast_cases$count, 
+         nrow = nrow(oracle_forecast_cases),
+         ncol = n_curves)
   
-  print(paste0("Dropping ", sum(na_cols), " columns for being entirely NA"))
-  
-  
-  ensemble_curves <- as.matrix(ensemble_curves_df[, !na_cols])
-  n_curves <- ncol(ensemble_curves)
   
   
   
@@ -67,13 +59,6 @@ make_case_trajectories <- function(
   # At what time step do we need to switch from direct case input to sampling?
   step_sampling_start <- 0
   n_days <- nrow(nowcasting_case_curves_imputed) + nrow(ensemble_curves) + step_sampling_start
-  
-  if(any(is.na(final_curve_set))) {
-    print("NA values in case_trajectories, imputing...")
-    
-    final_curve_set <- apply(final_curve_set, 2, function(x) zoo::na.locf(x))
-  }
-  
   
   list(
     curve_set = final_curve_set,

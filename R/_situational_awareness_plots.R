@@ -21,6 +21,7 @@ all_state_known_occupancy_ts <- tar_read(all_state_known_occupancy_ts)
 plot_dir <- tar_read(plot_dir)
 ensemble_path <- tar_read(raw_ensemble)
 date_reporting_line <- tar_read(date_reporting_line)
+date_forecasting <- tar_read(date_forecasting)
 
 source("R/make_result_quants.R")
 source("R/ensemble.R")
@@ -35,16 +36,23 @@ capacity_limits_tbl <- capacity_limits %>%
                names_prefix = "capacity_",
                names_to = "group", values_to = "capacity")
 
+# NegBin observation model to account for reporting delays (for NG's linelist)
+true_count_quantile <- function(observed_count, probability, quantiles = c(0.05, 0.95)) {
+  observed_count + qnbinom(quantiles, observed_count + 1, probability)
+}
 
-# Define our nice colour gradients
-# Taken from the old colours, RColorBrewer maybe?
-case_cols <- c("#eff6f9", "#cce2ec", "#a9cede", "#85bad1", "#62a6c3", "#3f92b6", "#207da7", "#006799")
+# Define our nice colour gradients (via David Price magic)
 
-# https://vis4.net/palettes/#/8|s|b53aa0,c36ec8,f7f4f9|ffffe0,ff005e,93003a|1|0
-ward_cols <- c("#f7f4f9", "#eddbf0", "#e4c1e6", "#daa8dd", "#d08ed4", "#c674ca", "#bd58b7", "#b53aa0")
+alpha_vals <- scales::rescale(rev(1/1.7^(1:8)), to = c(0.05, 0.99))
 
-# https://vis4.net/palettes/#/8|s|008200,43a16f,e8f8f4|ffffe0,ff005e,93003a|1|0
-ICU_cols <- c("#e8f8f4", "#c8e7da", "#a9d7c1", "#89c6a7", "#68b58e", "#48a473", "#26943f", "#008200")
+case_base_colour <- "#006699"
+ward_base_colour <- "#b53aa0"
+ICU_base_colour <- "#008200"
+
+
+case_cols <- shades::opacity(case_base_colour, alpha_vals)
+ward_cols <- shades::opacity(ward_base_colour, alpha_vals)
+ICU_cols <- shades::opacity(ICU_base_colour, alpha_vals)
 
 
 # If a state is excluded from plotting, can change this
@@ -65,7 +73,10 @@ for(i_state in states) {
   
   cases_known <- local_cases %>%
     select(date = date_onset, count, detection_probability) %>%
-    filter(detection_probability > 0.95)
+    filter(detection_probability > 0.95) %>%
+    
+    mutate(lower90 = true_count_quantile(count, detection_probability, quantiles = 0.05),
+           upper90 = true_count_quantile(count, detection_probability, quantiles = 0.95))
   
   forecast_start_date <- forecast_starts %>%
     filter(state == i_state) %>% pull(date)
@@ -107,13 +118,12 @@ for(i_state in states) {
     scale_shape_manual(values = c("FALSE" = 1, "TRUE" = 16)),
     scale_x_date(date_breaks = "months",
                  labels = scales::label_date_short(format = c("%Y", "%b")),
-                 expand = expansion(mult = c(0.1, 0.05))),
+                 expand = expansion(mult = c(0.01, 0.05))),
     scale_y_continuous(breaks = scales::extended_breaks(),
                        labels = scales::label_comma(),
                        expand = expansion(mult = c(0, 0.1)),
                        sec.axis = dup_axis(name = "")),
     geom_blank(aes(y = 0)), geom_blank(aes(y = 30)),
-    geom_vline(xintercept = date_reporting_line, colour = "black", alpha = 0.3),
     xlab(NULL), ylab("Count"),
     theme_minimal(),
     theme(legend.position = "none",
@@ -124,7 +134,8 @@ for(i_state in states) {
           axis.line = element_line(colour = "grey40"),
           plot.title = element_text(size = 15),
           axis.text = element_text(size = 12),
-          axis.title.y = element_blank()),
+          axis.title.y = element_blank(),
+          text = element_text(family = "Helvetica")),
     
     coord_cartesian(xlim = c(date_plot_start, forecast_start_date + ddays(7 * 3.5)))
   )
@@ -136,15 +147,30 @@ for(i_state in states) {
     
     
     ggplot() +
+      
+      geom_vline(xintercept = date_reporting_line, colour = "grey60") +
     
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                   
                   data = ensemble_quants) +
       
       geom_point(aes(x = date, y = count),
-                 cases_known,
+                 cases_known %>% filter(detection_probability >= 0.95),
+                 pch = 1,
+                 color = "grey20",
                  
                  size = 0.8, stroke = 0.3) +
+      
+      geom_point(aes(x = date, y = count / detection_probability),
+                 cases_known %>% filter(detection_probability <= 0.99),
+                 color = 'black',
+
+                 size = 0.8, stroke = 0.3) +
+      
+      # Currently smaller than the points themselves!
+      geom_linerange(aes(x = date, ymin = lower90, ymax = upper90),
+                     cases_known %>% filter(detection_probability <= 0.99),
+                     ) +
       
       scale_fill_manual(values = case_cols) +
       
@@ -158,11 +184,15 @@ for(i_state in states) {
     
     ggplot() +
       
+      geom_vline(xintercept = date_reporting_line, colour = "grey60")  +
+      
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                   
                   data = ward_quants) +
       
       geom_point(aes(x = date, y = count),
+                 pch = 1,
+                 color = "grey20",
                  ward_known,
                  
                  size = 0.8, stroke = 0.3) +
@@ -184,12 +214,16 @@ for(i_state in states) {
     
     ggplot() +
       
+      geom_vline(xintercept = date_reporting_line, colour = "grey60")  +
+      
       geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                   
                   data = ICU_quants) +
       
       
       geom_point(aes(x = date, y = count),
+                 pch = 1,
+                 color = "grey20",
                  ICU_known,
                  
                  size = 0.8, stroke = 0.3) +
@@ -220,6 +254,10 @@ for(i_state in states) {
   
 }
 
+
+zip::zip(zipfile = str_c(plot_dir, "_sitawareness_plots_", date_forecasting, ".zip"),
+         files = str_c(plot_dir, "_sitawareness_state_plot_", states, ".png"),
+         mode = "cherry-pick")
 
 cairo_pdf(str_c(plot_dir, "_sitawareness_combined.pdf"),
           width = 8.5, height = 9, onefile = TRUE)

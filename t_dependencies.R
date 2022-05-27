@@ -5,6 +5,7 @@ source("R/nindss.R")
 source("R/model_parameters.R")
 
 source("R/data_various.R")
+source("R/anzics_data.R")
 
 source("R/time_varying_morbidity_estimations.R")
 source("R/plotting/plot_time_varying_morbidity.R")
@@ -14,6 +15,7 @@ source("R/ensemble.R")
 source("R/occupancy_timeseries.R")
 
 source("R/case_trajectories_no_backcast.R")
+source("R/case_trajectories_oracle.R")
 source("R/progression_model.R")
 
 source("R/plotting/state_results.R")
