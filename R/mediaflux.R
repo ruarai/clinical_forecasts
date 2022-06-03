@@ -66,7 +66,7 @@ get_latest_mflux_files <- function(date_limit) {
   latest_ensemble_file <- get_latest_file_path(
     mediaflux_project_shared,
     "forecast-outputs",
-    "combined_samples_waning", "\\d{4}-\\d{2}-\\d{2}", ymd,
+    "combined_samples", "\\d{4}-\\d{2}-\\d{2}", ymd,
     
     date_limit - ddays(7)) %>%
     mutate(file = paste0("forecast-outputs/", file),

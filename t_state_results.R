@@ -52,6 +52,7 @@ state_results <- tar_map(
       clinical_parameters,
       
       state_modelled,
+      nindss_bad_states,
       
       morbidity_trajectories_national
     )
@@ -85,7 +86,7 @@ state_results <- tar_map(
   #   make_case_trajectories_oracle(
   #     read_csv("historical_inputs/2022-05-19/local_cases.csv", show_col_types = FALSE),
   #     local_cases_state,
-  #     
+  # 
   #     forecast_dates,
   #     state_forecast_start
   #   )

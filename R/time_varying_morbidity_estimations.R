@@ -4,19 +4,18 @@ get_time_varying_morbidity_estimations <- function(
   clinical_parameters,
   
   state_modelled,
+  nindss_bad_states,
   morbidity_trajectories_national
 ) {
-  bad_states <- c("NT", "SA", "QLD", "VIC")
-  #bad_states <- c("NT", "SA", "QLD", "WA")
   
   do_estimate_morbidity <- TRUE
   
-  if(state_modelled %in% bad_states) {
+  if(state_modelled %in% nindss_bad_states) {
     do_estimate_morbidity <- FALSE
     
   } else if(state_modelled == "national") {
     nindss_state <- nindss_state %>%
-      filter(!(state %in% bad_states))
+      filter(!(state %in% nindss_bad_states))
   }
   
   
