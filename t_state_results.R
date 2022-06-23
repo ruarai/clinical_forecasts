@@ -63,8 +63,9 @@ state_results <- tar_map(
     
     plot_morbidity_trajectories(
       morbidity_trajectories_state,
-      
       state_modelled,
+      forecast_dates,
+      
       plot_dir
     )
   ),

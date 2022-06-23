@@ -2,10 +2,13 @@
 plot_morbidity_trajectories <- function(
   morbidity_trajectories,
   state_modelled,
+  forecast_dates,
   
   plot_dir
 ) {
   line_plot <- morbidity_trajectories %>%
+    filter(date <= forecast_dates$NNDSS - ddays(7),
+           date >= ymd("2022-03-01")) %>%
     pivot_longer(starts_with("pr_"))
   
   quants_plot <- line_plot %>%
