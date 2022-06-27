@@ -41,8 +41,10 @@ state_results <- tar_map(
   ),
   tar_target(state_forecast_start_tbl, tibble(date = state_forecast_start, state = state_modelled)),
   
+  t_state_results_immunity,
+  
   tar_target(
-    morbidity_trajectories_state,
+    unadjusted_morbidity_trajectories_state,
     
     get_time_varying_morbidity_estimations(
       nindss_state,
@@ -59,15 +61,15 @@ state_results <- tar_map(
   ),
   
   tar_target(
-    morbidity_trajectories_plot,
-    
-    plot_morbidity_trajectories(
-      morbidity_trajectories_state,
-      state_modelled,
-      forecast_dates,
-      
-      plot_dir
-    )
+    morbidity_trajectories_state,
+    adjust_morbidity_trajectories(
+      is_longterm,
+      immune_predictions_state,
+      unadjusted_morbidity_trajectories_state,
+      state_forecast_start,
+      state_modelled
+    ),
+    format = "fst_tbl"
   ),
   
 
@@ -93,6 +95,10 @@ state_results <- tar_map(
   #   )
   # ),
   
+  tar_target(
+    sim_thresholds,
+    ifelse(is_longterm, c(0.2, 0.3, 0.5, 1, 10, 1000), c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000))
+  ),
   
   tar_target(
     sim_results,
@@ -107,7 +113,9 @@ state_results <- tar_map(
       forecast_dates,
       state_forecast_start,
       
-      state_modelled
+      state_modelled,
+      
+      thresholds = sim_thresholds
     ),
     format = "qs",
     resources = tar_resources(

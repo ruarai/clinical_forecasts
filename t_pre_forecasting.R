@@ -117,7 +117,9 @@ pre_forecasting <- c(
         date_simulation_start = date_simulation_start,
         
         local_cases_file = raw_local_cases,
-        latest_mflux_files = latest_mflux_files
+        latest_mflux_files = latest_mflux_files,
+        
+        is_longterm = is_longterm
       )
     ),
 
@@ -142,6 +144,6 @@ pre_forecasting <- c(
     )
   ),
   
-  
+  t_preforecasting_immunity,
   t_backup_inputs
 )

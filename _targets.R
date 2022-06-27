@@ -10,16 +10,12 @@ options(tidyverse.quiet = TRUE)
     garbage_collection = TRUE
 )
 
-
-library(future.callr)
-plan(callr)
-
-
 state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+longterm <- FALSE
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2022-06-17")),
-  tar_target(date_reporting_line, ymd("2022-06-17")),
+  tar_target(date_forecasting, ymd("2022-06-24")),
+  tar_target(date_reporting_line, ymd("2022-06-24")),
   
   
   tar_target(date_simulation_start, ymd("2021-11-01")),
@@ -27,8 +23,8 @@ t_parameters <- list(
   
   tar_target(models_included, c("gar", "dst", "moss")),
   
-  tar_target(nindss_bad_states, c("NT", "SA", "QLD", "VIC")),
-  #tar_target(nindss_bad_states, c("NT", "SA", "QLD", "WA")),
+  tar_target(nindss_bad_states, c("NT", "SA", "QLD")),
+  tar_target(is_longterm, longterm),
   
   tar_target(do_upload_trajectories, TRUE)
 )

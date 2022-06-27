@@ -26,9 +26,9 @@ source("R/plotting/diagnostics.R")
 source("R/plotting/plot_ABC_diagnostics.R")
 source("R/plotting/prior_posterior_plots.R")
 
-#source("t_absenteeism.R")
-
 source("t_backup_inputs.R")
+
+source("t_immunity.R")
 
 source("t_pre_forecasting.R")
 source("t_state_results.R")

@@ -7,7 +7,9 @@ make_forecast_dates <- function(
   
   local_cases_file,
   
-  latest_mflux_files
+  latest_mflux_files,
+  
+  is_longterm
 ) {
   local_cases <- read_csv(local_cases_file, show_col_types = FALSE)
   
@@ -15,7 +17,9 @@ make_forecast_dates <- function(
   date_forecast_start <- local_cases %>%
     filter(detection_probability > 0.95)
   
-  date_forecast_horizon <- max(date_forecast_start$date_onset) + ddays(28)
+  days_horizon <- if_else(is_longterm, 30 * 6, 28)
+  
+  date_forecast_horizon <- max(date_forecast_start$date_onset) + ddays(days_horizon)
   
   mf_dates_wide <- latest_mflux_files %>% 
     bind_rows() %>%
@@ -42,6 +46,14 @@ get_state_forecast_start <- function(
   local_cases_state %>%
     filter(detection_probability > 0.95) %>%
     pull(date_onset) %>% max()
-
-  
 }
+
+
+get_state_incidental_rates <- function(i_state) {
+  case_when(
+    i_state == "NSW" ~ 0.5,
+    TRUE ~ 0.75
+  )
+}
+
+

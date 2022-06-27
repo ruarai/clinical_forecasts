@@ -52,6 +52,8 @@ get_time_varying_morbidity_estimations <- function(
   window_starts <- 1:(length(estimation_period_days) - window_width)
   window_ends <- window_starts + window_width
   
+  
+  
   age_tables <- map(
     1:n_bootstraps,
     function(i_bootstrap) {
@@ -333,7 +335,7 @@ get_time_varying_morbidity_estimations <- function(
     j <- 1
     for(i_bootstrap in 1:50) {
       for(i_age_group in 1:length(age_groups)) {
-        # Only consider pr_age_given_case for some states
+        # Consider only pr_age_given_case for some states
         all_results_ls[[j]] <- tibble(
           bootstrap = i_bootstrap,
           age_group = age_groups[i_age_group],

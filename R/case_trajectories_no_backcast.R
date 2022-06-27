@@ -12,7 +12,8 @@ make_case_trajectories <- function(
   # Transform the ensemble data CSV into a matrix of ~8,000 columns, 28 rows
   
   ensemble_curves_df <- ensemble_state %>%
-    filter(date <= forecast_dates$forecast_horizon) %>%
+    filter(date <= forecast_dates$forecast_horizon,
+           date > state_forecast_start) %>%
     
     select(-c(state, forecast_origin)) %>%
     
@@ -31,6 +32,10 @@ make_case_trajectories <- function(
   
   
   ensemble_curves <- as.matrix(ensemble_curves_df[, !na_cols])
+  
+  # Down-sample to 2,000 curves
+  ensemble_curves <- ensemble_curves[,sample(1:ncol(ensemble_curves), 2000)] 
+  
   n_curves <- ncol(ensemble_curves)
   
   

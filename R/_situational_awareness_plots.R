@@ -11,6 +11,9 @@ ensemble_models_included <- c("gar", "moss", "dst")
 # When our plots go back to
 date_plot_start <- ymd("2021-12-01")
 
+is_longterm <- TRUE
+days_horizon <- if_else(is_longterm, 30 * 6, 7 * 4)
+days_before_fit <- 60
 
 
 # Load clinical forecasting data
@@ -57,6 +60,7 @@ ICU_cols <- shades::opacity(ICU_base_colour, alpha_vals)
 
 # If a state is excluded from plotting, can change this
 states <- unique(forecast_starts$state)
+states <- states[order(states)]
 
 plots <- list()
 
@@ -87,11 +91,11 @@ for(i_state in states) {
     make_results_quants() %>%
     drop_na(lower) %>%
     
-    filter(date <= forecast_start_date + ddays(28))
+    filter(date <= forecast_start_date + ddays(days_horizon))
   
 
   ward_quants <- all_state_quants %>%
-    filter(group == "ward", state == i_state, date > forecast_start_date)
+    filter(group == "ward", state == i_state, date > forecast_start_date - ddays(days_before_fit))
   
   ward_known <- all_state_known_occupancy_ts %>%
     filter(group == "ward", state == i_state, date >= date_plot_start - ddays(30)) %>%
@@ -100,12 +104,12 @@ for(i_state in states) {
   
   
   ICU_quants <- all_state_quants %>%
-    filter(group == "ICU", state == i_state, date > forecast_start_date)
+    filter(group == "ICU", state == i_state, date > forecast_start_date - ddays(days_before_fit))
   
   ICU_known <- all_state_known_occupancy_ts %>%
     filter(group == "ICU", state == i_state, date >= date_plot_start - ddays(30)) %>%
     
-    mutate(do_match = date > forecast_start_date & date <= forecast_start_date + ddays(7))
+    mutate(do_match = date > forecast_start_date& date <= forecast_start_date + ddays(7))
   
   # Important - don't plot capacity limits where they're well out of range of what's observed or predicted
   state_capacity_limits <- capacity_limits_tbl %>%
@@ -137,7 +141,7 @@ for(i_state in states) {
           axis.title.y = element_blank(),
           text = element_text(family = "Helvetica")),
     
-    coord_cartesian(xlim = c(date_plot_start, forecast_start_date + ddays(7 * 3.5)))
+    coord_cartesian(xlim = c(date_plot_start, forecast_start_date + ddays(days_horizon)))
   )
   
   
@@ -156,16 +160,15 @@ for(i_state in states) {
       
       geom_point(aes(x = date, y = count),
                  cases_known %>% filter(detection_probability >= 0.95),
-                 pch = 1,
                  color = "grey20",
                  
-                 size = 0.8, stroke = 0.3) +
+                 size = 0.6, stroke = 0.2) +
       
       geom_point(aes(x = date, y = count / detection_probability),
                  cases_known %>% filter(detection_probability <= 0.99),
                  color = 'black',
-
-                 size = 0.8, stroke = 0.3) +
+                 
+                 size = 0.6, stroke = 0.2) +
       
       # Currently smaller than the points themselves!
       geom_linerange(aes(x = date, ymin = lower90, ymax = upper90),
@@ -191,11 +194,10 @@ for(i_state in states) {
                   data = ward_quants) +
       
       geom_point(aes(x = date, y = count),
-                 pch = 1,
                  color = "grey20",
                  ward_known,
                  
-                 size = 0.8, stroke = 0.3) +
+                 size = 0.6, stroke = 0.2) +
       
       scale_fill_manual(values = ward_cols) +
       
@@ -222,11 +224,10 @@ for(i_state in states) {
       
       
       geom_point(aes(x = date, y = count),
-                 pch = 1,
                  color = "grey20",
                  ICU_known,
                  
-                 size = 0.8, stroke = 0.3) +
+                 size = 0.6, stroke = 0.2) +
       
       scale_fill_manual(values = ICU_cols) +
       

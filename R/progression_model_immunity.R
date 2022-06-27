@@ -3,23 +3,72 @@
 
 run_progression_model <- function(
   case_trajectories,
-  known_occupancy_ts,
+  #known_occupancy_ts,
   
+  state_modelled,
   morbidity_trajectories_state,
-  clinical_parameter_samples,
+  #clinical_parameter_samples,
   
   forecast_dates,
   state_forecast_start,
   
-  state_modelled,
-  
-  thresholds = c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000),
   do_ABC = TRUE
 ) {
+  known_occupancy_ts <- tar_read(known_occupancy_ts_NSW, store = "_targets")
+  clinical_parameter_samples <- tar_read(clinical_parameter_samples, store = "_targets")
   
-  require(tidyverse)
-  require(lubridate)
+  immune_predictions <- read_rds("data/vaccination/immune_predictions_2022-06-23_asc75.rds")
+  
+  immune_predictions_complete <- immune_predictions %>%
+    complete(date = seq(min(morbidity_trajectories_state$date),
+                        max(morbidity_trajectories_state$date),
+                        by = "day"),
+             age_group,
+             sim) %>%
+    arrange(date) %>%
+    
+    group_by(age_group, sim) %>%
+    
+    mutate(across(c(m_hosp, pr_age_given_case), ~ zoo::na.approx(., rule = 2)))
+  
+  
+  n_bootstraps <- max(morbidity_trajectories_state$bootstrap)
+  
+  adjusted_estimates_state <- morbidity_trajectories_state %>%
+    rename(pr_age_old = pr_age_given_case) %>%
+    
+    left_join(
+      immune_predictions_complete %>%
+        mutate(bootstrap = (sim - 1) %% n_bootstraps + 1),
+      
+      by = c("bootstrap", "date", "age_group")
+    ) %>%
+    
+    mutate(pr_hosp_incidental = pr_hosp * 0.5,
+           pr_hosp_direct = pr_hosp * 0.5) %>%
+    
+    mutate(pr_hosp_direct = if_else(date > state_forecast_start, NA_real_, pr_hosp_direct)) %>%
+    
+    mutate(x = pr_hosp_direct / m_hosp)  %>%
+    
+    arrange(date) %>%
+    group_by(sim, age_group) %>%
+    fill(x, .direction = "down") %>%
+    ungroup() %>%
+    
+    mutate(pred_pr_hosp = pr_hosp_incidental + x * m_hosp) %>%
+    
+    
+    select(bootstrap = sim, date, age_group, pr_age_given_case, pr_hosp = pred_pr_hosp, pr_ICU)
+  
+  
+  
+  
+  
+  
+  
   require(curvemush)
+  
   
   estimates_to_matrix <- function(x, variable) {
     col <- deparse(substitute(variable))
@@ -34,17 +83,17 @@ run_progression_model <- function(
       as.matrix()
   }
   
-  mat_pr_age_given_case <- morbidity_trajectories_state %>%
+  mat_pr_age_given_case <- adjusted_estimates_state %>%
     group_by(date, bootstrap) %>%
     mutate(pr_age_given_case = pr_age_given_case / sum(pr_age_given_case)) %>%
     ungroup() %>%
     estimates_to_matrix(pr_age_given_case)
   
   
-  mat_pr_hosp <- morbidity_trajectories_state %>%
+  mat_pr_hosp <- adjusted_estimates_state %>%
     estimates_to_matrix(pr_hosp)
   
-  mat_pr_ICU <- morbidity_trajectories_state %>%
+  mat_pr_ICU <- adjusted_estimates_state %>%
     estimates_to_matrix(pr_ICU)
   
   
@@ -68,6 +117,9 @@ run_progression_model <- function(
            ICU_vec = if_else(do_match, ICU, -1),
            ICU_vec = replace_na(ICU_vec, -1))
   
+  
+  thresholds <- c(0.2, 0.3, 0.5, 1, 10, 1000)
+  
   print("Starting...")
   
   a <- Sys.time()
@@ -86,7 +138,7 @@ run_progression_model <- function(
   }
   
   results <- curvemush::mush_abc(
-    n_samples = 4000,
+    n_samples = 2000,
     n_delay_samples = 512,
     
     n_outputs = 1000,
@@ -97,10 +149,10 @@ run_progression_model <- function(
     thresholds_vec = thresholds,
     rejections_per_selections = 300,
     do_ABC = do_ABC,
-
+    
     prior_sigma_los = prior_sigma_los,
     prior_sigma_hosp = prior_sigma_hosp,
-   
+    
     
     ensemble_curves = case_trajectories$curve_set,
     
@@ -133,8 +185,8 @@ run_progression_model <- function(
   format_ungrouped <- . %>%
     mutate(date = forecast_dates$simulation_start + ddays(t_day),
            compartment = compartment_labels[compartment + 1])
-    
-    
+  
+  
   
   results_count_quants <- results$grouped_results %>%
     select(-transitions) %>%
@@ -202,6 +254,5 @@ run_progression_model <- function(
     ABC_fit_diagnostics = tibble(thresholds = thresholds, accepted = results$n_accepted),
     ABC_parameters = ABC_parameters
   )
+  
 }
-
-
