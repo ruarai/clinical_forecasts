@@ -71,21 +71,6 @@ t_forecast <- list(
   
   
   tar_target(
-    national_plots,
-    
-    plot_joint_results(
-      all_state_quants,
-      all_state_known_occupancy_ts,
-      forecast_dates, forecast_starts,
-      date_reporting_line,
-      
-      forecast_name,
-      plot_dir
-    )
-  ),
-  
-  
-  tar_target(
     state_capacity_report,
     
     all_state_capacity %>% 

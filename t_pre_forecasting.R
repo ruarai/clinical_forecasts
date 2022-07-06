@@ -27,7 +27,7 @@ pre_forecasting <- c(
       clinical_parameters, 
       {
         read_csv(
-          "/home/forecast/source/los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/clinical_parameters_bkp.csv",
+          "../los_analysis_competing_risks/results/NSW_2022-05-03_omi_primary/clinical_parameters.csv",
           show_col_types = FALSE
         ) %>%
           # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)
@@ -41,7 +41,7 @@ pre_forecasting <- c(
     tar_target(
       clinical_parameter_samples, {
         read_csv(
-          "../los_analysis_competing_risks/results/NSW_2022-02-08_omi_mix/estimate_samples_share_wide.csv"
+          "../los_analysis_competing_risks/results/NSW_2022-05-03_omi_primary/estimate_samples_share_wide.csv"
         ) %>%
           mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41,
                                          3.35, 3.35, 3.24, 3.24) %>% rep(times = 1000),
@@ -96,7 +96,7 @@ pre_forecasting <- c(
     #                                     "NNDSS" = tibble(date = ymd("2022-05-24"), type = "NNDSS"))),
     # tar_target(raw_nindss, "data/mflux/downloads_raw/COVID-19 UoM 24May2022.zip"),
     # tar_target(raw_local_cases, "data/mflux/downloads_raw/local_cases_input_2022-05-24.csv"),
-    # tar_target(raw_ensemble, "data/mflux/downloads_raw/combined_samples_waning2022-05-17.csv"),
+    #tar_target(raw_ensemble, "data/combined_samples_custom_RT_2022-06-21.csv"),
 
 
     tar_target(
@@ -122,7 +122,10 @@ pre_forecasting <- c(
         is_longterm = is_longterm
       )
     ),
-
+    
+    tar_target(
+      morbidity_window_width, if_else(is_longterm, 28, 14)
+    ),
 
     tar_target(
       morbidity_trajectories_national,
@@ -137,7 +140,8 @@ pre_forecasting <- c(
         "national",
         nindss_bad_states,
         
-        NULL
+        NULL,
+        morbidity_window_width
       ),
 
       garbage_collection = TRUE # Clear memory after reading NINDSS

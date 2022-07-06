@@ -11,10 +11,12 @@ if(longterm) {
   source("R/immunity/preprepare_vaccination_tables.R")
   source("R/immunity/immunity_projections.R")
   
+  source("R/plotting/plot_immunity_forecast.R")
+  
   
   
   reff_env <- new.env()
-  source("R/immunity/functions_new.R", local = reff_env)
+  suppressPackageStartupMessages(source("R/immunity/functions_new.R", local = reff_env))
   params <- get_params()
   
   
@@ -24,9 +26,9 @@ if(longterm) {
       seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = "4 days")
     ),
     
-    tar_target(vaccination_scenario, 243),
+    tar_target(vaccination_scenario, 254),
     tar_target(vaccination_data, 
-               read_rds("data/vaccination/vaccine_state_20220614.RDS") %>% 
+               read_rds("data/vaccination/vaccine_state_20220627.rds") %>% 
                  filter(scenario == vaccination_scenario),
                format = "fst_tbl"),
     tar_target(
@@ -82,6 +84,16 @@ if(longterm) {
       ),
       format = "fst_tbl"
       
+    ),
+    
+    tar_target(
+      immunity_plots,
+      plot_immunity_forecast(
+        immune_predictions_state,
+        forecast_dates,
+        plot_dir,
+        state_modelled
+      )
     )
   )
 } else{

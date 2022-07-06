@@ -5,7 +5,8 @@ get_time_varying_morbidity_estimations <- function(
   
   state_modelled,
   nindss_bad_states,
-  morbidity_trajectories_national
+  morbidity_trajectories_national,
+  morbidity_window_width
 ) {
   
   do_estimate_morbidity <- TRUE
@@ -47,7 +48,7 @@ get_time_varying_morbidity_estimations <- function(
   
   n_bootstraps <- 50
   
-  window_width <- 14
+  window_width <- morbidity_window_width
   
   window_starts <- 1:(length(estimation_period_days) - window_width)
   window_ends <- window_starts + window_width
@@ -367,6 +368,17 @@ get_time_varying_morbidity_estimations <- function(
         by = c("bootstrap", "age_group", "date")
       )
   }
+  # else if(state_modelled == "QLD") {
+  #   all_results <- all_results %>%
+  #     select(-pr_ICU) %>%
+  #     left_join(
+  #       morbidity_trajectories_national %>% 
+  #         mutate(pr_ICU = pr_ICU * 0.5) %>%
+  #         select(bootstrap, age_group, date, pr_ICU),
+  #       
+  #       by = c("bootstrap", "age_group", "date")
+  #     )
+  # }
   
   morbidity_trajectories <- all_results %>%
     

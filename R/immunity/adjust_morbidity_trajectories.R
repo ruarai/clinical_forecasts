@@ -4,7 +4,7 @@ adjust_morbidity_trajectories <- function(
   is_longterm,
   immune_predictions_state,
   morbidity_trajectories_state,
-  state_forecast_start,
+  forecast_dates,
   state_modelled
 ) {
   if(!is_longterm) {
@@ -26,7 +26,7 @@ adjust_morbidity_trajectories <- function(
   
   n_bootstraps <- max(morbidity_trajectories_state$bootstrap)
   
-  incidental_rate <- get_state_incidental_rates(state_modelled)
+  incidental_rate <- 0.5
   
   adjusted_estimates_state <- morbidity_trajectories_state %>%
     rename(pr_age_old = pr_age_given_case) %>%
@@ -39,9 +39,9 @@ adjust_morbidity_trajectories <- function(
     ) %>%
     
     mutate(pr_hosp_incidental = pr_hosp * incidental_rate,
-           pr_hosp_direct = pr_hosp * incidental_rate) %>%
+           pr_hosp_direct = pr_hosp * (1 - incidental_rate)) %>%
     
-    mutate(pr_hosp_direct = if_else(date > state_forecast_start, NA_real_, pr_hosp_direct)) %>%
+    mutate(pr_hosp_direct = if_else(date > forecast_dates$NNDSS - ddays(14), NA_real_, pr_hosp_direct)) %>%
     
     mutate(x = pr_hosp_direct / m_hosp)  %>%
     

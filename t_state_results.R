@@ -41,6 +41,18 @@ state_results <- tar_map(
   ),
   tar_target(state_forecast_start_tbl, tibble(date = state_forecast_start, state = state_modelled)),
   
+  
+  tar_target(
+    case_trajectories,
+    make_case_trajectories(
+      ensemble_state,
+      local_cases_state,
+      
+      forecast_dates,
+      state_forecast_start
+    )
+  ),
+  
   t_state_results_immunity,
   
   tar_target(
@@ -56,7 +68,8 @@ state_results <- tar_map(
       state_modelled,
       nindss_bad_states,
       
-      morbidity_trajectories_national
+      morbidity_trajectories_national,
+      morbidity_window_width
     )
   ),
   
@@ -66,23 +79,23 @@ state_results <- tar_map(
       is_longterm,
       immune_predictions_state,
       unadjusted_morbidity_trajectories_state,
-      state_forecast_start,
+      forecast_dates,
       state_modelled
     ),
     format = "fst_tbl"
   ),
   
+  # tar_target(
+  #   morbidity_trajectories_plot,
+  #   plot_morbidity_trajectories(
+  #     morbidity_trajectories_state,
+  #     state_modelled,
+  #     forecast_dates,
+  #     plot_dir
+  #   )
+  # ),
+  
 
-  tar_target(
-    case_trajectories,
-    make_case_trajectories(
-      ensemble_state,
-      local_cases_state,
-
-      forecast_dates,
-      state_forecast_start
-    )
-  ),
   
   # tar_target(
   #   case_trajectories,
@@ -97,7 +110,11 @@ state_results <- tar_map(
   
   tar_target(
     sim_thresholds,
-    ifelse(is_longterm, c(0.2, 0.3, 0.5, 1, 10, 1000), c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000))
+    if(is_longterm) {
+      c(0.2, 0.3, 0.5, 1, 10, 1000)
+    } else {
+      c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
+    }
   ),
   
   tar_target(
@@ -115,7 +132,8 @@ state_results <- tar_map(
       
       state_modelled,
       
-      thresholds = sim_thresholds
+      thresholds = sim_thresholds,
+      do_ABC = FALSE
     ),
     format = "qs",
     resources = tar_resources(
@@ -216,21 +234,4 @@ state_results <- tar_map(
     
     format = "fst"
   )
-  
-  #t_state_absenteeism,
-  
-  
-  # tar_target(
-  #   state_diag_plots,
-  #   
-  #   plot_diagnostics(
-  #     case_trajectories,
-  #     forecast_dates,
-  #     nindss_state,
-  #     morbidity_estimates_state,
-  #     plot_dir,
-  #     
-  #     state_modelled
-  #   )
-  # )
 )

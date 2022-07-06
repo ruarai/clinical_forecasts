@@ -13,3 +13,8 @@ _targets
 R/capacity_table.R
 forecast
 historical_inputs
+
+_long
+.debug
+*.rds
+outputs/

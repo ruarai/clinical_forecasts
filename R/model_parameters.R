@@ -48,12 +48,3 @@ get_state_forecast_start <- function(
     pull(date_onset) %>% max()
 }
 
-
-get_state_incidental_rates <- function(i_state) {
-  case_when(
-    i_state == "NSW" ~ 0.5,
-    TRUE ~ 0.75
-  )
-}
-
-

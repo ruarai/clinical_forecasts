@@ -1,9 +1,3 @@
-forecast:
-  script: t_forecast.R
-  store: forecast
-longterm:
-  script: _targets_longterm.R
-  store: longterm
 long:
   script: _targets_long.R
   store: _long
