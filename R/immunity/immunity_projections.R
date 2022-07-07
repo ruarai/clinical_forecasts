@@ -9,9 +9,10 @@ get_immune_predictions <- function(
   population_state,
   vaccination_tables_state,
   vaccination_effects_state,
-  forecast_dates
+  forecast_dates,
+  ascertainment_pre_estimates_state,
+  ngm
 ) {
-  ngm <- read_rds("data/vaccination/ngm_quantium.rds")
   
   n_preds <- length(prediction_dates)
   
@@ -96,10 +97,6 @@ get_immune_predictions <- function(
     params$neut$neut_decay
   )
   
-  
-  ascertainment_ts <- get_ascertainment_timeseries(prediction_dates)$ascertainment
-  ascertainment_mat <- matrix(ascertainment_ts, ncol = 17, nrow = length(ascertainment_ts))
-  
   n_sims <- ncol(summed_cases)
   
   
@@ -121,7 +118,7 @@ get_immune_predictions <- function(
     # Pass everything but the bigger objects (e.g. case data)
     .options = furrr::furrr_options(
       globals = c("simulate_immune_prediction",
-                  "ascertainment_mat",
+                  "ascertainment_pre_estimates_state",
                   "log10_neut_over_time_infection",
                   "get_immune_efficacy", "lookup_tables", "neuts_change", "neuts_range",
                   "vec_population",
@@ -157,7 +154,7 @@ simulate_immune_prediction <- function(i_sim) {
     infection_neut_offset <- neuts_change$case_neuts_drop[1:pred_ix] * neuts_change$proportionBA4BA5[[pred_ix]]
     
     previous_infections <- t(apply(
-      pred_case_counts_mat[1:pred_ix, ,drop = FALSE] / ascertainment_mat[1:pred_ix, ],
+      pred_case_counts_mat[1:pred_ix, ,drop = FALSE] / ascertainment_pre_estimates_state$ascertainment_mat[1:pred_ix, ],
       1, function(x) x / vec_population
     ))
     
@@ -244,7 +241,7 @@ simulate_immune_prediction <- function(i_sim) {
       prev_age_dist <- (previous_infections[pred_ix, ] + 0.1) / sum(previous_infections[pred_ix, ] + 0.1)
       
       
-      pred_case_age_dist <- ((ngm * ngm_mult) %*% prev_age_dist) * ascertainment_mat[pred_ix, ]
+      pred_case_age_dist <- ((ngm * ngm_mult) %*% prev_age_dist) * ascertainment_pre_estimates_state$ascertainment_mat[pred_ix, ]
       
       prop_pred_case_age_dist <- pred_case_age_dist / sum(pred_case_age_dist)
       

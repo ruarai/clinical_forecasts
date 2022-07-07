@@ -4,21 +4,8 @@ t_forecast <- list(
   
   state_results,
   
-  
-  # tar_combine(all_state_absenteeism_trajs, state_results[["absentee_trajs"]],
-  #   command = dplyr::bind_rows(!!!.x), format = "fst"),
-  
   tar_combine(forecast_starts, state_results[["state_forecast_start_tbl"]],
               command = dplyr::bind_rows(!!!.x)),
-  
-  # tar_target(
-  #   absenteeism_plots,
-  #   
-  #   make_absenteeism_plots(all_state_absenteeism_trajs, forecast_dates, forecast_starts, plot_dir)
-  # ),
-  
-  tar_combine(all_state_quants, state_results[["state_result_quants"]],
-    command = dplyr::bind_rows(!!!.x), format = "fst"),
   
   tar_combine(all_state_trajs, state_results[["state_results_traj"]],
               command = dplyr::bind_rows(!!!.x), format = "fst"),
@@ -30,10 +17,8 @@ t_forecast <- list(
       fst::write_fst(all_state_trajs, path = file_path, compress = 100)
       
       if(do_upload_trajectories) {
-        sync_file <- paste0("results/trajectories/trajectories_", date_forecasting, ".fst")
+        sync_file <- paste0("/home/forecast/mfluxunimelb/clinical_forecasts/trajectories/trajectories_", forecast_name, ".fst")
         file.copy(file_path, sync_file, overwrite = TRUE)
-        
-        upload_mediaflux_trajectories()
       }
       
       return(file_path)
@@ -54,21 +39,16 @@ t_forecast <- list(
     format = "file"
   ),
   
-  tar_combine(all_state_known_occupancy_ts, state_results[["known_occupancy_ts"]],
-    command = dplyr::bind_rows(!!!.x)),
-  
-  tar_combine(all_state_capacity, state_results[["state_capacity_table"]],
-    command = dplyr::bind_rows(!!!.x)),
-  
   tar_combine(all_state_ABC_parameters, state_results[["state_ABC_parameters"]]),
   tar_combine(all_state_ABC_diagnostics, state_results[["state_ABC_diagnostics"]]),
-  
   
   tar_target(
     ABC_diagnostic_plots,
     plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir)
   ),
   
+  tar_combine(all_state_capacity, state_results[["state_capacity_table"]],
+              command = dplyr::bind_rows(!!!.x)),
   
   tar_target(
     state_capacity_report,

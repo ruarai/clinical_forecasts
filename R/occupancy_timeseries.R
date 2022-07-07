@@ -1,11 +1,8 @@
 make_occupancy_timeseries <- function(
   c19data,
-  anzics_data,
-  state_modelled
+  anzics_data = NULL,
+  state_modelled = NULL
 ) {
-  
-  use_anzics <- FALSE
-  
   
   ts <- c19data %>%
     select(-state) %>%
@@ -17,23 +14,12 @@ make_occupancy_timeseries <- function(
     pivot_longer(cols = -c(state, date),
                  values_to = "count", names_to = "group") %>%
     
-    filter(state == state_modelled) %>%
-    
     mutate(source = "c19")
   
-  if(use_anzics) {
+  if(!is.null(state_modelled)) {
     ts <- ts %>%
-      filter(group != "ICU") %>%
-      
-      bind_rows(
-        anzics_data %>% 
-          filter(name == "ICU_HDU_patients_COVID") %>% 
-          select(state, date, count = value) %>%
-          filter(state == state_modelled) %>%
-          mutate(group = "ICU", source = "anzics")
-      )
+      filter(state == state_modelled)
   }
-  
   
   
   return(ts)

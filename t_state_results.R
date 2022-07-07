@@ -85,15 +85,16 @@ state_results <- tar_map(
     format = "fst_tbl"
   ),
   
-  # tar_target(
-  #   morbidity_trajectories_plot,
-  #   plot_morbidity_trajectories(
-  #     morbidity_trajectories_state,
-  #     state_modelled,
-  #     forecast_dates,
-  #     plot_dir
-  #   )
-  # ),
+  tar_target(
+    morbidity_trajectories_plot,
+    plot_morbidity_trajectories(
+      morbidity_trajectories_state,
+      state_modelled,
+      forecast_dates,
+      morbidity_window_width,
+      plot_dir
+    )
+  ),
   
 
   
@@ -133,7 +134,7 @@ state_results <- tar_map(
       state_modelled,
       
       thresholds = sim_thresholds,
-      do_ABC = FALSE
+      do_ABC = TRUE
     ),
     format = "qs",
     resources = tar_resources(

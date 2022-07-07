@@ -1,7 +1,4 @@
-
-
-
-plot_state_results_diagnostic <- function(
+plot_state_results <- function(
   sim_results,
   
   state_modelled,
