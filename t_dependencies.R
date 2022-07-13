@@ -18,6 +18,8 @@ source("R/plotting/state_results_diagnostic.R")
 source("R/plotting/plot_ABC_diagnostics.R")
 source("R/plotting/prior_posterior_plots.R")
 
+source("R/archive_model_results.R")
+
 source("t_backup_inputs.R")
 
 source("t_immunity.R")

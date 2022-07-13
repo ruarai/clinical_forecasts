@@ -72,8 +72,7 @@ state_results <- tar_map(
       
       morbidity_trajectories_national,
       morbidity_window_width
-    ),
-    cue = tar_cue("never")
+    )
   ),
   
   tar_target(
@@ -145,8 +144,7 @@ state_results <- tar_map(
     ),
     
     memory = "transient",
-    garbage_collection = TRUE,
-    cue = tar_cue("never")
+    garbage_collection = TRUE
   ),
   
   
@@ -173,8 +171,7 @@ state_results <- tar_map(
     ),
     
     memory = "transient",
-    garbage_collection = TRUE,
-    cue = tar_cue("never")
+    garbage_collection = TRUE
   ),
   
   tar_target(
@@ -241,5 +238,21 @@ state_results <- tar_map(
       mutate(state = state_modelled),
     
     format = "fst"
+  ),
+  
+  tar_target(
+    state_archive,
+    
+    archive_model_results(
+      sim_results,
+      morbidity_trajectories_state,
+      immune_predictions_state,
+      state_modelled,
+      forecast_name,
+      archive_dir
+    ),
+    
+    format = "file",
+    deployment = "main"
   )
 )

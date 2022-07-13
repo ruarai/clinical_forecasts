@@ -11,11 +11,21 @@ pre_forecasting <- c(
       },
       deployment = "main"
     ),
-
+    
     tar_target(
       backup_dir,
       {
         path <- str_c("historical_inputs/", forecast_name)
+        dir.create(path, showWarnings = FALSE)
+        return(path)
+      },
+      deployment = "main"
+    ),
+    
+    tar_target(
+      archive_dir,
+      {
+        path <- str_c(plot_dir, "archive/")
         dir.create(path, showWarnings = FALSE)
         return(path)
       },
