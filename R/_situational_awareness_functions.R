@@ -37,7 +37,7 @@ get_quants <- function(dat, fn = "max", probs = c(0.25, 0.5, 0.75)) {
 }
 
 
-get_current_capacity_tbl <- function() {
+get_current_capacity_tbl <- function(multipliers = 1:2) {
   
   # Load in the capacity tables
   source("R/capacity_table.R")
@@ -46,7 +46,10 @@ get_current_capacity_tbl <- function() {
             .id = "state") %>%
     pivot_longer(cols = c(capacity_ward, capacity_ICU),
                  names_prefix = "capacity_",
-                 names_to = "group", values_to = "capacity")
+                 names_to = "group", values_to = "capacity") %>%
+    
+    expand_grid(multiplier = multipliers) %>%
+    mutate(capacity = capacity * multiplier)
   
 }
 
@@ -123,8 +126,9 @@ get_forecast_start_date <- function(local_cases_state, pr_detect = 0.95) {
 }
 
 get_public_occupancy_data <- function() {
-  source("R/data_various.R")
-  c19data <- get_c19data()
+  covid19data_url <- "https://github.com/M3IT/COVID-19_Data/raw/master/Data/COVID_AU_state.csv"
+  c19data <- read_csv(covid19data_url,
+           show_col_types = FALSE) 
   
   source("R/occupancy_timeseries.R")
   

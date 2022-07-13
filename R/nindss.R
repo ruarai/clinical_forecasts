@@ -5,8 +5,6 @@ process_NINDSS_linelist <- function(
 ) {
   source("R/age_groups.R")
   
-  
-  
   nindss_data <- vroom::vroom(raw_nindss)
   
   

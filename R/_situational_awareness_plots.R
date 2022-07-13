@@ -8,14 +8,12 @@ source("R/_situational_awareness_functions.R")
 ## --------------- CHANGE THIS (if you want to) ---------------------
 # These may be different from what is defined in _targets.R
 
-ensemble_models_included <- c("gar", "moss", "dst")
-
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-07-01_final/"
-ensemble_path <- "/home/forecast/mfluxshared/forecast-outputs/combined_samples_75asc2022-06-21.csv"
-local_cases_path <- "/home/forecast/mfluxunimelb/local_cases_input/local_cases_input_2022-06-28.csv"
+results_dir <- "results/fc_2022-07-08_final_nodst/"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-06-28.csv"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-07-06.csv"
 
-date_reporting_line <- ymd("2022-07-06")
+date_reporting_line <- ymd("2022-07-08")
 
 # When our plots go back to
 date_plot_start <- ymd("2021-12-01")
@@ -28,7 +26,7 @@ days_horizon <- if_else(is_longterm, 30 * 6, 7 * 4)
 days_before_fit <- 0
 
 
-capacity_limits_tbl <- get_current_capacity_tbl()
+capacity_limits_tbl <- get_current_capacity_tbl(multipliers = 1:2)
 ascertainment_ts <- get_ascertainment_ts()
 public_occupancy_data <- get_public_occupancy_data() %>%
   filter(date >= date_plot_start - ddays(14))
@@ -39,8 +37,11 @@ local_cases <- read_csv(local_cases_path, show_col_types = FALSE)
 
 if(is_longterm) {
   plot_quant_widths <- c(0.5, 0.8, 0.9)
+  ensemble_models_included <- c("moss", "dst")
 } else{
   plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  #ensemble_models_included <- c("gar", "moss", "dst")
+  ensemble_models_included <- c("gar", "moss")
   ascertainment_ts$time_varying_75 <- 1
 }
 
@@ -60,6 +61,9 @@ for(i_state in states) {
   local_cases_state <- local_cases %>%
     filter(state == i_state)
   
+  forecast_start_date <- get_forecast_start_date(local_cases_state, pr_detect = 0.95)
+  case_ensemble_state <- case_ensemble_state %>%
+    filter(date <= forecast_start_date + ddays(days_horizon))
   
   case_ensemble_wide <- case_ensemble_state %>%
     select(date, .model, starts_with("sim")) %>%
@@ -68,7 +72,6 @@ for(i_state in states) {
                 values_from = starts_with("sim"))
   
   
-  forecast_start_date <- get_forecast_start_date(local_cases_state, pr_detect = 0.95)
   
   
   ensemble_quants <- case_ensemble_wide %>%
@@ -101,19 +104,19 @@ for(i_state in states) {
   
   
   if(is_longterm) {
-    ward_rep <- model_trajs_wide %>% 
+    ward_rep <- clinical_trajectories_wide_state %>% 
       filter(group == "ward") %>% mutate(state = 1, .model = 1) %>%
       get_quants("max", probs = seq(0.1, 0.9, by = 0.05)) %>%
       filter(date >= forecast_start_date + ddays(7))
-    ICU_rep <- model_trajs_wide %>% 
+    ICU_rep <- clinical_trajectories_wide_state %>% 
       filter(group == "ICU") %>% mutate(state = 1, .model = 1) %>%
       get_quants("max", probs = seq(0.1, 0.9, by = 0.05)) %>%
       filter(date >= forecast_start_date + ddays(7))
     
     ensemble_smooth <- bind_rows(
-      ensemble_raw %>% 
+      case_ensemble_state %>% 
         filter(.model != "moss"),
-      ensemble_raw %>% 
+      case_ensemble_state %>% 
         filter(.model == "moss") %>%
         mutate(across(starts_with("sim"), ~ slider::slide_index_dbl(., .i = date, .f = mean, .before = 7, .after =0)))
     )
@@ -125,7 +128,10 @@ for(i_state in states) {
   state_capacity_limits <- capacity_limits_tbl %>%
     filter(state == i_state,
            case_when(group == "ward" ~ capacity <= max(c(ward_known$count * 1.5, ward_quants$upper * 1.5)),
-                     group == "ICU" ~ capacity <= max(c(ICU_known$count * 1.5, ICU_quants$upper * 1.5))) )
+                     group == "ICU" ~ capacity <= max(c(ICU_known$count * 1.5, ICU_quants$upper * 1.5)))) %>%
+    
+    mutate(padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
+           label = str_c(padded_capacity, " (x", multiplier, ")"))
   
   
   plots_common <- list(
@@ -229,10 +235,13 @@ for(i_state in states) {
                state_capacity_limits %>% filter(group == "ward"),
                linetype = 'dashed', size = 0.3) +
     
+    geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
+               hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
+               state_capacity_limits %>% filter(group == "ward")) +
+    
     ggtitle(str_c(i_state, " \u2013 Ward bed occupancy")) +
     
     plots_common
-  
   
   p_ICU <- ggplot() +
     
@@ -264,6 +273,10 @@ for(i_state in states) {
     geom_hline(aes(yintercept = capacity),
                state_capacity_limits %>% filter(group == "ICU"),
                linetype = 'dashed', size = 0.3) +
+    
+    geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
+               hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
+               state_capacity_limits %>% filter(group == "ICU")) +
     
     ggtitle(str_c(i_state, " \u2013 ICU bed occupancy")) +
     

@@ -53,7 +53,7 @@ plot_state_results <- function(
   cowplot::plot_grid(p_count_trace, p_trans_trace, nrow = 1)
   
   
-  ggsave(
+  plot_files <- ggsave(
     paste0(plot_dir, state_modelled, "_trace_plots.png"),
     bg = "white",
     width = 8, height = 10
@@ -89,10 +89,15 @@ plot_state_results <- function(
   cowplot::plot_grid(p_count_quant, p_trans_quant, nrow = 1)
   
   
-  ggsave(
-    paste0(plot_dir, state_modelled, "_quants_plots.png"),
-    bg = "white",
-    width = 8, height = 10
+  plot_files <- c(
+    plot_files,
+    ggsave(
+      paste0(plot_dir, state_modelled, "_quants_plots.png"),
+      bg = "white",
+      width = 8, height = 10
+    )
   )
+  
+  plot_files
 }
 

@@ -7,7 +7,7 @@ group_capacity_plot <- function(
   
   over_capacity_trajectories <- sim_results$trajectories %>% 
     filter(group == capacity_group,
-           date >= state_forecast_start) %>%
+           date >= state_forecast_start + ddays(7)) %>%
     group_by(sample) %>%
     
     filter(any(count > capacity_limit))
@@ -20,12 +20,12 @@ group_capacity_plot <- function(
     summarise(date_over = min(date[count > capacity_limit]))
   
   
-  forecast_days <- seq(state_forecast_start,
+  forecast_days <- seq(state_forecast_start + ddays(7),
                        forecast_dates$forecast_horizon - ddays(1),
                        by = "days")
   
   
-  forecast_weeks <- seq(state_forecast_start,
+  forecast_weeks <- seq(state_forecast_start + ddays(7),
                         forecast_dates$forecast_horizon,
                         by = "weeks")
   
@@ -41,8 +41,8 @@ group_capacity_plot <- function(
   }
   
   plots_common <- list(
-    geom_vline(xintercept = state_forecast_start,
-               lty = 2, colour = "grey60"),
+    geom_vline(xintercept = state_forecast_start + ddays(7),
+               lty = 2, colour = "grey20"),
     scale_x_date("Date", date_labels = "%e/%m", breaks = forecast_weeks, expand=c(0,0.01)),
     cowplot::theme_cowplot(),
     theme(legend.position = "none",
@@ -52,19 +52,24 @@ group_capacity_plot <- function(
           strip.background =element_rect(fill="white"))
   )
   
+  source("R/_situational_awareness_functions.R")
+  
+  plot_cols <- get_plot_colors(8, FALSE)
+  
   p1 <- ggplot() +
     
-    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant),
-                alpha = 0.2, fill = ribbon_col,
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 sim_results$quants_count %>% filter(group == capacity_group)) +
     
     geom_hline(yintercept = capacity_limit,
                linetype = 'longdash', size = 0.6) +
     
-    coord_cartesian(xlim = c(state_forecast_start - ddays(4),
+    scale_fill_manual(values = plot_cols[[capacity_group]]) +
+    
+    coord_cartesian(xlim = c(state_forecast_start + ddays(4),
                              forecast_dates$forecast_horizon)) +
     
-    scale_y_continuous("Number occupied beds", position = "right",
+    scale_y_continuous(NULL, position = "right",
                        breaks = scales::breaks_extended()) +
     
     ggtitle(" ", p_title) +
@@ -79,27 +84,27 @@ group_capacity_plot <- function(
     geom_line(aes(x = date, y = y_adj * 100),
               plot_ecdf) +
     
-    geom_vline(xintercept = state_forecast_start,
-               lty = 2, colour = "grey60") +
-    
-    scale_y_continuous("Percent",
+    scale_y_continuous(NULL,
                        breaks = scales::breaks_extended(),
                        position = 'right') +
     
     plots_common +
     
-    coord_cartesian(xlim = c(state_forecast_start - ddays(4),
+    coord_cartesian(xlim = c(state_forecast_start + ddays(4),
                              forecast_dates$forecast_horizon),
                     
                     ylim = c(0, 100)) +
     
-    ggtitle(NULL, "Percentage of simulated trajectories reaching capacity threshold")
+    ggtitle(NULL, str_c("Ward", " \u2013 Percentage of simulations reaching prior peak occupancy"))
   
   
   
   p_joint <- cowplot::plot_grid(p1, p2, ncol = 1,
                                 align = 'v',
                                 axis = 'lr')
+  
+  
+  p_joint
   
   list(
     plot = p_joint,

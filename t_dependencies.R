@@ -14,6 +14,7 @@ source("R/progression_model.R")
 
 source("R/plotting/state_results_capacity.R")
 
+source("R/plotting/state_results_diagnostic.R")
 source("R/plotting/plot_ABC_diagnostics.R")
 source("R/plotting/prior_posterior_plots.R")
 

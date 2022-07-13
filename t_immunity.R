@@ -36,6 +36,7 @@ if(longterm) {
     ),
     
     tar_target(vaccination_data, get_vaccination_forecast(quantium_zip_path), format = "fst_tbl"),
+    
     tar_target(
       neuts_change, 
       get_neuts_change(prediction_dates)
@@ -74,18 +75,18 @@ if(longterm) {
       get_state_population(vaccination_data_state)
     ),
     
-    tar_target(
-      ascertainment_pre_estimates_state,
-      fit_ascertainment(
-        prediction_dates,
-        forecast_dates$NNDSS,
-        vaccination_tables_state,
-        vaccination_effects_state,
-        population_state,
-        nindss_state,
-        ngm
-      )
-    ),
+    # tar_target(
+    #   ascertainment_pre_estimates_state,
+    #   fit_ascertainment(
+    #     prediction_dates,
+    #     forecast_dates$NNDSS,
+    #     vaccination_tables_state,
+    #     vaccination_effects_state,
+    #     population_state,
+    #     nindss_state,
+    #     ngm
+    #   )
+    # ),
     
     tar_target(
       immune_predictions_state,
@@ -99,7 +100,7 @@ if(longterm) {
         vaccination_tables_state,
         vaccination_effects_state,
         forecast_dates,
-        ascertainment_pre_estimates_state,
+        #ascertainment_pre_estimates_state,
         ngm
       ),
       format = "fst_tbl"
@@ -113,7 +114,9 @@ if(longterm) {
         forecast_dates,
         plot_dir,
         state_modelled
-      )
+      ),
+      
+      format = "file"
     )
   )
 } else{

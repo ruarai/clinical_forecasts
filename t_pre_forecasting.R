@@ -8,23 +8,37 @@ pre_forecasting <- c(
         dir <- str_c("results/", forecast_name, "/")
         dir.create(dir, showWarnings = FALSE)
         return(dir)
-      }
+      },
+      deployment = "main"
     ),
-    
+
     tar_target(
       backup_dir,
       {
-        path <- str_c("historical_inputs/", date_forecasting)
+        path <- str_c("historical_inputs/", forecast_name)
         dir.create(path, showWarnings = FALSE)
         return(path)
-      }
+      },
+      deployment = "main"
+    ),
+    
+    tar_target(
+      clinical_parameters_means_file,
+      "../los_analysis_competing_risks/results/NSW_2022-05-03_omi_primary/clinical_parameters.csv",
+      format = "file"
+    ),
+    
+    tar_target(
+      clinical_parameter_samples_file,
+      "../los_analysis_competing_risks/results/NSW_2022-05-03_omi_primary/estimate_samples_share_wide.csv",
+      format = "file"
     ),
     
     tar_target(
       clinical_parameters, 
       {
         read_csv(
-          "../los_analysis_competing_risks/results/NSW_2022-05-03_omi_primary/clinical_parameters.csv",
+          clinical_parameters_means_file,
           show_col_types = FALSE
         ) %>%
           # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)
@@ -38,7 +52,7 @@ pre_forecasting <- c(
     tar_target(
       clinical_parameter_samples, {
         read_csv(
-          "../los_analysis_competing_risks/results/NSW_2022-05-03_omi_primary/estimate_samples_share_wide.csv"
+          clinical_parameter_samples_file
         ) %>%
           mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41,
                                          3.35, 3.35, 3.24, 3.24) %>% rep(times = 1000),
@@ -61,7 +75,8 @@ pre_forecasting <- c(
     tar_target(
       nindss,
       process_NINDSS_linelist(raw_nindss, date_simulation_start),
-      format = "fst"
+      format = "fst",
+      deployment = "main"
     ),
 
     tar_target(
@@ -75,7 +90,8 @@ pre_forecasting <- c(
         nindss_path = raw_nindss,
         
         is_longterm = is_longterm
-      )
+      ),
+      deployment = "main"
     ),
     
     tar_target(

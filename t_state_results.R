@@ -6,7 +6,8 @@ state_results <- tar_map(
   tar_target(
     local_cases_state,
     read_csv(raw_local_cases, show_col_types = FALSE) %>%
-      filter(state == state_modelled)
+      filter(state == state_modelled),
+    deployment = "main"
   ),
   
   
@@ -14,7 +15,8 @@ state_results <- tar_map(
     ensemble_state,
     read_ensemble_state(raw_ensemble, state_modelled, models_included),
     
-    format = "fst"
+    format = "fst",
+    deployment = "main"
   ),
   
   tar_target(
@@ -70,7 +72,8 @@ state_results <- tar_map(
       
       morbidity_trajectories_national,
       morbidity_window_width
-    )
+    ),
+    cue = tar_cue("never")
   ),
   
   tar_target(
@@ -134,7 +137,7 @@ state_results <- tar_map(
       state_modelled,
       
       thresholds = sim_thresholds,
-      do_ABC = TRUE
+      do_ABC = use_fitting
     ),
     format = "qs",
     resources = tar_resources(
@@ -142,8 +145,8 @@ state_results <- tar_map(
     ),
     
     memory = "transient",
-    garbage_collection = TRUE
-    
+    garbage_collection = TRUE,
+    cue = tar_cue("never")
   ),
   
   
@@ -170,7 +173,8 @@ state_results <- tar_map(
     ),
     
     memory = "transient",
-    garbage_collection = TRUE
+    garbage_collection = TRUE,
+    cue = tar_cue("never")
   ),
   
   tar_target(
@@ -181,7 +185,9 @@ state_results <- tar_map(
       forecast_dates, state_forecast_start,
       known_occupancy_ts,
       plot_dir, state_modelled
-    )
+    ),
+    format = "file",
+    deployment = "main"
   ),
   
   tar_target(state_ABC_parameters, sim_results$ABC_parameters %>% mutate(state = state_modelled)),
@@ -198,7 +204,8 @@ state_results <- tar_map(
       state_forecast_start,
       forecast_name,
       plot_dir
-    )
+    ),
+    deployment = "main"
   ),
   
   

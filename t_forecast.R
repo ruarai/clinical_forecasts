@@ -24,7 +24,8 @@ t_forecast <- list(
       return(file_path)
     },
     
-    format = "file"
+    format = "file",
+    deployment = "main"
   ),
   
   tar_target(
@@ -36,7 +37,8 @@ t_forecast <- list(
       return(file_path)
     },
     
-    format = "file"
+    format = "file",
+    deployment = "main"
   ),
   
   tar_combine(all_state_ABC_parameters, state_results[["state_ABC_parameters"]]),
@@ -44,7 +46,10 @@ t_forecast <- list(
   
   tar_target(
     ABC_diagnostic_plots,
-    plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir)
+    plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir),
+    
+    format = "file",
+    deployment = "main"
   ),
   
   tar_combine(all_state_capacity, state_results[["state_capacity_table"]],
@@ -52,11 +57,16 @@ t_forecast <- list(
   
   tar_target(
     state_capacity_report,
-    
-    all_state_capacity %>% 
-      filter(date == forecast_dates$forecast_horizon - ddays(1)) %>%
-      select(state, group, date, prob = y_adj) %>%
+    {
+      file_out <- paste0(plot_dir, "/clinical_capacity_", date_forecasting ,".csv")
+      all_state_capacity %>% 
+        filter(date == forecast_dates$forecast_horizon - ddays(1)) %>%
+        select(state, group, multiplier, date, prob = y_adj) %>%
+        
+        write_csv(file_out)
       
-      write_csv(paste0(plot_dir, "/clinical_capacity_", date_forecasting ,".csv"))
+    },
+    deployment = "main"
+    
   )
 )

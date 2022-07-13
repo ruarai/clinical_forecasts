@@ -1,6 +1,13 @@
 
-vaccine_state <- read_rds("data/vaccination/vaccine_state_20220627.rds")
-data_date <- ymd("2022-06-27")
+
+library(targets)
+library(tidyverse)
+library(lubridate)
+
+print("Loading vaccine state")
+
+vaccine_state <- tar_read(vaccination_data)
+data_date <- ymd("2022-07-12")
 
 
 
@@ -12,6 +19,9 @@ date_sequence <- seq.Date(
   to = data_date + weeks(16),
   by = "1 week"
 )#[63:66]
+
+
+print("Calculating ve_tables")
 
 # calculate vaccine effects
 ve_tables <- tibble(
@@ -48,6 +58,7 @@ get_hosp_ves <- function(coverage, ves, ...) {
 
 
 
+print("Calculating hosp_effect")
 
 
 hosp_effect <- ve_tables %>%
@@ -70,6 +81,9 @@ age_bands_to_wider <- function(age_group_vacc) {
     age_group_vacc %in% c("70-74", "75-79") ~ "70-79",
     age_group_vacc %in% c("80+") ~ "80+")
 }
+
+
+print("Plotting...")
 
 plot_data_ves <- hosp_effect %>% 
   select(date, hosp) %>%
@@ -139,8 +153,8 @@ ggplot(plot_data_ves %>% filter(state == "NSW")) +
 
 
 ggsave(
-  filename = "results/extra_figures/vaccine_effect_severe_aged_2022_06_27.png",
+  filename = "results/extra_figures/vaccine_effect_severe_aged_2022_07_12.png",
   width = 8, height = 8,
   bg = "white"
 )
-s
+print("Done")
