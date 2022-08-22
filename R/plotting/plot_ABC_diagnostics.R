@@ -5,10 +5,9 @@ plot_ABC_diagnostics <- function(
   
   plot_dir
 ) {
-  
   cowplot::plot_grid(
     
-    ggplot(all_state_ABC_diagnostics %>% filter(state %in% c("ACT", "NT", "SA", "VIC"))) +
+    ggplot(all_state_ABC_diagnostics) +
       geom_col(aes(x = factor(thresholds), y = accepted)) +
       
       facet_wrap(~state, ncol = 1) +
@@ -42,19 +41,7 @@ plot_ABC_diagnostics <- function(
       theme_minimal() +
       theme(legend.position = "none"),
     
-    
-    ggplot(all_state_ABC_diagnostics %>% filter(state %in% c("NSW", "QLD", "TAS", "WA"))) +
-      geom_col(aes(x = factor(thresholds), y = accepted)) +
-      
-      facet_wrap(~state, ncol = 1) +
-      scale_y_continuous(position = "right") +
-      
-      xlab("Threshold") + ylab("Number outputs accepted") +
-      ggtitle(NULL, "ABC acceptance rate") +
-      theme_minimal() +
-      theme(legend.position = "none"),
-    
-    ncol = 3, rel_widths = c(1, 2, 1)
+    ncol = 2
   )
   
   ggsave(
