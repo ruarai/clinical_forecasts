@@ -59,6 +59,12 @@ run_progression_model <- function(
       known_occupancy_ts %>%
         filter(date >= forecast_dates$simulation_start) %>%
         select(date, group, count) %>%
+        
+        # Have to do this for... some reason
+        group_by(date, group) %>%
+        slice(1) %>%
+        ungroup() %>%
+        
         pivot_wider(names_from = group, values_from = count)
       
     ) %>%
@@ -67,6 +73,38 @@ run_progression_model <- function(
            ward_vec = replace_na(ward_vec, -1),
            ICU_vec = if_else(do_match, ICU, -1),
            ICU_vec = replace_na(ICU_vec, -1))
+  
+  
+  date_seq <- seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, "days")
+  
+  # gengamma_delay_order <- c("ward_to_discharge", "ward_to_ICU", "ward_to_death", "ICU_to_discharge", "ICU_to_postICU", "ICU_to_death", 
+  #                           "postICU_to_discharge", "postICU_to_death")
+  # 
+  # gengamma_delay <- read_csv("~/source/los_rates/results/fit_2022_08_15/distribution_fits.csv") %>% 
+  #   
+  #   mutate(coding = factor(coding, levels = gengamma_delay_order)) %>%
+  #   
+  #   
+  #   complete(age, coding, date = date_seq) %>%
+  #   arrange(age, coding, date) %>%
+  #   group_by(age, coding) %>%
+  #   
+  #   mutate(across(c(mu, sigma, Q), ~ zoo::na.approx(., na.rm = FALSE))) %>%
+  #   
+  #   fill(mu, sigma, Q, .direction = "down") %>%
+  #   ungroup() %>%
+  #   
+  #   filter(date >= date_seq[1], date <= date_seq[length(date_seq)]) %>%
+  #   
+  #   
+  #   
+  #   arrange(age, coding, date) %>%
+  #   
+  #   select(age, coding, date, mu, sigma, Q) %>%
+  #   
+  #   mutate(age = age / 10,
+  #          coding = match(coding, gengamma_delay_order) - 1,
+  #          date = match(date, date_seq) - 1)
   
   print("Starting...")
   
@@ -112,6 +150,8 @@ run_progression_model <- function(
     mat_pr_age_given_case = mat_pr_age_given_case,
     mat_pr_hosp = mat_pr_hosp,
     mat_pr_ICU = mat_pr_ICU
+    
+    #delay_parameters = gengamma_delay
   )
   b <- Sys.time()
   
