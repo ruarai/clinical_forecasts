@@ -12,6 +12,8 @@ archive_model_results <- function(
   archive_dir
 ) {
   
+  require(qs)
+  
   
   archive_data <- list(
     "sim_results" = sim_results,
