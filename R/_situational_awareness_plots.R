@@ -9,11 +9,11 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-07-08_final_nodst/"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-06-28.csv"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-07-06.csv"
+results_dir <- "results/fc_2022-08-17_test_smc/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-16.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-08-09.csv"
 
-date_reporting_line <- ymd("2022-07-08")
+date_reporting_line <- ymd("2022-08-18")
 
 # When our plots go back to
 date_plot_start <- ymd("2021-12-01")
@@ -22,8 +22,9 @@ date_plot_start <- ymd("2021-12-01")
 is_longterm <- FALSE
 
 
-days_horizon <- if_else(is_longterm, 30 * 6, 7 * 4)
+days_horizon <- if_else(is_longterm, 30 * 6 , 7 * 4)
 days_before_fit <- 0
+show_capacity <- TRUE
 
 
 capacity_limits_tbl <- get_current_capacity_tbl(multipliers = 1:2)
@@ -32,6 +33,8 @@ public_occupancy_data <- get_public_occupancy_data() %>%
   filter(date >= date_plot_start - ddays(14))
 
 clinical_trajectories <- get_trajectories(results_dir)
+
+
 local_cases <- read_csv(local_cases_path, show_col_types = FALSE)
 
 
@@ -40,8 +43,8 @@ if(is_longterm) {
   ensemble_models_included <- c("moss", "dst")
 } else{
   plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-  #ensemble_models_included <- c("gar", "moss", "dst")
-  ensemble_models_included <- c("gar", "moss")
+  ensemble_models_included <- c("gar", "moss", "dst")
+  #ensemble_models_included <- c("gar", "moss")
   ascertainment_ts$time_varying_75 <- 1
 }
 
@@ -52,7 +55,10 @@ plot_cols <- get_plot_colors(length(plot_quant_widths), is_longterm)
 
 # If a state is excluded from plotting, can change this
 states <- get_states(clinical_trajectories)
+
 plots <- list()
+ward_plots <- list()
+ICU_plots <- list()
 
 for(i_state in states) {
   case_ensemble_state <- read_ensemble_state(ensemble_path, i_state, ensemble_models_included)
@@ -82,6 +88,7 @@ for(i_state in states) {
     filter(date <= forecast_start_date + ddays(days_horizon)) %>%
     
     left_join(ascertainment_ts, by = "date") %>%
+    fill(time_varying_75, .direction = "down") %>%
     mutate(lower = lower / time_varying_75,
            upper = upper / time_varying_75)
   
@@ -130,8 +137,10 @@ for(i_state in states) {
            case_when(group == "ward" ~ capacity <= max(c(ward_known$count * 1.5, ward_quants$upper * 1.5)),
                      group == "ICU" ~ capacity <= max(c(ICU_known$count * 1.5, ICU_quants$upper * 1.5)))) %>%
     
-    mutate(padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
-           label = str_c(padded_capacity, " (x", multiplier, ")"))
+    mutate(#padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
+           #label = padded_capacity,
+           wave = if_else(i_state %in% c("TAS", "WA", "ACT"), "BA.2", "BA.1"),
+           label = if_else(multiplier == 1, str_c(wave, " peak"), str_c(multiplier, "x ", wave, " peak")))
   
   
   plots_common <- list(
@@ -231,13 +240,18 @@ for(i_state in states) {
     geom_vline(xintercept = forecast_start_date + ddays(7),
                colour = "grey40", linetype = "dashed") +
     
-    geom_hline(aes(yintercept = capacity),
-               state_capacity_limits %>% filter(group == "ward"),
-               linetype = 'dashed', size = 0.3) +
-    
-    geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
-               hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
-               state_capacity_limits %>% filter(group == "ward")) +
+    {
+      if(show_capacity)
+        geom_hline(aes(yintercept = capacity),
+                   state_capacity_limits %>% filter(group == "ward"),
+                   linetype = 'dashed', size = 0.3)
+    } +
+    {
+      if(show_capacity)
+        geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
+                   hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
+                   state_capacity_limits %>% filter(group == "ward"))
+    } +
     
     ggtitle(str_c(i_state, " \u2013 Ward bed occupancy")) +
     
@@ -270,13 +284,18 @@ for(i_state in states) {
     geom_vline(xintercept = forecast_start_date + ddays(7),
                colour = "grey40", linetype = "dashed") +
     
-    geom_hline(aes(yintercept = capacity),
-               state_capacity_limits %>% filter(group == "ICU"),
-               linetype = 'dashed', size = 0.3) +
-    
-    geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
-               hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
-               state_capacity_limits %>% filter(group == "ICU")) +
+    {
+      if(show_capacity)
+        geom_hline(aes(yintercept = capacity),
+                   state_capacity_limits %>% filter(group == "ICU"),
+                   linetype = 'dashed', size = 0.3)
+    } +
+    {
+      if(show_capacity)
+        geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
+                   hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
+                   state_capacity_limits %>% filter(group == "ICU"))
+    } +
     
     ggtitle(str_c(i_state, " \u2013 ICU bed occupancy")) +
     
@@ -288,7 +307,11 @@ for(i_state in states) {
     ncol = 1, align = "v", axis = "lr"
   )
   
+  p
+  
   plots <- c(plots, list(p))
+  ward_plots <- c(ward_plots, list(p_ward))
+  ICU_plots <- c(ICU_plots, list(p_ICU))
   
   ggsave(str_c(results_dir, "_sitawareness_state_plot_", i_state, ".png" ),
          plot = p,
@@ -307,4 +330,24 @@ for (i in 1:length(plots)){
   plot(plots[[i]])
 }
 dev.off()
+
+
+
+cowplot::plot_grid(
+  plotlist = ward_plots,
+  ncol = 2
+)
+
+ggsave(str_c(results_dir, "_sitawareness_ward.png" ),
+       height = 11, width = 10, bg = "white")
+
+cowplot::plot_grid(
+  plotlist = ICU_plots,
+  ncol = 2
+)
+
+ggsave(str_c(results_dir, "_sitawareness_ICU.png" ),
+       height = 11, width = 10, bg = "white")
+
+
 
