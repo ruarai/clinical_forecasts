@@ -34,8 +34,14 @@ get_state_forecast_start <- function(
   local_cases_state,
   state_modelled
 ) {
-  local_cases_state %>%
+  date <- local_cases_state %>%
     filter(detection_probability > 0.95) %>%
     pull(date_onset) %>% max()
+  
+  if(state_modelled == "QLD") {
+    return(date - ddays(2))
+  } else{
+    return(date)
+  }
 }
 
