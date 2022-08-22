@@ -1,22 +1,12 @@
 
+library(targets)
+library(tidyverse)
+library(lubridate)
 
+print("Loading vaccine state")
 
-reff_env$get_quantium_data_dir <- function(...) return("~/data_private/quantium_forecasts/2022-06-27/")
-
-quantium_data <- reff_env$read_quantium_vaccination_data()
-
-
-lookups <- reff_env$get_quantium_lookups(reff_env$get_quantium_data_dir())
-scenario_to_use <- lookups$scenario$scenario[grep("Realistic", lookups$scenario$booster_uptake)]
-
-vaccine_state <- reff_env$aggregate_quantium_vaccination_data_to_state(quantium_data) %>%
-  filter(scenario == scenario_to_use)
-
-data_date <- ymd("2022-06-27")
-
-
-vaccine_state %>%
-  write_rds("data/vaccination/vaccine_state_20220627.rds")
+vaccine_state <- tar_read(vaccination_data)
+data_date <- ymd("2022-07-12")
 
 state_population_aged <- vaccine_state %>%
   filter(scenario == max(scenario)) %>%
@@ -36,7 +26,7 @@ state_population <- vaccine_state %>%
     population = sum(num_people, na.rm = TRUE),
     .groups = "drop"
   )
- 
+
 date_sequence <- seq.Date(
   from = as.Date("2021-02-22"),
   to = data_date + weeks(16),
@@ -146,14 +136,14 @@ ggplot(plot_data_ves) +
   theme(legend.position = "bottom")
 
 ggsave(
-  filename = "results/extra_figures/vaccine_effect_hosp_2022_06_27.png",
+  filename = "results/extra_figures/vaccine_effect_hosp_2022_07_12.png",
   width = 8, height = 8,
   bg = "white"
 )
 
 
 
-local_cases <- read_csv("data/local_cases_input_2022_06_28.csv") %>%
+local_cases <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2022-07-13.csv") %>%
   select(
     date = date_onset,
     state,
@@ -178,12 +168,11 @@ states <- unique(state_population$state)
 all_ie_tables <- map(
   states,
   function(i_state) {
-    omicron_infections <- omicron_infections_all
     
-    omicron_infections$omicron_infections <- map(
-      omicron_infections$omicron_infections,
-      function(x) x %>% filter(state == i_state)
-    )
+    omicron_infections_state <- omicron_infections_all %>%
+      unnest(omicron_infections) %>%
+      filter(state == i_state) %>%
+      nest(omicron_infections = c(date, state, num_people))
     
     ie_tables <- tibble(
       date = seq.Date(
@@ -192,7 +181,7 @@ all_ie_tables <- map(
         by = "1 week"
       ) - 1
     ) %>%
-      expand_grid(omicron_infections) %>%
+      expand_grid(omicron_infections_state) %>%
       left_join(
         y = ve_tables,
         by = "date"
@@ -220,10 +209,11 @@ all_ie_tables <- map(
       )
     
     ie_tables
-    
   }
 )
 
+
+rm(list = "ve_tables")
 
 
 all_ie_tbl <- all_ie_tables %>%
@@ -274,9 +264,9 @@ plot_data_vies <- all_effects %>%
   unnest(effect) %>%
   filter(date <= data_date)
 
-
-plot_data_ves <- read_rds("plot_data_ves.rds")
-plot_data_vies <- read_rds("plot_data_vies.rds")
+# 
+# plot_data_ves <- read_rds("plot_data_ves.rds")
+# plot_data_vies <- read_rds("plot_data_vies.rds")
 
 ggplot() +
   geom_line(aes(x = date, y = m_hosp, linetype = variant, alpha = factor(ascertainment)),
@@ -305,7 +295,7 @@ ggplot() +
   theme(legend.position = "bottom")
 
 ggsave(
-  filename = "results/extra_figures/combined_immunity_effect_hosp_2022_06_27.png",
+  filename = "results/extra_figures/combined_immunity_effect_hosp_2022_07_12.png",
   width = 8, height = 8,
   bg = "white"
 )
