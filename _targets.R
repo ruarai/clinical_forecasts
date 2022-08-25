@@ -10,28 +10,26 @@ state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT",
 
 # Do not change this value
 longterm <- FALSE
+is_retro <- FALSE
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2022-08-17")),
+  tar_target(date_forecasting, ymd("2022-08-25")),
   
   
   tar_target(date_simulation_start, ymd("2022-04-01")),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test_smc")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
   
   # Update these to the latest file path
   # ~/mfluxshared and ~/mfluxunimelb should point to the (respective) mediaflux server
-  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 16Aug2022.zip"),
-  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-16.csv"),
-  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-08-09.csv"),
+  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 24Aug2022.zip"),
+  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv"),
+  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-08-15.csv"),
   
   tar_target(models_included, c("gar", "moss", "dst")),
   
   tar_target(nindss_bad_states, c("NT", "SA", "QLD")),
   
-  tar_target(do_upload_trajectories, FALSE),
-  
-  
-  
+  tar_target(do_upload_trajectories, TRUE),
   
   
   tar_target(use_fitting, TRUE),
