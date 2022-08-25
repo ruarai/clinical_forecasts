@@ -389,6 +389,7 @@ get_time_varying_morbidity_estimations <- function(
     ) %>%
     
     group_by(bootstrap, age_group) %>%
+    arrange(date) %>%
     
     fill(pr_age_given_case, pr_hosp, pr_ICU, .direction = "updown") %>%
     ungroup()

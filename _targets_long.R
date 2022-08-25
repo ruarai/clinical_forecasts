@@ -13,6 +13,7 @@ state_tbl <- tibble::tibble(state_modelled = c("TAS", "VIC", "ACT", "WA", "SA", 
 
 # Do not change this value
 longterm <- TRUE 
+is_retro <- FALSE
 
 t_parameters <- list(
   tar_target(date_forecasting, ymd("2022-08-17")),

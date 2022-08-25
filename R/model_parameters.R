@@ -21,12 +21,18 @@ make_forecast_dates <- function(
   
   date_forecast_horizon <- max(date_forecast_start$date_onset) + ddays(days_horizon)
   
+  if(tools::file_ext(nindss_path) == "fst"){
+    nindss_date <- ymd(str_extract(nindss_path, "\\d{4}-\\d{2}-\\d{2}"))
+  } else{
+    nindss_date <- dmy(str_extract(nindss_path, "\\d{2}.{3}\\d{4}"))
+  }
+  
   tibble(
       file_limit = date_file_limit,
       simulation_start = date_simulation_start,
       
       forecast_horizon = date_forecast_horizon,
-      NNDSS = dmy(str_extract(nindss_path, "\\d{2}.{3}\\d{4}"))
+      NNDSS = nindss_date
     )
 }
 

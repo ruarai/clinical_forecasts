@@ -3,6 +3,11 @@ process_NINDSS_linelist <- function(
   raw_nindss,
   date_simulation_start
 ) {
+  if(tools::file_ext(raw_nindss) == "fst"){
+    return(fst::read_fst(raw_nindss))
+  }
+  
+  
   source("R/age_groups.R")
   
   nindss_data <- vroom::vroom(raw_nindss)

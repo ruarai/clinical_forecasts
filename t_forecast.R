@@ -49,6 +49,7 @@ t_forecast <- list(
     plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir),
     
     format = "file",
+    
     deployment = "main"
   ),
   
@@ -66,6 +67,8 @@ t_forecast <- list(
         write_csv(file_out)
       
     },
+    
+    cue = tar_cue_skip(is_retro),
     deployment = "main"
     
   )
