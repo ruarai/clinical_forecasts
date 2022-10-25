@@ -9,11 +9,11 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-08-25_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-08-15.csv"
+results_dir <- "results/fc_2022-10-21_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-10-18.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-11.csv"
 
-date_reporting_line <- ymd("2022-08-25")
+date_reporting_line <- ymd("2022-10-21")
 
 # When our plots go back to
 date_plot_start <- ymd("2021-12-01")
@@ -29,13 +29,14 @@ show_capacity <- TRUE
 
 capacity_limits_tbl <- get_current_capacity_tbl(multipliers = 1:2)
 ascertainment_ts <- get_ascertainment_ts()
-public_occupancy_data <- get_public_occupancy_data() %>%
+public_occupancy_data <- tar_read(c19data) %>%
   filter(date >= date_plot_start - ddays(14))
 
 clinical_trajectories <- get_trajectories(results_dir)
 
 
-local_cases <- read_csv(local_cases_path, show_col_types = FALSE)
+local_cases <- read_csv(local_cases_path, show_col_types = FALSE) %>%
+  rename(detection_probability = completion_probability)
 
 
 if(is_longterm) {
@@ -134,8 +135,8 @@ for(i_state in states) {
   # Important - don't plot capacity limits where they're well out of range of what's observed or predicted
   state_capacity_limits <- capacity_limits_tbl %>%
     filter(state == i_state,
-           case_when(group == "ward" ~ capacity <= max(c(ward_known$count * 1.5, ward_quants$upper * 1.5)),
-                     group == "ICU" ~ capacity <= max(c(ICU_known$count * 1.5, ICU_quants$upper * 1.5)))) %>%
+           case_when(group == "ward" ~ capacity <= max(c(ward_known$count * 1.5, ward_quants$upper * 1.5), na.rm = TRUE),
+                     group == "ICU" ~ capacity <= max(c(ICU_known$count * 1.5, ICU_quants$upper * 1.5), na.rm = TRUE))) %>%
     
     mutate(#padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
            #label = padded_capacity,
@@ -169,12 +170,21 @@ for(i_state in states) {
     coord_cartesian(xlim = c(date_plot_start, forecast_start_date + ddays(days_horizon) - ddays(4)))
   )
   
+  plot_params <- list(
+    "rep_colour" = "grey17",
+    "rep_thinness" = 0.1,
+    "reporting_line_colour" = "grey60",
+    "point_size" = 0.5,
+    "point_stroke" = 0.15,
+    "point_colour" = "grey20"
+  )
+  
   rep_colour <- "grey17"
   rep_thinness <- 0.1
   
   p_cases <- ggplot() +
     
-    geom_vline(xintercept = date_reporting_line, colour = "grey60") +
+    geom_vline(xintercept = date_reporting_line, colour = plot_params$reporting_line_colour) +
     
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
@@ -190,15 +200,15 @@ for(i_state in states) {
     
     geom_point(aes(x = date, y = count),
                cases_known %>% filter(detection_probability >= 0.95),
-               color = "grey20",
+               color = plot_params$point_colour,
                
-               size = 0.6, stroke = 0.2) +
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
     
     geom_point(aes(x = date, y = count / detection_probability),
                cases_known %>% filter(detection_probability <= 0.99),
                color = 'black',
                
-               size = 0.6, stroke = 0.2) +
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
     
     # Currently smaller than the points themselves!
     geom_linerange(aes(x = date, ymin = lower90, ymax = upper90),
@@ -230,10 +240,10 @@ for(i_state in states) {
     } +
     
     geom_point(aes(x = date, y = count),
-               color = "grey20",
+               color = plot_params$point_colour,
                ward_known,
                
-               size = 0.6, stroke = 0.2) +
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
     
     scale_fill_manual(values = plot_cols$ward) +
     
@@ -274,10 +284,10 @@ for(i_state in states) {
     
     
     geom_point(aes(x = date, y = count),
-               color = "grey20",
+               color = plot_params$point_colour,
                ICU_known,
                
-               size = 0.6, stroke = 0.2) +
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
     
     scale_fill_manual(values = plot_cols$ICU) +
     
@@ -326,7 +336,7 @@ zip::zip(zipfile = str_c(results_dir, "_sitawareness_plots_", date_reporting_lin
 
 cairo_pdf(str_c(results_dir, "_sitawareness_combined.pdf"),
           width = 8.5, height = 9, onefile = TRUE)
-for (i in 1:length(plots)){
+for (i in 1:length(plots)) {
   plot(plots[[i]])
 }
 dev.off()

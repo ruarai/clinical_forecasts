@@ -126,9 +126,9 @@ get_forecast_start_date <- function(local_cases_state, pr_detect = 0.95) {
 }
 
 get_public_occupancy_data <- function() {
-  covid19data_url <- "https://github.com/M3IT/COVID-19_Data/raw/master/Data/COVID_AU_state.csv"
-  c19data <- read_csv(covid19data_url,
-           show_col_types = FALSE) 
+  source("R/get_public_occupancy.R")
+  
+  c19data <- get_public_occupancy(today())
   
   source("R/occupancy_timeseries.R")
   
