@@ -11,7 +11,8 @@ make_forecast_dates <- function(
   
   is_longterm
 ) {
-  local_cases <- read_csv(local_cases_file, show_col_types = FALSE)
+  local_cases <- read_csv(local_cases_file, show_col_types = FALSE) %>%
+    rename(detection_probability = completion_probability)
   
   
   date_forecast_start <- local_cases %>%

@@ -6,7 +6,8 @@ state_results <- tar_map(
   tar_target(
     local_cases_state,
     read_csv(raw_local_cases, show_col_types = FALSE) %>%
-      filter(state == state_modelled),
+      filter(state == state_modelled) %>%
+      rename(detection_probability = completion_probability),
     deployment = "main"
   ),
   
@@ -49,12 +50,23 @@ state_results <- tar_map(
     make_case_trajectories(
       ensemble_state,
       local_cases_state,
-      
+
       forecast_dates,
       state_forecast_start
     )
   ),
   
+  # tar_target(
+  #   case_trajectories,
+  #   make_case_trajectories_oracle(
+  #     read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv", show_col_types = FALSE),
+  #     local_cases_state,
+  # 
+  #     forecast_dates,
+  #     state_forecast_start
+  #   )
+  # ),
+
   t_state_results_immunity,
   
   tar_target(
@@ -100,16 +112,7 @@ state_results <- tar_map(
   
 
   
-  # tar_target(
-  #   case_trajectories,
-  #   make_case_trajectories_oracle(
-  #     read_csv("historical_inputs/2022-05-19/local_cases.csv", show_col_types = FALSE),
-  #     local_cases_state,
-  # 
-  #     forecast_dates,
-  #     state_forecast_start
-  #   )
-  # ),
+
   
   tar_target(
     sim_thresholds,
