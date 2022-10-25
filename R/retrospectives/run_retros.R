@@ -35,18 +35,12 @@ forecast_inputs <- tibble::tribble(
   "2022-08-17"
 )
 
-forecast_suffix <- "retro2"
+forecast_suffix <- "retro2_oracle"
 
 
 all_retros <- forecast_inputs %>%
   mutate(
-    plausible_directory = str_c("historical_inputs/", date),
-    
-    plausible_directory = if_else(
-      !dir.exists(plausible_directory),
-      str_c("historical_inputs/fc_", date, "_final"),
-      plausible_directory
-    )
+    plausible_directory = str_c("results/fc_", date, "_final/archive"),
   ) %>%
   
   filter(dir.exists(plausible_directory)) %>%
@@ -66,8 +60,8 @@ all_retros <- forecast_inputs %>%
 
 targets_template <- read_file("_targets.template.R")
 
-# 17, 22, 24, 27, 28 next
-for(i in c(17, 22, 24, 27, 28)){#18:nrow(all_retros)) {
+
+for(i in 1:nrow(all_retros)) {
   print(i)
   
   i_row <- all_retros[i, ]
@@ -86,13 +80,6 @@ for(i in c(17, 22, 24, 27, 28)){#18:nrow(all_retros)) {
 
 
 
-for(i in 1:nrow(all_retros)) {
-  print(i)
-  
-  
-  i_row <- all_retros[i, ]
-  file.copy(from = i_row$local_cases, to = str_c(i_row$out_dir, "/local_cases.csv"))
-}
 
 
 
