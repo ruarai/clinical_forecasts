@@ -5,7 +5,7 @@ library(lubridate)
 
 print("Loading vaccine state")
 
-vaccine_state <- tar_read(vaccination_data)
+vaccine_state <- tar_read(vaccination_data, store = "_long/")
 data_date <- ymd("2022-07-12")
 
 state_population_aged <- vaccine_state %>%
@@ -28,10 +28,15 @@ state_population <- vaccine_state %>%
   )
 
 date_sequence <- seq.Date(
-  from = as.Date("2021-02-22"),
+  from = as.Date("2021-10-22"),
+  #to = as.Date("2021-10-22") + weeks(8),
   to = data_date + weeks(16),
   by = "1 week"
 )#[63:66]
+
+
+vaccine_state <- vaccine_state %>%
+  filter(state == "VIC")
 
 # calculate vaccine effects
 ve_tables <- tibble(
@@ -57,19 +62,30 @@ ve_tables <- tibble(
 
 get_hosp_ves <- function(coverage, ves, ...) {
   ves %>%
-    filter(outcome == "hospitalisation") %>%
+    filter(outcome == "hospitalisation" | outcome == "acquisition") %>%
+    
+    pivot_wider(names_from = outcome,
+                values_from = ve) %>%
     
     left_join(coverage, by = c("scenario", "state", "age_band")) %>%
-    complete(scenario, omicron_scenario, state, age_band, variant, outcome) %>%
+    complete(scenario, omicron_scenario, state, age_band, variant) %>%
     
-    mutate(ve = replace_na(ve, 0),
+    mutate(ve = replace_na(hospitalisation, 0),
+           
+           hospitalisation = 1 - (1 - hospitalisation) / (1 - acquisition),
+           hospitalisation = replace_na(hospitalisation, 0),
+           
            coverage = replace_na(coverage, 0),
-           m_hosp = 1 - ve * coverage) %>%
+           m_hosp = 1 - hospitalisation * coverage,
+           m_hosp_old = 1 - ve * coverage,
+           ) %>%
 
     left_join(state_population_aged, by = c("age_band", "state")) %>%
 
     group_by(scenario, omicron_scenario, variant, state) %>%
-    summarise(m_hosp = sum(m_hosp * prop_age), .groups = "drop")
+    summarise(m_hosp = sum(m_hosp * prop_age),
+              m_hosp_old = sum(m_hosp_old * prop_age),
+              .groups = "drop")
 }
 
 
@@ -116,6 +132,8 @@ plots_common <- list(
 ggplot(plot_data_ves) +
   geom_line(aes(x = date, y = m_hosp, alpha = variant, linetype = data_type),
             color = ggokabeito::palette_okabe_ito(5)) +
+  geom_line(aes(x = date, y = m_hosp_old, alpha = variant, linetype = data_type),
+            color = ggokabeito::palette_okabe_ito(3)) +
   
   geom_hline(yintercept = 0, size = 0.8, col = 'grey40')  +
   

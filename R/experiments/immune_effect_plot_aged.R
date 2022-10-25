@@ -6,8 +6,8 @@ library(lubridate)
 
 print("Loading vaccine state")
 
-vaccine_state <- tar_read(vaccination_data)
-data_date <- ymd("2022-07-12")
+vaccine_state <- tar_read(vaccination_data, store = "../clinical_forecasting_NSW/_targets/")
+data_date <- ymd("2022-08-15")
 
 
 
@@ -45,15 +45,34 @@ ve_tables <- tibble(
 
 
 get_hosp_ves <- function(coverage, ves, ...) {
+  # ves %>%
+  #   filter(outcome == "hospitalisation") %>%
+  #   
+  #   left_join(coverage, by = c("scenario", "state", "age_band")) %>%
+  #   complete(scenario, omicron_scenario, state, age_band, variant, outcome) %>%
+  #   
+  #   mutate(ve = replace_na(ve, 0),
+  #          coverage = replace_na(coverage, 0),
+  #          m_hosp = 1 - ve * coverage)
+  # 
   ves %>%
-    filter(outcome == "hospitalisation") %>%
+    filter(outcome == "hospitalisation" | outcome == "acquisition") %>%
+    
+    pivot_wider(names_from = outcome,
+                values_from = ve) %>%
     
     left_join(coverage, by = c("scenario", "state", "age_band")) %>%
-    complete(scenario, omicron_scenario, state, age_band, variant, outcome) %>%
+    complete(scenario, omicron_scenario, state, age_band, variant) %>%
     
-    mutate(ve = replace_na(ve, 0),
+    mutate(ve = replace_na(hospitalisation, 0),
+           
+           hospitalisation = 1 - (1 - hospitalisation) / (1 - acquisition),
+           hospitalisation = replace_na(hospitalisation, 0),
+           
            coverage = replace_na(coverage, 0),
-           m_hosp = 1 - ve * coverage)
+           m_hosp = 1 - hospitalisation * coverage,
+           m_hosp_old = 1 - ve * coverage,
+    ) 
 }
 
 
@@ -91,7 +110,7 @@ plot_data_ves <- hosp_effect %>%
   
   mutate(age_group = age_bands_to_wider(age_band)) %>%
   group_by(variant, date, state, age_group) %>%
-  summarise(m_hosp = mean(m_hosp)) %>%
+  summarise(m_hosp = mean(m_hosp), m_hosp_old = mean(m_hosp_old)) %>%
   filter(variant != "Delta") %>%
   mutate(
     data_type = if_else(
@@ -132,6 +151,8 @@ plots_common <- list(
 ggplot(plot_data_ves %>% filter(state == "NSW")) +
   geom_line(aes(x = date, y = m_hosp, linetype = data_type, alpha = variant),
             color = ggokabeito::palette_okabe_ito(5)) +
+  geom_line(aes(x = date, y = m_hosp_old, linetype = data_type, alpha = variant),
+            color = ggokabeito::palette_okabe_ito(3)) +
   
   geom_hline(yintercept = 0, size = 0.8, col = 'grey40')  +
   
