@@ -6,6 +6,7 @@ options(tidyverse.quiet = TRUE)
 tar_option_set(packages = c("tidyverse", "lubridate", "curvemush"), garbage_collection = TRUE, backoff = 60)
 
 state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+#state_tbl <- tibble::tibble(state_modelled = c("TAS", "NSW", "QLD"))
 
 
 # Do not change this value
@@ -13,17 +14,17 @@ longterm <- FALSE
 is_retro <- FALSE
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2022-08-25")),
+  tar_target(date_forecasting, ymd("2022-10-21")),
   
   
-  tar_target(date_simulation_start, ymd("2022-04-01")),
+  tar_target(date_simulation_start, ymd("2022-06-01")),
   tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
   
   # Update these to the latest file path
   # ~/mfluxshared and ~/mfluxunimelb should point to the (respective) mediaflux server
-  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 24Aug2022.zip"),
-  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv"),
-  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_75asc2022-08-15.csv"),
+  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 20Oct2022.zip"),
+  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2022-10-18.csv"),
+  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-11.csv"),
   
   tar_target(models_included, c("gar", "moss", "dst")),
   
