@@ -6,8 +6,8 @@ state_results <- tar_map(
   tar_target(
     local_cases_state,
     read_csv(raw_local_cases, show_col_types = FALSE) %>%
-      filter(state == state_modelled) %>%
-      rename(detection_probability = completion_probability),
+      filter(state == state_modelled) %>% 
+      rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x)),
     deployment = "main"
   ),
   
@@ -20,13 +20,13 @@ state_results <- tar_map(
     deployment = "main"
   ),
   
-  tar_target(
-    nindss_state,
-    nindss %>%
-      filter(state == state_modelled),
-    
-    format = "fst"
-  ),
+  # tar_target(
+  #   nindss_state,
+  #   nindss %>%
+  #     filter(state == state_modelled),
+  #   
+  #   format = "fst"
+  # ),
   
   tar_target(
     known_occupancy_ts,
@@ -69,33 +69,42 @@ state_results <- tar_map(
 
   t_state_results_immunity,
   
-  tar_target(
-    unadjusted_morbidity_trajectories_state,
-    
-    get_time_varying_morbidity_estimations(
-      nindss_state,
-      
-      forecast_dates,
-      
-      clinical_parameters,
-      
-      state_modelled,
-      nindss_bad_states,
-      
-      morbidity_trajectories_national,
-      morbidity_window_width
-    )
-  ),
+  # tar_target(
+  #   unadjusted_morbidity_trajectories_state,
+  #   
+  #   get_time_varying_morbidity_estimations(
+  #     nindss_state,
+  #     
+  #     forecast_dates,
+  #     
+  #     clinical_parameters,
+  #     
+  #     state_modelled,
+  #     nindss_bad_states,
+  #     
+  #     morbidity_trajectories_national,
+  #     morbidity_window_width
+  #   )
+  # ),
+  
+  # tar_target(
+  #   morbidity_trajectories_state,
+  #   adjust_morbidity_trajectories(
+  #     is_longterm,
+  #     immune_predictions_state,
+  #     unadjusted_morbidity_trajectories_state,
+  #     forecast_dates,
+  #     state_modelled
+  #   ),
+  #   format = "fst_tbl"
+  # ),
+  
   
   tar_target(
     morbidity_trajectories_state,
-    adjust_morbidity_trajectories(
-      is_longterm,
-      immune_predictions_state,
-      unadjusted_morbidity_trajectories_state,
-      forecast_dates,
-      state_modelled
-    ),
+    
+    #get_time_varying_as_known(date_forecasting, forecast_dates),
+    get_time_varying_with_future(date_forecasting, forecast_dates),
     format = "fst_tbl"
   ),
   

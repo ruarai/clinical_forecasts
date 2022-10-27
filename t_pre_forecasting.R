@@ -69,12 +69,12 @@ pre_forecasting <- c(
        }
     ),
     
-    tar_target(
-      nindss,
-      process_NINDSS_linelist(raw_nindss, date_simulation_start),
-      format = "fst",
-      deployment = "main"
-    ),
+    # tar_target(
+    #   nindss,
+    #   process_NINDSS_linelist(raw_nindss, date_simulation_start),
+    #   format = "fst",
+    #   deployment = "main"
+    # ),
 
     tar_target(
       forecast_dates,
@@ -93,27 +93,27 @@ pre_forecasting <- c(
     
     tar_target(
       morbidity_window_width, if_else(is_longterm, 28, 14)
-    ),
+    )#,
 
-    tar_target(
-      morbidity_trajectories_national,
-      
-      get_time_varying_morbidity_estimations(
-        nindss,
-        
-        forecast_dates,
-        
-        clinical_parameters,
-        
-        "national",
-        nindss_bad_states,
-        
-        NULL,
-        morbidity_window_width
-      ),
-
-      garbage_collection = TRUE # Clear memory after reading NINDSS
-    )
+    # tar_target(
+    #   morbidity_trajectories_national,
+    #   
+    #   get_time_varying_morbidity_estimations(
+    #     nindss,
+    #     
+    #     forecast_dates,
+    #     
+    #     clinical_parameters,
+    #     
+    #     "national",
+    #     nindss_bad_states,
+    #     
+    #     NULL,
+    #     morbidity_window_width
+    #   ),
+    # 
+    #   garbage_collection = TRUE # Clear memory after reading NINDSS
+    # )
   ),
   
   t_preforecasting_immunity,

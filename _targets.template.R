@@ -5,7 +5,9 @@ library(future.callr)
 options(tidyverse.quiet = TRUE)
 tar_option_set(packages = c("tidyverse", "lubridate", "curvemush"), garbage_collection = TRUE, backoff = 60)
 
-state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+#state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+state_tbl <- tibble::tibble(state_modelled = c("NSW"))
+
 
 # Do not change these values
 longterm <- FALSE
