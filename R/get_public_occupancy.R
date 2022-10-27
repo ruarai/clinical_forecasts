@@ -19,7 +19,8 @@ get_public_occupancy <- function(date_forecasting) {
   full_occ <- bind_rows(
     old_ts %>% filter(date < min(national_data$date)),
     national_data
-  )
+  ) %>%
+    select(state, group, date, count)
   
   
   p <- full_occ %>%
@@ -30,7 +31,7 @@ get_public_occupancy <- function(date_forecasting) {
     facet_wrap(~state, scales = "free_y")
   
   
-  write_csv(full_occ, str_c("data/occupancy/compiled/compiled_nat_", today(), ".csv"))
+  write_csv(full_occ, str_c("data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
   
   full_occ
 }

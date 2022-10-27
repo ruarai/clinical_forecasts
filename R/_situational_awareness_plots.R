@@ -16,7 +16,7 @@ ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-1
 date_reporting_line <- ymd("2022-10-21")
 
 # When our plots go back to
-date_plot_start <- ymd("2021-12-01")
+date_plot_start <- ymd("2022-02-04")
 
 # Are we plotting long or short-term forecasts?
 is_longterm <- FALSE
@@ -35,8 +35,8 @@ public_occupancy_data <- tar_read(c19data) %>%
 clinical_trajectories <- get_trajectories(results_dir)
 
 
-local_cases <- read_csv(local_cases_path, show_col_types = FALSE) %>%
-  rename(detection_probability = completion_probability)
+local_cases <- read_csv(local_cases_path, show_col_types = FALSE) %>% 
+  rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
 
 
 if(is_longterm) {
@@ -97,17 +97,21 @@ for(i_state in states) {
     make_results_quants(plot_quant_widths) %>%
     filter(date > forecast_start_date - ddays(days_before_fit), date <= forecast_start_date + ddays(days_horizon))
   
-  cases_known <- process_local_cases(local_cases_state, ascertainment_ts)
-
+  
+  cases_known <- process_local_cases(local_cases_state, ascertainment_ts) %>%
+    filter(date >= date_plot_start)
+  
   ward_quants <- clinical_quants_state %>%
     filter(group == "ward")
   ward_known <- public_occupancy_data %>%
-    filter(group == "ward", state == i_state)
+    filter(group == "ward", state == i_state) %>%
+    filter(date >= date_plot_start)
   
   ICU_quants <- clinical_quants_state %>%
     filter(group == "ICU")
   ICU_known <- public_occupancy_data %>%
-    filter(group == "ICU", state == i_state)
+    filter(group == "ICU", state == i_state) %>%
+    filter(date >= date_plot_start)
   
   
   
@@ -141,7 +145,8 @@ for(i_state in states) {
     mutate(#padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
            #label = padded_capacity,
            wave = if_else(i_state %in% c("TAS", "WA", "ACT"), "BA.2", "BA.1"),
-           label = if_else(multiplier == 1, str_c(wave, " peak"), str_c(multiplier, "x ", wave, " peak")))
+           label = if_else(multiplier == 1, str_c(wave, " peak"), str_c(multiplier, "x ", wave, " peak")),
+           date = date_plot_start + days(7))
   
   
   plots_common <- list(
@@ -258,7 +263,7 @@ for(i_state in states) {
     } +
     {
       if(show_capacity)
-        geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
+        geom_label(aes(x = date, y = capacity, label = label),
                    hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
                    state_capacity_limits %>% filter(group == "ward"))
     } +
@@ -302,7 +307,7 @@ for(i_state in states) {
     } +
     {
       if(show_capacity)
-        geom_label(aes(x = date_plot_start + ddays(7), y = capacity, label = label),
+        geom_label(aes(x = date, y = capacity, label = label),
                    hjust = 0, vjust = 0.5, label.r = unit(0, "cm"), label.size = 0,
                    state_capacity_limits %>% filter(group == "ICU"))
     } +
