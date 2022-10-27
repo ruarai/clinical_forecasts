@@ -45,27 +45,27 @@ state_results <- tar_map(
   tar_target(state_forecast_start_tbl, tibble(date = state_forecast_start, state = state_modelled)),
   
   
-  tar_target(
-    case_trajectories,
-    make_case_trajectories(
-      ensemble_state,
-      local_cases_state,
-
-      forecast_dates,
-      state_forecast_start
-    )
-  ),
-  
   # tar_target(
   #   case_trajectories,
-  #   make_case_trajectories_oracle(
-  #     read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv", show_col_types = FALSE),
+  #   make_case_trajectories(
+  #     ensemble_state,
   #     local_cases_state,
   # 
   #     forecast_dates,
   #     state_forecast_start
   #   )
   # ),
+  
+  tar_target(
+    case_trajectories,
+    make_case_trajectories_oracle(
+      read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv", show_col_types = FALSE),
+      local_cases_state,
+
+      forecast_dates,
+      state_forecast_start
+    )
+  ),
 
   t_state_results_immunity,
   
@@ -103,8 +103,8 @@ state_results <- tar_map(
   tar_target(
     morbidity_trajectories_state,
     
-    #get_time_varying_as_known(date_forecasting, forecast_dates),
-    get_time_varying_with_future(date_forecasting, forecast_dates),
+    get_time_varying_as_known(date_forecasting, forecast_dates),
+    #get_time_varying_with_future(date_forecasting, forecast_dates),
     format = "fst_tbl"
   ),
   
