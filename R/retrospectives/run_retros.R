@@ -35,7 +35,7 @@ forecast_inputs <- tibble::tribble(
   "2022-08-17"
 )
 
-forecast_suffix <- "retro3_knowncases"
+forecast_suffix <- "retro3_knowntv"
 
 
 all_retros <- forecast_inputs %>%
