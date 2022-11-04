@@ -14,7 +14,7 @@ longterm <- FALSE
 is_retro <- FALSE
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2022-10-21")),
+  tar_target(date_forecasting, ymd("2022-11-04")),
   
   
   tar_target(date_simulation_start, ymd("2022-06-01")),
@@ -22,11 +22,12 @@ t_parameters <- list(
   
   # Update these to the latest file path
   # ~/mfluxshared and ~/mfluxunimelb should point to the (respective) mediaflux server
-  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 20Oct2022.zip"),
-  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2022-10-18.csv"),
-  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-11.csv"),
+  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 26Oct2022.zip"),
+  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2022-11-03.csv"),
+  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-28.csv"),
+  tar_target(occupancy_path, "data/occupancy/NAT_2022-11-04_Data for Uni of Melbourne.xlsx"),
   
-  tar_target(models_included, c("gar", "moss", "dst")),
+  tar_target(models_included, c("gar", "moss", "dst", "dst_new")),
   
   tar_target(nindss_bad_states, c("NT", "SA", "QLD")),
   

@@ -1,9 +1,9 @@
 
-get_public_occupancy <- function(date_forecasting) {
+get_public_occupancy <- function(date_forecasting, occupancy_path) {
   
   
   national_data <- readxl::read_excel(
-    "data/occupancy/NAT_2022-04-21_Data for Uni of Melbourne.xlsx",
+    occupancy_path,
     sheet = 2
   ) %>%
     `colnames<-`(c("date", "hospitalised", "ICU", "state")) %>%

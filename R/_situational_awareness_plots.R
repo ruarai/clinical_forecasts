@@ -9,11 +9,11 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-10-21_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-10-18.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-11.csv"
+results_dir <- "results/fc_2022-11-04_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-11-03.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-28.csv"
 
-date_reporting_line <- ymd("2022-10-21")
+date_reporting_line <- ymd("2022-11-04")
 
 # When our plots go back to
 date_plot_start <- ymd("2022-02-04")
@@ -44,7 +44,7 @@ if(is_longterm) {
   ensemble_models_included <- c("moss", "dst")
 } else{
   plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-  ensemble_models_included <- c("gar", "moss", "dst")
+  ensemble_models_included <- c("gar", "moss", "dst", "dst_new")
   #ensemble_models_included <- c("gar", "moss")
   ascertainment_ts$time_varying_75 <- 1
 }
@@ -66,9 +66,15 @@ for(i_state in states) {
   clinical_trajectories_wide_state <- get_state_clinical_trajectories_wide(clinical_trajectories, i_state)
   
   local_cases_state <- local_cases %>%
-    filter(state == i_state)
+    filter(state == i_state) %>%
+    
+    filter(
+      state == "NT" & date_onset <= ymd("2022-10-26")
+    )
   
   forecast_start_date <- get_forecast_start_date(local_cases_state, pr_detect = 0.95)
+  
+  
   case_ensemble_state <- case_ensemble_state %>%
     filter(date <= forecast_start_date + ddays(days_horizon))
   
