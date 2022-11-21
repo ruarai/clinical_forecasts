@@ -9,6 +9,10 @@ get_time_varying_morbidity_estimations <- function(
   morbidity_window_width
 ) {
   
+  if(state_modelled == "QLD") {
+    return(morbidity_trajectories_national)
+  }
+  
   do_estimate_morbidity <- TRUE
   
   if(state_modelled %in% nindss_bad_states) {
