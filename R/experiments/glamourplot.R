@@ -21,7 +21,7 @@ date_plot_start <- ymd("2022-06-01")
 
 # Are we plotting long or short-term forecasts?
 is_longterm <- TRUE
-plot_quant_widths <- c(0.2, 0.5)
+plot_quant_widths <- c(0.2)
 ensemble_models_included <- c("moss")
 
 
@@ -114,11 +114,17 @@ state_capacity_limits <- capacity_limits_tbl %>%
   mutate(padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
          label = padded_capacity)
 
+scale <- 0.001
+
+ensemble_quants <- ensemble_quants %>%
+  group_by(asc) %>%
+  mutate(lower = smooth.spline(lower, k = 8, fill = NA, align = "left"),
+         upper = zoo::rollmean(upper, k = 8, fill = NA, align = "left"))
 
 plots_common <- list(
   scale_shape_manual(values = c("FALSE" = 1, "TRUE" = 16)),
-  scale_x_date(date_breaks = "months",
-               labels = scales::label_date_short(format = c("%Y", "%b")),
+  scale_x_date(breaks = seq(ymd("2022-06-01"), ymd("2022-12-01"), "month"),
+               labels = str_c("Month ", 1:7),
                expand = expansion(mult = c(0.01, 0.05))),
   scale_y_continuous(breaks = scales::extended_breaks(),
                      labels = scales::label_comma(),
@@ -138,38 +144,41 @@ plots_common <- list(
         text = element_text(family = "Helvetica")),
   
   coord_cartesian(xlim = c(date_plot_start, ymd("2022-12-01")),
-                  ylim = c(0, 60000))
+                  ylim = c(0, 60000 * scale))
 )
 
-p_cases <- ggplot() +
+ggplot() +
   
   geom_vline(xintercept = date_reporting_line, colour = "grey60") +
   
-  geom_ribbon(aes(x = date, ymin = lower / 0.5, ymax = upper / 0.5, group = quant, fill = quant),
-              
-              fill = paletteer::paletteer_d("LaCroixColoR::PeachPear")[1], alpha = 0.5,
+  geom_ribbon(aes(x = date, ymin = lower / 0.5 * scale, ymax = upper / 0.5 * scale, group = quant, fill = "50%"),
+              alpha = 0.5,
               
               data = ensemble_quants %>% filter(asc == "50%")) +
   
-  geom_ribbon(aes(x = date, ymin = lower / 0.75, ymax = upper / 0.75, group = quant, fill = quant),
-              
-              fill = paletteer::paletteer_d("LaCroixColoR::PeachPear")[5], alpha = 0.5,
+  geom_ribbon(aes(x = date, ymin = lower / 0.75 * scale, ymax = upper / 0.75 * scale, group = quant, fill = "75%"),
+              alpha = 0.5,
               
               data = ensemble_quants %>% filter(asc == "75%")) +
   
   
-  geom_point(aes(x = date, y = count / 0.5),
+  geom_point(aes(x = date, y = count / 0.5 * scale),
              cases_known %>% filter(detection_probability >= 0.95),
              colour =  paletteer::paletteer_d("LaCroixColoR::PeachPear")[1],
              
              size = 1, stroke = 0.2) +
   
   
-  geom_point(aes(x = date, y = count / 0.75),
+  geom_point(aes(x = date, y = count / 0.75 * scale),
              cases_known %>% filter(detection_probability >= 0.95),
              colour =  paletteer::paletteer_d("LaCroixColoR::PeachPear")[5],
              
              size = 1, stroke = 0.2) +
+  
+  scale_fill_manual(
+    values = paletteer::paletteer_d("LaCroixColoR::PeachPear")[c(1, 5)],
+    name = "Case ascertainment"
+  ) +
   
   # Currently smaller than the points themselves!
   geom_linerange(aes(x = date, ymin = lower90, ymax = upper90),
@@ -179,7 +188,18 @@ p_cases <- ggplot() +
   geom_vline(xintercept = forecast_start_date + ddays(1),
              colour = "grey40", linetype = "dashed") +
   
-  plots_common
-
-p_cases
+  plots_common +
+  
+  theme(
+    legend.position = c(0.8, 0.8),
+    legend.direction = "vertical",
+    legend.text = element_text(size = 18),
+    legend.spacing.y = unit(0.2, 'cm'),
+    legend.key.height = unit(1, "cm"),
+    legend.key.width = unit(1, "cm"),
+    legend.title = element_text(size = 20),
+    axis.text = element_text(size = 15)
+  ) +
+  
+  guides(fill = guide_legend(override.aes = list(alpha = 0.4)))
 
