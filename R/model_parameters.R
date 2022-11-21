@@ -45,10 +45,6 @@ get_state_forecast_start <- function(
     filter(detection_probability > 0.95) %>%
     pull(date_onset) %>% max()
   
-  if(state_modelled == "NT") {
-    return(date - ddays(2))
-  } else{
-    return(date)
-  }
+  return(date)
 }
 

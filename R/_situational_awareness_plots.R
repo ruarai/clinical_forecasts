@@ -9,14 +9,14 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-11-04_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-11-03.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-10-28.csv"
+results_dir <- "results/fc_2022-11-18_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-11-17.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-11-12.csv"
 
-date_reporting_line <- ymd("2022-11-04")
+date_reporting_line <- ymd("2022-11-18")
 
 # When our plots go back to
-date_plot_start <- ymd("2022-02-04")
+date_plot_start <- ymd("2022-02-01")
 
 # Are we plotting long or short-term forecasts?
 is_longterm <- FALSE
@@ -66,11 +66,7 @@ for(i_state in states) {
   clinical_trajectories_wide_state <- get_state_clinical_trajectories_wide(clinical_trajectories, i_state)
   
   local_cases_state <- local_cases %>%
-    filter(state == i_state) %>%
-    
-    filter(
-      state == "NT" & date_onset <= ymd("2022-10-26")
-    )
+    filter(state == i_state)
   
   forecast_start_date <- get_forecast_start_date(local_cases_state, pr_detect = 0.95)
   
@@ -150,7 +146,7 @@ for(i_state in states) {
     
     mutate(#padded_capacity = str_pad(capacity, max(str_length(as.character(capacity))), side = "r"),
            #label = padded_capacity,
-           wave = if_else(i_state %in% c("TAS", "WA", "ACT"), "BA.2", "BA.1"),
+           wave = "BA.4/5",
            label = if_else(multiplier == 1, str_c(wave, " peak"), str_c(multiplier, "x ", wave, " peak")),
            date = date_plot_start + days(7))
   
