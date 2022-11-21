@@ -111,7 +111,7 @@ run_progression_model <- function(
   a <- Sys.time()
   
   if(do_ABC) {
-    if(state_modelled == "NT" | state_modelled == "QLD") {
+    if(state_modelled == "NT") {
       prior_sigma_los <- 2
       prior_sigma_hosp <- 2
     } else{
