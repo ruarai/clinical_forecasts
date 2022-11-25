@@ -372,17 +372,6 @@ get_time_varying_morbidity_estimations <- function(
         by = c("bootstrap", "age_group", "date")
       )
   }
-  # else if(state_modelled == "QLD") {
-  #   all_results <- all_results %>%
-  #     select(-pr_ICU) %>%
-  #     left_join(
-  #       morbidity_trajectories_national %>% 
-  #         mutate(pr_ICU = pr_ICU * 0.5) %>%
-  #         select(bootstrap, age_group, date, pr_ICU),
-  #       
-  #       by = c("bootstrap", "age_group", "date")
-  #     )
-  # }
   
   morbidity_trajectories <- all_results %>%
     
@@ -397,7 +386,29 @@ get_time_varying_morbidity_estimations <- function(
     
     fill(pr_age_given_case, pr_hosp, pr_ICU, .direction = "updown") %>%
     ungroup()
-
+  
+  if(do_estimate_morbidity && !is.null(morbidity_trajectories_national)) {
+    # Adjust pr_ICU estimates towards national-level estimates where recent hospitalisation counts are low
+    
+    forecast_ICU_adj_factors <- nindss_state %>%
+      filter(ever_in_hospital, date_onset >= estimation_period[2] - days(window_width)) %>%
+      count(age_group) %>%
+      complete(age_group = age_groups, fill = list(n = 0)) %>%
+      mutate(prop_local = pmin(n, 5) / 5) %>%
+      select(age_group, prop_local)
+    
+    
+    morbidity_trajectories <- morbidity_trajectories %>%
+      left_join(
+        morbidity_trajectories_national %>% select(age_group, date, bootstrap, pr_ICU_nat = pr_ICU),
+        by = c("bootstrap", "age_group", "date")
+      ) %>% 
+      left_join(forecast_ICU_adj_factors, by = "age_group") %>% 
+      mutate(pr_ICU = if_else(date >= forecast_dates$NNDSS, pr_ICU * prop_local + pr_ICU_nat * (1 - prop_local), pr_ICU)) %>% 
+      select(-prop_local)
+  }
+  
+  return(morbidity_trajectories)
 }
 
 

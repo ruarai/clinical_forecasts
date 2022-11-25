@@ -133,7 +133,7 @@ run_progression_model <- function(
     steps_per_day = 4,
     
     thresholds_vec = thresholds,
-    rejections_per_selections = 300,
+    rejections_per_selections = 600,
     do_ABC = do_ABC,
 
     prior_sigma_los = prior_sigma_los,
