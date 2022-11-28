@@ -9,11 +9,11 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-11-18_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-11-17.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-11-12.csv"
+results_dir <- "results/fc_2022-11-25_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-11-24.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-11-19.csv"
 
-date_reporting_line <- ymd("2022-11-18")
+date_reporting_line <- ymd("2022-11-25")
 
 # When our plots go back to
 date_plot_start <- ymd("2022-02-01")
@@ -44,7 +44,7 @@ if(is_longterm) {
   ensemble_models_included <- c("moss", "dst")
 } else{
   plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-  ensemble_models_included <- c("gar", "moss", "dst", "dst_new")
+  ensemble_models_included <- c("gar", "moss", "moss_unsmoothed", "dst_new")
   #ensemble_models_included <- c("gar", "moss")
   ascertainment_ts$time_varying_75 <- 1
 }
@@ -81,6 +81,12 @@ for(i_state in states) {
                 values_from = starts_with("sim"))
   
   
+  na_cols <- map_lgl(1:ncol(case_ensemble_wide), ~ all(is.na(case_ensemble_wide[,.])))
+  
+  print(paste0("Dropping ", sum(na_cols), " columns for being entirely NA"))
+  
+  
+  case_ensemble_wide <- case_ensemble_wide[, !na_cols]
   
   
   ensemble_quants <- case_ensemble_wide %>%
