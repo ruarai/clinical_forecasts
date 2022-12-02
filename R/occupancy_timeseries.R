@@ -12,6 +12,13 @@ make_occupancy_timeseries <- function(
       filter(state == state_modelled)
   }
   
+  if(state_modelled == "ACT"){
+    ts <- ts %>%
+      mutate(
+        count = if_else(date >= ymd("2022-11-13") & date <= ymd("2022-11-24"), NA_real_, count)
+      )
+  }
+  
   
   
   return(ts)
