@@ -9,11 +9,12 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2022-12-02_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-12-01.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_50asc2022-11-26.csv"
+results_dir <- "results/fc_2022-12-09_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2022-12-08.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2022-12-02.csv"
+date_reporting_line <- ymd("2022-12-09")
 
-date_reporting_line <- ymd("2022-12-02")
+
 
 # When our plots go back to
 date_plot_start <- ymd("2022-06-01")
@@ -44,8 +45,7 @@ if(is_longterm) {
   ensemble_models_included <- c("moss", "dst")
 } else{
   plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-  ensemble_models_included <- c("gar", "moss", "moss_unsmoothed", "dst_new")
-  #ensemble_models_included <- c("gar", "moss")
+  ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
   ascertainment_ts$time_varying_75 <- 1
 }
 

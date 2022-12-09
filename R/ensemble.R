@@ -16,7 +16,7 @@ read_ensemble_state <- function(raw_ensemble,
            .model %in% models_included) %>%
     
     mutate(
-      across(num_range("sim", 1001:2000), ~ if_else(.model == "moss" | .model == "moss_unsmoothed", NA_real_, .))
+      across(num_range("sim", 1001:2000), ~ if_else(.model == "moss_varasc_unsmoothed" | .model == "moss_varasc_unsmoothed", NA_real_, .))
     ) 
   
   

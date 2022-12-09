@@ -75,37 +75,6 @@ run_progression_model <- function(
            ICU_vec = replace_na(ICU_vec, -1))
   
   
-  date_seq <- seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, "days")
-  
-  # gengamma_delay_order <- c("ward_to_discharge", "ward_to_ICU", "ward_to_death", "ICU_to_discharge", "ICU_to_postICU", "ICU_to_death", 
-  #                           "postICU_to_discharge", "postICU_to_death")
-  # 
-  # gengamma_delay <- read_csv("~/source/los_rates/results/fit_2022_08_15/distribution_fits.csv") %>% 
-  #   
-  #   mutate(coding = factor(coding, levels = gengamma_delay_order)) %>%
-  #   
-  #   
-  #   complete(age, coding, date = date_seq) %>%
-  #   arrange(age, coding, date) %>%
-  #   group_by(age, coding) %>%
-  #   
-  #   mutate(across(c(mu, sigma, Q), ~ zoo::na.approx(., na.rm = FALSE))) %>%
-  #   
-  #   fill(mu, sigma, Q, .direction = "down") %>%
-  #   ungroup() %>%
-  #   
-  #   filter(date >= date_seq[1], date <= date_seq[length(date_seq)]) %>%
-  #   
-  #   
-  #   
-  #   arrange(age, coding, date) %>%
-  #   
-  #   select(age, coding, date, mu, sigma, Q) %>%
-  #   
-  #   mutate(age = age / 10,
-  #          coding = match(coding, gengamma_delay_order) - 1,
-  #          date = match(date, date_seq) - 1)
-  
   print("Starting...")
   
   a <- Sys.time()
@@ -133,7 +102,7 @@ run_progression_model <- function(
     steps_per_day = 4,
     
     thresholds_vec = thresholds,
-    rejections_per_selections = 600,
+    rejections_per_selections = 400,
     do_ABC = do_ABC,
 
     prior_sigma_los = prior_sigma_los,
