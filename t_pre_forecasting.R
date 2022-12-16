@@ -41,11 +41,11 @@ pre_forecasting <- c(
           clinical_parameters_means_file,
           show_col_types = FALSE
         ) %>%
-          # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via JWalk, somehow) (7/02/2022)
+          # Can't produce meaningful onset-to-ward estimates from the NSW data as-is, so use Delta estimates (via CamWalk, somehow) (7/02/2022)
           mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41,
-                                         3.35, 3.35, 3.24, 3.24),
+                                         3.35, 3.35, 3.24, 3.24) * 0.2,
                  shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
-                                         1.7, 1.9, 1.9, 1.3))
+                                         1.7, 1.9, 1.9, 1.3) * 0.2)
       }
     ),
     
@@ -55,9 +55,9 @@ pre_forecasting <- c(
           clinical_parameter_samples_file
         ) %>%
           mutate(scale_onset_to_ward = c(3.41, 3.41, 3.41, 3.41, 3.41,
-                                         3.35, 3.35, 3.24, 3.24) %>% rep(times = 1000),
+                                         3.35, 3.35, 3.24, 3.24) %>% rep(times = 1000) * 0.2,
                  shape_onset_to_ward = c(1.7, 1.7, 1.7, 1.7, 1.7,
-                                         1.7, 1.9, 1.9, 1.3) %>% rep(times = 1000))
+                                         1.7, 1.9, 1.9, 1.3) %>% rep(times = 1000) * 0.2)
       
       }
     ),

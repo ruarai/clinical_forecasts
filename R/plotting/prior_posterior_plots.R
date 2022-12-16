@@ -26,7 +26,7 @@ make_prior_posterior_plot <- function(
            group = factor(group, levels = c("ward", "ICU"))) %>%
     
     filter(quant %in% c("90", "50", "20"),
-           date >= state_forecast_start - ddays(35))
+           date >= state_forecast_start - ddays(185))
   
   
   library(tidyverse)
@@ -71,7 +71,7 @@ make_prior_posterior_plot <- function(
                        labels = scales::label_comma()) +
     
     
-    coord_cartesian(xlim = c(state_forecast_start - ddays(30), NA)) +
+    coord_cartesian(xlim = c(state_forecast_start - ddays(180), NA)) +
     ggtitle(NULL, state_modelled) +
     
     theme_minimal() +

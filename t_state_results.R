@@ -146,6 +146,7 @@ state_results <- tar_map(
       state_forecast_start,
       
       state_modelled,
+      n_traj_out,
       
       thresholds = sim_thresholds,
       do_ABC = use_fitting
@@ -174,6 +175,7 @@ state_results <- tar_map(
       state_forecast_start,
       
       state_modelled,
+      n_traj_out,
       
       do_ABC = FALSE
     ),

@@ -12,6 +12,7 @@ run_progression_model <- function(
   state_forecast_start,
   
   state_modelled,
+  n_traj_out = 1000,
   
   thresholds = c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000),
   do_ABC = TRUE
@@ -83,6 +84,9 @@ run_progression_model <- function(
     if(state_modelled == "NT") {
       prior_sigma_los <- 2
       prior_sigma_hosp <- 2
+    } else if(state_modelled == "NSW") {
+      prior_sigma_los <- 0.8
+      prior_sigma_hosp <- 0.2
     } else{
       prior_sigma_los <- 0.5
       prior_sigma_hosp <- 0.8
@@ -96,7 +100,7 @@ run_progression_model <- function(
     n_samples = 4000,
     n_delay_samples = 512,
     
-    n_outputs = 1000,
+    n_outputs = n_traj_out,
     
     n_days = case_trajectories$n_days,
     steps_per_day = 4,
@@ -209,7 +213,9 @@ run_progression_model <- function(
     quants_ungrouped_transitions = results_ungrouped_transitions_quants,
     
     ABC_fit_diagnostics = tibble(thresholds = thresholds, accepted = results$n_accepted),
-    ABC_parameters = ABC_parameters
+    ABC_parameters = ABC_parameters,
+    
+    prior_chosen = results$prior_chosen
   )
 }
 
