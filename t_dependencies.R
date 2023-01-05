@@ -6,7 +6,7 @@ source("R/plotting/plot_time_varying_morbidity.R")
 
 source("R/ensemble.R")
 
-source("R/get_public_occupancy.R")
+source("R/read_occupancy_data.R")
 source("R/occupancy_timeseries.R")
 
 source("R/case_trajectories_no_backcast.R")

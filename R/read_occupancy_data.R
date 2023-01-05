@@ -1,5 +1,5 @@
 
-get_public_occupancy <- function(date_forecasting, occupancy_path) {
+read_occupancy_data <- function(occupancy_path) {
   
   
   national_data <- readxl::read_excel(
@@ -20,15 +20,9 @@ get_public_occupancy <- function(date_forecasting, occupancy_path) {
     old_ts %>% filter(date < min(national_data$date)),
     national_data
   ) %>%
-    select(state, group, date, count)
-  
-  
-  p <- full_occ %>%
-    filter(date >= today() - days(180), group == "ward") %>%
-    ggplot() +
-    geom_point(aes(x = date, y = count)) +
+    select(state, group, date, count) %>%
     
-    facet_wrap(~state, scales = "free_y")
+    filter(!(state == "QLD" & date >= ymd("2022-12-24") & date <= ymd("2023-01-02")))
   
   
   write_csv(full_occ, str_c("data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
