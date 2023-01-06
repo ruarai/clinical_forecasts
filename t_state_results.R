@@ -61,11 +61,9 @@ state_results <- tar_map(
   #     state_forecast_start
   #   )
   # ),
-
-  t_state_results_immunity,
   
   tar_target(
-    unadjusted_morbidity_trajectories_state,
+    morbidity_trajectories_state,
 
     get_time_varying_morbidity_estimations(
       nindss_state,
@@ -80,18 +78,6 @@ state_results <- tar_map(
       morbidity_trajectories_national,
       morbidity_window_width
     )
-  ),
-
-  tar_target(
-    morbidity_trajectories_state,
-    adjust_morbidity_trajectories(
-      is_longterm,
-      immune_predictions_state,
-      unadjusted_morbidity_trajectories_state,
-      forecast_dates,
-      state_modelled
-    ),
-    format = "fst_tbl"
   ),
   
   
@@ -114,17 +100,9 @@ state_results <- tar_map(
     )
   ),
   
-
-  
-
   
   tar_target(
-    sim_thresholds,
-    if(is_longterm) {
-      c(0.2, 0.3, 0.5, 1, 10, 1000)
-    } else {
-      c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
-    }
+    sim_thresholds, c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
   ),
   
   tar_target(

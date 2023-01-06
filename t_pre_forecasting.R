@@ -63,9 +63,7 @@ pre_forecasting <- c(
     ),
     
     
-    tar_target(
-      occupancy_data, read_occupancy_data(occupancy_path)
-    ),
+    tar_target(occupancy_data, read_occupancy_data(occupancy_path)),
     
     tar_target(
       nindss,
@@ -82,16 +80,12 @@ pre_forecasting <- c(
         
         local_cases_file = raw_local_cases,
         
-        nindss_path = raw_nindss,
-        
-        is_longterm = is_longterm
+        nindss_path = raw_nindss
       ),
       deployment = "main"
     ),
     
-    tar_target(
-      morbidity_window_width, if_else(is_longterm, 28, 14)
-    ),
+    tar_target(morbidity_window_width, 14),
 
     tar_target(
       morbidity_trajectories_national,
@@ -114,6 +108,5 @@ pre_forecasting <- c(
     )
   ),
   
-  t_preforecasting_immunity,
   t_backup_inputs
 )

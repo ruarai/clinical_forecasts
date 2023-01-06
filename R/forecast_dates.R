@@ -7,9 +7,7 @@ make_forecast_dates <- function(
   
   local_cases_file,
   
-  nindss_path,
-  
-  is_longterm
+  nindss_path
 ) {
   local_cases <- read_csv(local_cases_file, show_col_types = FALSE) %>% 
     rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
@@ -18,7 +16,7 @@ make_forecast_dates <- function(
   date_forecast_start <- local_cases %>%
     filter(detection_probability > 0.95)
   
-  days_horizon <- if_else(is_longterm, 30 * 6, 28)
+  days_horizon <- 28
   
   date_forecast_horizon <- max(date_forecast_start$date_onset) + ddays(days_horizon)
   
