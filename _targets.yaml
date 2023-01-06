@@ -1,3 +1,0 @@
-long:
-  script: _targets_long.R
-  store: _long

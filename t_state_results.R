@@ -30,12 +30,7 @@ state_results <- tar_map(
   
   tar_target(
     known_occupancy_ts,
-    make_occupancy_timeseries(
-      c19data,
-      NULL,
-      
-      state_modelled
-    )
+    occupancy_data %>% filter(state == state_modelled)
   ),
   
   tar_target(

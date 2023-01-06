@@ -9,6 +9,7 @@ get_time_varying_morbidity_estimations <- function(
   morbidity_window_width
 ) {
   
+  ## Don't (currently) trust QLD data
   if(state_modelled == "QLD") {
     return(morbidity_trajectories_national)
   }

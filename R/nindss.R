@@ -3,7 +3,9 @@ process_NINDSS_linelist <- function(
   raw_nindss,
   date_simulation_start
 ) {
-  if(tools::file_ext(raw_nindss) == "fst"){
+  
+  ## If nindss is being loaded from a previous archived run
+  if(tools::file_ext(raw_nindss) == "fst") {
     return(fst::read_fst(raw_nindss))
   }
   

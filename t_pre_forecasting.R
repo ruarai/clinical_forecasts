@@ -64,9 +64,7 @@ pre_forecasting <- c(
     
     
     tar_target(
-      c19data, {
-        read_occupancy_data(occupancy_path)
-       }
+      occupancy_data, read_occupancy_data(occupancy_path)
     ),
     
     tar_target(

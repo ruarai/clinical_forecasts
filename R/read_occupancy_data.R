@@ -22,7 +22,11 @@ read_occupancy_data <- function(occupancy_path) {
   ) %>%
     select(state, group, date, count) %>%
     
-    filter(!(state == "QLD" & date >= ymd("2022-12-24") & date <= ymd("2023-01-02")))
+    filter(!(state == "QLD" & date >= ymd("2022-12-24") & date <= ymd("2023-01-02"))) %>%
+    
+    mutate(
+      count = if_else(state == "ACT" & date >= ymd("2022-11-13") & date <= ymd("2022-11-24"), NA_real_, count)
+    )
   
   
   write_csv(full_occ, str_c("data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
