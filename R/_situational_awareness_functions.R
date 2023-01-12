@@ -108,12 +108,7 @@ process_local_cases <- function(local_cases_state, ascertainment_ts) {
     filter(detection_probability > 0.95) %>%
     
     mutate(lower90 = true_count_quantile(count, detection_probability, quantiles = 0.05),
-           upper90 = true_count_quantile(count, detection_probability, quantiles = 0.95)) %>%
-    
-    left_join(ascertainment_ts, by = "date") %>%
-    mutate(count = count / time_varying_75,
-           lower90 = lower90 / time_varying_75,
-           upper90 = upper90 / time_varying_75)
+           upper90 = true_count_quantile(count, detection_probability, quantiles = 0.95))
 }
 
 
@@ -123,14 +118,4 @@ get_forecast_start_date <- function(local_cases_state, pr_detect = 0.95) {
     filter(detection_probability >= pr_detect) %>%
     pull(date_onset) %>%
     max()
-}
-
-get_public_occupancy_data <- function() {
-  source("R/get_public_occupancy.R")
-  
-  c19data <- get_public_occupancy(today())
-  
-  source("R/occupancy_timeseries.R")
-  
-  make_occupancy_timeseries(c19data, NULL)
 }

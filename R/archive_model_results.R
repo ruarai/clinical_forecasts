@@ -4,7 +4,6 @@
 archive_model_results <- function(
   sim_results,
   morbidity_trajectories_state,
-  immune_predictions_state,
   
   state_modelled,
   forecast_name,
@@ -18,7 +17,6 @@ archive_model_results <- function(
   archive_data <- list(
     "sim_results" = sim_results,
     "morbidity_trajectories_state" = morbidity_trajectories_state,
-    "immune_predictions_state" = immune_predictions_state,
     "state_modelled" = state_modelled,
     "forecast_name" = forecast_name
   )

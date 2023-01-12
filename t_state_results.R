@@ -233,7 +233,6 @@ state_results <- tar_map(
     archive_model_results(
       sim_results,
       morbidity_trajectories_state,
-      immune_predictions_state,
       state_modelled,
       forecast_name,
       archive_dir

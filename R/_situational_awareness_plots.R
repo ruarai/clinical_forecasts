@@ -9,15 +9,15 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-01-06_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-01-05.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2022-12-30.csv"
-date_reporting_line <- ymd("2023-01-06")
+results_dir <- "results/fc_2023-01-12_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-01-12.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-01-06.csv"
+date_reporting_line <- ymd("2023-01-12")
 
 
 
 # When our plots go back to
-date_plot_start <- ymd("2022-06-01")
+date_plot_start <- ymd("2022-07-01")
 
 # Are we plotting long or short-term forecasts?
 is_longterm <- FALSE
@@ -29,8 +29,7 @@ show_capacity <- TRUE
 
 
 capacity_limits_tbl <- get_current_capacity_tbl(multipliers = 1:2)
-ascertainment_ts <- get_ascertainment_ts()
-public_occupancy_data <- tar_read(c19data) %>%
+public_occupancy_data <- tar_read(occupancy_data) %>%
   filter(date >= date_plot_start - ddays(14))
 
 clinical_trajectories <- get_trajectories(results_dir)
@@ -46,7 +45,6 @@ if(is_longterm) {
 } else{
   plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
   ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
-  ascertainment_ts$time_varying_75 <- 1
 }
 
 
@@ -94,19 +92,14 @@ for(i_state in states) {
     make_results_quants(plot_quant_widths) %>%
     drop_na(lower) %>%
     
-    filter(date <= forecast_start_date + ddays(days_horizon)) %>%
-    
-    left_join(ascertainment_ts, by = "date") %>%
-    fill(time_varying_75, .direction = "down") %>%
-    mutate(lower = lower / time_varying_75,
-           upper = upper / time_varying_75)
+    filter(date <= forecast_start_date + ddays(days_horizon))
   
   clinical_quants_state <- clinical_trajectories_wide_state %>%
     make_results_quants(plot_quant_widths) %>%
     filter(date > forecast_start_date - ddays(days_before_fit), date <= forecast_start_date + ddays(days_horizon))
   
   
-  cases_known <- process_local_cases(local_cases_state, ascertainment_ts) %>%
+  cases_known <- process_local_cases(local_cases_state) %>%
     filter(date >= date_plot_start)
   
   ward_quants <- clinical_quants_state %>%
