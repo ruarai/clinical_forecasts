@@ -13,7 +13,7 @@ read_occupancy_data <- function(occupancy_path) {
     select(date, state, ward, ICU)  %>%
     pivot_longer(c(ward, ICU), values_to = "count", names_to = "group")
   
-  old_ts <- read_csv("data/occupancy/compiled/compiled_2022-10-20.csv")
+  old_ts <- read_csv("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/compiled_2022-10-20.csv")
   
   
   full_occ <- bind_rows(
@@ -29,7 +29,7 @@ read_occupancy_data <- function(occupancy_path) {
     )
   
   
-  write_csv(full_occ, str_c("data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
+  write_csv(full_occ, str_c("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
   
   full_occ
 }

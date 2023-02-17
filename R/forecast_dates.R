@@ -23,7 +23,7 @@ make_forecast_dates <- function(
   if(tools::file_ext(nindss_path) == "fst"){
     nindss_date <- ymd(str_extract(nindss_path, "\\d{4}-\\d{2}-\\d{2}"))
   } else{
-    nindss_date <- dmy(str_extract(nindss_path, "\\d{2}.{3}\\d{4}"))
+    nindss_date <- dmy(str_extract(nindss_path, "\\d{1,2}.{3}\\d{4}"))
   }
   
   tibble(
