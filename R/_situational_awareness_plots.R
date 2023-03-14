@@ -9,22 +9,20 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-03-03_final/"
-local_cases_path <- "data/local_cases_input_2023-03-02.csv"
-ensemble_path <- "data/combined_samples_varasc2023-02-24.csv"
-date_reporting_line <- ymd("2023-03-03")
+results_dir <- "results/fc_2023-03-09_final/"
+local_cases_path <- "data/local_cases_input_2023-03-09.csv"
+ensemble_path <- "data/combined_samples_varasc2023-03-03.csv"
+date_reporting_line <- ymd("2023-03-10")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2022-09-01")
-
-# Are we plotting long or short-term forecasts?
-is_longterm <- FALSE
+date_plot_start <- ymd("2022-11-01")
+ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
 
 
-days_horizon <- if_else(is_longterm, 30 * 6 , 7 * 4)
+days_horizon <- 7 * 4
 days_before_fit <- 0
-show_capacity <- TRUE
+show_capacity <- FALSE
 
 
 capacity_limits_tbl <- get_current_capacity_tbl(multipliers = 1:2)
@@ -38,17 +36,12 @@ local_cases <- read_csv(local_cases_path, show_col_types = FALSE) %>%
   rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
 
 
-if(is_longterm) {
-  plot_quant_widths <- c(0.5, 0.8, 0.9)
-  ensemble_models_included <- c("moss", "dst")
-} else{
-  plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-  ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
-}
+plot_quant_widths <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+
 
 
 # Define our nice colour gradients (via David Price magic)
-plot_cols <- get_plot_colors(length(plot_quant_widths), is_longterm)
+plot_cols <- get_plot_colors(length(plot_quant_widths), FALSE)
 
 
 # If a state is excluded from plotting, can change this
@@ -112,29 +105,7 @@ for(i_state in states) {
   ICU_known <- public_occupancy_data %>%
     filter(group == "ICU", state == i_state) %>%
     filter(date >= date_plot_start)
-  
-  
-  
-  if(is_longterm) {
-    ward_rep <- clinical_trajectories_wide_state %>% 
-      filter(group == "ward") %>% mutate(state = 1, .model = 1) %>%
-      get_quants("max", probs = seq(0.1, 0.9, by = 0.05)) %>%
-      filter(date >= forecast_start_date + ddays(7))
-    ICU_rep <- clinical_trajectories_wide_state %>% 
-      filter(group == "ICU") %>% mutate(state = 1, .model = 1) %>%
-      get_quants("max", probs = seq(0.1, 0.9, by = 0.05)) %>%
-      filter(date >= forecast_start_date + ddays(7))
-    
-    ensemble_smooth <- bind_rows(
-      case_ensemble_state %>% 
-        filter(.model != "moss"),
-      case_ensemble_state %>% 
-        filter(.model == "moss") %>%
-        mutate(across(starts_with("sim"), ~ slider::slide_index_dbl(., .i = date, .f = mean, .before = 7, .after =0)))
-    )
-    
-    ensemble_rep <- get_quants(ensemble_smooth, "max", probs = seq(0.1, 0.9, by = 0.05))
-  }
+
   
   # Important - don't plot capacity limits where they're well out of range of what's observed or predicted
   state_capacity_limits <- capacity_limits_tbl %>%
@@ -179,7 +150,7 @@ for(i_state in states) {
     "rep_colour" = "grey17",
     "rep_thinness" = 0.1,
     "reporting_line_colour" = "grey60",
-    "point_size" = 0.5,
+    "point_size" = 0.8,
     "point_stroke" = 0.15,
     "point_colour" = "grey20"
   )
@@ -194,13 +165,6 @@ for(i_state in states) {
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
                 data = ensemble_quants) +
-    
-    {
-      if(is_longterm) 
-        geom_line(aes(x = date, y = value / 0.75, group = name),
-                  color = rep_colour, size = rep_thinness,
-                  ensemble_rep %>% pivot_longer(-c(state, date)))
-    } +
     
     
     geom_point(aes(x = date, y = count),
@@ -225,7 +189,7 @@ for(i_state in states) {
     geom_vline(xintercept = forecast_start_date + ddays(1),
                colour = "grey40", linetype = "dashed") +
     
-    ggtitle(str_c(i_state, " \u2013 ", if_else(is_longterm, "Infection", "Case") , " incidence by onset date")) +
+    ggtitle(str_c(i_state, " \u2013 Case incidence by onset date")) +
     
     plots_common
   
@@ -236,13 +200,6 @@ for(i_state in states) {
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
                 data = ward_quants) +
-    
-    {
-      if(is_longterm) 
-        geom_line(aes(x = date, y = value, group = name),
-                  color = rep_colour, size = rep_thinness,
-                  ward_rep %>% pivot_longer(-c(state, date)))
-    } +
     
     geom_point(aes(x = date, y = count),
                color = plot_params$point_colour,
@@ -279,13 +236,6 @@ for(i_state in states) {
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
                 data = ICU_quants) +
-    
-    {
-      if(is_longterm) 
-        geom_line(aes(x = date, y = value, group = name),
-                  color = rep_colour, size = rep_thinness,
-                  ICU_rep %>% pivot_longer(-c(state, date)))
-    } +
     
     
     geom_point(aes(x = date, y = count),
@@ -345,24 +295,5 @@ for (i in 1:length(plots)) {
   plot(plots[[i]])
 }
 dev.off()
-
-
-
-cowplot::plot_grid(
-  plotlist = ward_plots,
-  ncol = 2
-)
-
-ggsave(str_c(results_dir, "_sitawareness_ward.png" ),
-       height = 11, width = 10, bg = "white")
-
-cowplot::plot_grid(
-  plotlist = ICU_plots,
-  ncol = 2
-)
-
-ggsave(str_c(results_dir, "_sitawareness_ICU.png" ),
-       height = 11, width = 10, bg = "white")
-
 
 
