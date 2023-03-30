@@ -2,6 +2,7 @@
 library(tidyverse)
 library(lubridate)
 library(targets)
+library(ggdist)
 
 source("R/_situational_awareness_functions.R")
 
@@ -9,19 +10,19 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-03-03_final/"
-local_cases_path <- "data/local_cases_input_2023-03-02.csv"
-local_cases_latest_path <- "data/local_cases_input_2023-03-09.csv"
-ensemble_path <- "data/combined_samples_varasc2023-02-24.csv"
+results_dir <- "results/fc_2023-03-09_final/"
+local_cases_path <- "data/local_cases_input_2023-03-09.csv"
+local_cases_latest_path <- "data/local_cases_input_2023-03-30.csv"
+ensemble_path <- "data/combined_samples_varasc2023-03-03.csv"
 
-occupancy_path <- "data/occupancy/NAT_2023-03-02_Data for Uni of Melbourne.xlsx"
-occupancy_latest_path <- "data/occupancy/NAT_2023-03-09_Data for Uni of Melbourne.xlsx"
+occupancy_path <- "data/occupancy/NAT_2023-03-09_Data for Uni of Melbourne.xlsx"
+occupancy_latest_path <- "data/occupancy/NAT_2023-03-30_Data for Uni of Melbourne.xlsx"
 
-date_reporting_line <- ymd("2023-03-10")
+date_reporting_line <- ymd("2023-03-23")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2022-11-01")
+date_plot_start <- ymd("2022-12-01")
 ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
 
 
@@ -144,11 +145,11 @@ for(i_state in states) {
   plots_common <- list(
     scale_shape_manual(values = c("FALSE" = 1, "TRUE" = 16)),
     scale_x_date(date_breaks = "months",
-                 labels = scales::label_date_short(format = c("%Y", "%b")),
+                 labels = scales::label_date_short(format = c("%Y", "%B")),
                  expand = expansion(mult = c(0.01, 0.05))),
     scale_y_continuous(breaks = scales::extended_breaks(),
                        labels = scales::label_comma(),
-                       expand = expansion(mult = c(0, 0.1)),
+                       expand = expansion(mult = c(0.02, 0.1)),
                        sec.axis = dup_axis(name = "")),
     geom_blank(aes(y = 0)), geom_blank(aes(y = 30)),
     xlab(NULL), ylab("Count"),
@@ -162,9 +163,10 @@ for(i_state in states) {
           plot.title = element_text(size = 15),
           axis.text = element_text(size = 12),
           axis.title.y = element_blank(),
-          text = element_text(family = "Helvetica")),
+          text = element_text(family = "Helvetica"),
+          axis.line.x = element_blank()),
     
-    coord_cartesian(xlim = c(date_plot_start, forecast_start_date + ddays(days_horizon) - ddays(4)))
+    coord_cartesian(xlim = c(date_plot_start, forecast_start_date + ddays(days_horizon) - ddays(4)), clip = "off")
   )
   
   plot_params <- list(
@@ -172,8 +174,8 @@ for(i_state in states) {
     "rep_thinness" = 0.1,
     "reporting_line_colour" = "grey60",
     "point_size" = 0.8,
-    "point_stroke" = 0.15,
-    "point_colour" = "grey70"
+    "point_stroke" = 0.2,
+    "point_colour" = "grey60"
   )
   
   rep_colour <- "grey17"
@@ -185,7 +187,9 @@ for(i_state in states) {
     
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
-                data = ensemble_quants)  +
+                    data = ensemble_quants) +
+    
+    geom_hline(yintercept = 0, colour = "grey40", size = 0.5)  +
     
     
     geom_point(aes(x = date, y = count),
@@ -214,11 +218,13 @@ for(i_state in states) {
   
   p_ward <- ggplot() +
     
-    geom_vline(xintercept = date_reporting_line, colour = "grey60")  +
+    geom_vline(xintercept = date_reporting_line, colour = "grey60") +
     
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
-                data = ward_quants) +
+                    data = ward_quants) +
+    
+    geom_hline(yintercept = 0, colour = "grey40", size = 0.5) +
     
     geom_point(aes(x = date, y = count),
                color = "black",
@@ -256,11 +262,13 @@ for(i_state in states) {
   
   p_ICU <- ggplot() +
     
-    geom_vline(xintercept = date_reporting_line, colour = "grey60")  +
+    geom_vline(xintercept = date_reporting_line, colour = "grey60") +
     
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
-                data = ICU_quants) +
+                    data = ICU_quants) +
+    
+    geom_hline(yintercept = 0, colour = "grey40", size = 0.5) +
     
     geom_point(aes(x = date, y = count),
                color = "black",
