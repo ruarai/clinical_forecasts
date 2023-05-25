@@ -53,7 +53,7 @@ run_progression_model <- function(
   occupancy_curve_match <- tibble(
     date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
   ) %>%
-    mutate(do_match = date > state_forecast_start & date <= state_forecast_start + ddays(7)) %>%
+    mutate(do_match = date > state_forecast_start & date <= state_forecast_start + days(7)) %>%
     
     left_join(
       
@@ -106,7 +106,7 @@ run_progression_model <- function(
     steps_per_day = 4,
     
     thresholds_vec = thresholds,
-    rejections_per_selections = 400,
+    rejections_per_selections = 4000,
     do_ABC = do_ABC,
 
     prior_sigma_los = prior_sigma_los,

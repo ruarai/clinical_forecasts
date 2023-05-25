@@ -180,6 +180,50 @@ plot_morbidity_trajectories <- function(
   
   ggsave(paste0(plot_dir, paste0("/", state_modelled, "_pr_ICU.png")),
          width = 14, height = 9, bg = "white")
+  
+  
+  
+  plot_data_ICU_summ <- morbidity_trajectories_state %>%
+    #filter(date >= ymd("2022-01-10")) %>%
+    select(bootstrap, date, age_group, pr_hosp, pr_ICU, pr_age_given_case) %>%
+    
+    group_by(bootstrap, date) %>%
+    
+    summarise(pr_hosp_total = sum(pr_age_given_case * pr_hosp * pr_ICU)) %>%
+    
+    group_by(date) %>%
+    
+    summarise(median = median(pr_hosp_total),
+              lower_90 = quantile(pr_hosp_total, 0.05),
+              upper_90 = quantile(pr_hosp_total, 0.95))
+  
+  
+  ggplot(plot_data_ICU_summ) +
+    geom_line(aes(x = date, y = median),
+              color = "#008200") +
+    
+    geom_ribbon(aes(x = date, ymin = lower_90, ymax = upper_90),
+                fill = "#008200",
+                alpha = 0.3) +
+    
+    geom_vline(xintercept = forecast_dates$NNDSS - ddays(7),
+               linetype = 'dashed') +
+    
+    scale_x_date(date_breaks = "months", labels = scales::label_date_short()) +
+    geom_blank(aes(y = 0)) +
+    
+    theme_minimal() +
+    ylab(NULL) + xlab("Date") +
+    
+    ggtitle(paste0(state_modelled, " \u2013 Probability of ICU admission given case, all ages")) +
+    
+    scale_y_continuous(expand = expansion(mult = c(0.05, 0.2)))
+  
+  
+  ggsave(paste0(plot_dir, paste0("/", state_modelled, "_pr_ICU_summ.png")),
+         width = 14, height = 9, bg = "white")
+  
+  
   return("")
 }
 

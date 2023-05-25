@@ -10,20 +10,20 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-03-09_final/"
-local_cases_path <- "data/local_cases_input_2023-03-09.csv"
-local_cases_latest_path <- "data/local_cases_input_2023-03-30.csv"
-ensemble_path <- "data/combined_samples_varasc2023-03-03.csv"
+results_dir <- "results/fc_2023-05-12_final/"
+local_cases_path <- "data/local_cases_input_2023-05-11.csv"
+local_cases_latest_path <- "data/local_cases_input_2023-05-17.csv"
+ensemble_path <- "data/combined_samples_varasc2023-05-05.csv"
 
-occupancy_path <- "data/occupancy/NAT_2023-03-09_Data for Uni of Melbourne.xlsx"
-occupancy_latest_path <- "data/occupancy/NAT_2023-03-30_Data for Uni of Melbourne.xlsx"
+occupancy_path <- "data/occupancy/NAT_2023-05-11_Data for Uni of Melbourne.xlsx"
+occupancy_latest_path <- "data/occupancy/NAT_2023-05-18_Data for Uni of Melbourne.xlsx"
 
-date_reporting_line <- ymd("2023-03-23")
+date_reporting_line <- ymd("2023-05-12")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2022-12-01")
-ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
+date_plot_start <- ymd("2023-01-01")
+ensemble_models_included <- c("gar", "moss_varasc", "dst_new", "moss_varasc_unsmoothed", "dst_behave")
 
 
 days_horizon <- 7 * 4

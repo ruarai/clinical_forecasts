@@ -9,15 +9,15 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-03-31_final/"
-local_cases_path <- "data/local_cases_input_2023-03-30.csv"
-ensemble_path <- "data/combined_samples_varasc2023-03-24.csv"
-date_reporting_line <- ymd("2023-03-31")
+results_dir <- "results/fc_2023-05-19_final/"
+local_cases_path <- "data/local_cases_input_2023-05-17.csv"
+ensemble_path <- "data/combined_samples_varasc2023-05-11.csv"
+date_reporting_line <- ymd("2023-05-19")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2022-12-01")
-ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new")
+date_plot_start <- ymd("2023-04-05")
+ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new", "dst_behave")
 
 
 days_horizon <- 7 * 4
@@ -50,6 +50,8 @@ states <- get_states(clinical_trajectories)
 plots <- list()
 ward_plots <- list()
 ICU_plots <- list()
+
+max_forecast_start_date <- get_forecast_start_date(local_cases, pr_detect = 0.95)
 
 for(i_state in states) {
   case_ensemble_state <- read_ensemble_state(ensemble_path, i_state, ensemble_models_included)
@@ -305,3 +307,57 @@ for (i in 1:length(plots)) {
 dev.off()
 
 
+simplify_plot <- function(plot, state) {
+  axis_element <- element_blank()
+  
+  if(state %in% c("VIC", "WA")) {
+    axis_element <- element_text()
+  }
+  
+  plot + 
+    scale_x_date(labels = scales::label_date_short(),
+                 date_breaks = "months") +
+    
+    scale_y_continuous(breaks = scales::extended_breaks(),
+                       labels = scales::label_comma(),
+                       position = "right",
+                       expand = expansion(mult = c(0.02, 0.1))) +
+    
+    ggtitle(state) +
+    
+    theme(axis.text.x = axis_element) +
+    
+    coord_cartesian(xlim = c(date_plot_start, max_forecast_start_date + ddays(days_horizon) - ddays(4)), clip = "off")
+}
+
+
+  
+
+cowplot::plot_grid(
+  plotlist = pmap(tibble(state = states, plot = ward_plots), simplify_plot),
+  
+  rel_heights = c(1, 1, 1, 1.3),
+  align = "v",
+  axis = "lrtb",
+  ncol = 2
+)
+
+
+
+
+ggsave(str_c(results_dir, "_sitawareness_ward.png" ),
+       height = 11, width = 10, bg = "white")
+
+cowplot::plot_grid(
+  plotlist = pmap(tibble(state = states, plot = ICU_plots), simplify_plot),
+  
+  rel_heights = c(1, 1, 1, 1.3),
+  align = "v",
+  axis = "lrtb",
+  ncol = 2
+)
+
+
+
+ggsave(str_c(results_dir, "_sitawareness_ICU.png" ),
+       height = 11, width = 10, bg = "white")
