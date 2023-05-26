@@ -39,37 +39,41 @@ t_forecast <- list(
     
     format = "file",
     deployment = "main"
-  ),
-  
-  tar_combine(all_state_ABC_parameters, state_results[["state_ABC_parameters"]]),
-  tar_combine(all_state_ABC_diagnostics, state_results[["state_ABC_diagnostics"]]),
-  
-  tar_target(
-    ABC_diagnostic_plots,
-    plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir),
-    
-    format = "file",
-    
-    deployment = "main"
-  ),
-  
-  tar_combine(all_state_capacity, state_results[["state_capacity_table"]],
-              command = dplyr::bind_rows(!!!.x)),
-  
-  tar_target(
-    state_capacity_report,
-    {
-      file_out <- paste0(plot_dir, "/clinical_capacity_", date_forecasting ,".csv")
-      all_state_capacity %>% 
-        filter(date == forecast_dates$forecast_horizon - ddays(1)) %>%
-        select(state, group, multiplier, date, prob = y_adj) %>%
-        
-        write_csv(file_out)
-      
-    },
-    
-    cue = tar_cue_skip(is_retro),
-    deployment = "main"
-    
   )
+  #,
+  
+  # tar_combine(all_state_ABC_parameters, state_results[["state_ABC_parameters"]]),
+  # tar_combine(all_state_ABC_diagnostics, state_results[["state_ABC_diagnostics"]]),
+  
+  # tar_target(
+  #   ABC_diagnostic_plots,
+  #   plot_ABC_diagnostics(all_state_ABC_diagnostics, all_state_ABC_parameters, plot_dir),
+  #   
+  #   format = "file",
+  #   
+  #   deployment = "main"
+  # ),
+  
+  # tar_combine(all_state_capacity, state_results[["state_capacity_table"]],
+  #             command = dplyr::bind_rows(!!!.x)),
+  # 
+  # tar_target(
+  #   state_capacity_report,
+  #   {
+  #     file_out <- paste0(plot_dir, "/clinical_capacity_", date_forecasting ,".csv")
+  #     all_state_capacity %>% 
+  #       filter(date == forecast_dates$forecast_horizon - ddays(1)) %>%
+  #       select(state, group, multiplier, date, prob = y_adj) %>%
+  #       
+  #       write_csv(file_out)
+  #     
+  #   },
+  #   
+  #   cue = tar_cue_skip(is_retro),
+  #   deployment = "main"
+  #   
+  # )
 )
+
+
+

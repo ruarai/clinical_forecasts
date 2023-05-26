@@ -9,14 +9,14 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-05-19_final/"
+results_dir <- "results/fc_2023-05-19_pf/"
 local_cases_path <- "data/local_cases_input_2023-05-17.csv"
 ensemble_path <- "data/combined_samples_varasc2023-05-11.csv"
 date_reporting_line <- ymd("2023-05-19")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2023-04-05")
+date_plot_start <- ymd("2023-01-01")
 ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new", "dst_behave")
 
 
@@ -92,6 +92,12 @@ for(i_state in states) {
     make_results_quants(plot_quant_widths) %>%
     filter(date > forecast_start_date - ddays(days_before_fit), date <= forecast_start_date + ddays(days_horizon))
   
+  # clinical_trace_state <- clinical_trajectories_wide_state %>% 
+  #   pivot_longer(starts_with("sim_"), 
+  #                names_prefix = "sim_",
+  #                names_to = "sample", values_to = "count") %>%
+  #   
+  #   filter(as.numeric(sample) < 200)
   
   cases_known <- process_local_cases(local_cases_state) %>%
     filter(date >= date_plot_start)
@@ -206,6 +212,10 @@ for(i_state in states) {
     geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
                 
                 data = ward_quants) +
+    
+    # geom_line(aes(x = date, y = count, group = sample),
+    #           size = 0.1, alpha = 0.5,
+    #           clinical_trace_state %>% filter(group == "ward")) +
     
     geom_hline(yintercept = 0, colour = "grey40", size = 0.5) +
     

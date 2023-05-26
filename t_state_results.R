@@ -118,11 +118,12 @@ state_results <- tar_map(
       forecast_dates,
       state_forecast_start,
       
-      state_modelled,
-      n_traj_out,
-      
-      thresholds = sim_thresholds,
-      do_ABC = use_fitting
+      state_modelled
+      #,
+      # n_traj_out,
+      # 
+      # thresholds = sim_thresholds,
+      # do_ABC = use_fitting
     ),
     format = "qs",
     resources = tar_resources(
@@ -134,78 +135,78 @@ state_results <- tar_map(
   ),
   
   
-  tar_target(
-    sim_results_prior,
-    
-    run_progression_model(
-      case_trajectories,
-      known_occupancy_ts,
-      
-      morbidity_trajectories_state,
-      clinical_parameter_samples,
-      
-      forecast_dates,
-      state_forecast_start,
-      
-      state_modelled,
-      n_traj_out,
-      
-      do_ABC = FALSE
-    ),
-    format = "qs",
-    resources = tar_resources(
-      qs = tar_resources_qs(preset = "fast")
-    ),
-    
-    memory = "transient",
-    garbage_collection = TRUE
-  ),
+  # tar_target(
+  #   sim_results_prior,
+  #   
+  #   run_progression_model(
+  #     case_trajectories,
+  #     known_occupancy_ts,
+  #     
+  #     morbidity_trajectories_state,
+  #     clinical_parameter_samples,
+  #     
+  #     forecast_dates,
+  #     state_forecast_start,
+  #     
+  #     state_modelled,
+  #     n_traj_out,
+  #     
+  #     do_ABC = FALSE
+  #   ),
+  #   format = "qs",
+  #   resources = tar_resources(
+  #     qs = tar_resources_qs(preset = "fast")
+  #   ),
+  #   
+  #   memory = "transient",
+  #   garbage_collection = TRUE
+  # ),
   
-  tar_target(
-    prior_posterior_plots,
-    make_prior_posterior_plot(
-      sim_results_prior, sim_results,
-      
-      forecast_dates, state_forecast_start,
-      known_occupancy_ts,
-      plot_dir, state_modelled
-    ),
-    format = "file",
-    deployment = "main"
-  ),
+  # tar_target(
+  #   prior_posterior_plots,
+  #   make_prior_posterior_plot(
+  #     sim_results_prior, sim_results,
+  #     
+  #     forecast_dates, state_forecast_start,
+  #     known_occupancy_ts,
+  #     plot_dir, state_modelled
+  #   ),
+  #   format = "file",
+  #   deployment = "main"
+  # ),
+  # 
+  # tar_target(state_ABC_parameters, sim_results$ABC_parameters %>% mutate(state = state_modelled)),
+  # tar_target(state_ABC_diagnostics, sim_results$ABC_fit_diagnostics %>% mutate(state = state_modelled)),
+  # 
+  # tar_target(
+  #   state_plots,
+  #   
+  #   plot_state_results(
+  #     sim_results,
+  #     
+  #     state_modelled,
+  #     forecast_dates, 
+  #     state_forecast_start,
+  #     forecast_name,
+  #     plot_dir
+  #   ),
+  #   deployment = "main"
+  # ),
   
-  tar_target(state_ABC_parameters, sim_results$ABC_parameters %>% mutate(state = state_modelled)),
-  tar_target(state_ABC_diagnostics, sim_results$ABC_fit_diagnostics %>% mutate(state = state_modelled)),
   
-  tar_target(
-    state_plots,
-    
-    plot_state_results(
-      sim_results,
-      
-      state_modelled,
-      forecast_dates, 
-      state_forecast_start,
-      forecast_name,
-      plot_dir
-    ),
-    deployment = "main"
-  ),
-  
-  
-  tar_target(
-    state_capacity_table,
-    
-    plot_state_results_capacity(
-      sim_results,
-      
-      state_modelled,
-      forecast_dates,
-      state_forecast_start,
-      forecast_name,
-      plot_dir
-    )
-  ),
+  # tar_target(
+  #   state_capacity_table,
+  #   
+  #   plot_state_results_capacity(
+  #     sim_results,
+  #     
+  #     state_modelled,
+  #     forecast_dates,
+  #     state_forecast_start,
+  #     forecast_name,
+  #     plot_dir
+  #   )
+  # ),
   
   
   tar_target(
@@ -221,24 +222,25 @@ state_results <- tar_map(
     state_results_traj,
     
     sim_results$trajectories %>%
-      filter(group %in% c("ward", "ICU")) %>%
+      filter(group %in% c("ward", "ICU", "ward_outbreak")) %>%
       mutate(state = state_modelled),
     
     format = "fst"
-  ),
-  
-  tar_target(
-    state_archive,
-    
-    archive_model_results(
-      sim_results,
-      morbidity_trajectories_state,
-      state_modelled,
-      forecast_name,
-      archive_dir
-    ),
-    
-    format = "file",
-    deployment = "main"
   )
+  #,
+  
+  # tar_target(
+  #   state_archive,
+  #   
+  #   archive_model_results(
+  #     sim_results,
+  #     morbidity_trajectories_state,
+  #     state_modelled,
+  #     forecast_name,
+  #     archive_dir
+  #   ),
+  #   
+  #   format = "file",
+  #   deployment = "main"
+  # )
 )

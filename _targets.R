@@ -5,7 +5,8 @@ library(future.callr)
 options(tidyverse.quiet = TRUE)
 tar_option_set(packages = c("tidyverse", "lubridate", "curvemush"), garbage_collection = TRUE, backoff = 60)
 
-state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+#state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+state_tbl <- tibble::tibble(state_modelled = c("NSW", "WA", "TAS", "ACT", "QLD"))
 
 # Do not change this value
 is_retro <- FALSE
@@ -15,7 +16,7 @@ t_parameters <- list(
   
   
   tar_target(date_simulation_start, ymd("2022-12-01")),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_final")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_pf")),
   
   # Update these to the latest file path
   # ~/mfluxshared and ~/mfluxunimelb should point to the (respective) mediaflux server
