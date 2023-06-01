@@ -10,15 +10,15 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-05-12_final/"
-local_cases_path <- "data/local_cases_input_2023-05-11.csv"
-local_cases_latest_path <- "data/local_cases_input_2023-05-17.csv"
-ensemble_path <- "data/combined_samples_varasc2023-05-05.csv"
+results_dir <- "results/fc_2023-05-05_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-05-04.csv"
+local_cases_latest_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-06-01.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-04-28.csv"
 
-occupancy_path <- "data/occupancy/NAT_2023-05-11_Data for Uni of Melbourne.xlsx"
-occupancy_latest_path <- "data/occupancy/NAT_2023-05-18_Data for Uni of Melbourne.xlsx"
+occupancy_path <- "data/occupancy/NAT_2023-05-04_Data for Uni of Melbourne.xlsx"
+occupancy_latest_path <- "data/occupancy/NAT_2023-06-01_Data for Uni of Melbourne.xlsx"
 
-date_reporting_line <- ymd("2023-05-12")
+date_reporting_line <- ymd("2023-05-05")
 
 
 # When our plots go back to
