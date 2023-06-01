@@ -63,7 +63,7 @@ run_progression_model <- function(
     "run_inference",
     case_trajectories$n_days,
     n_steps_per_day,
-    4000,
+    8000,
     
     case_curves,
     clinical_parameter_samples,

@@ -51,7 +51,7 @@ get_time_varying_morbidity_estimations <- function(
   estimation_period <- c(min(nindss_state$date_onset), nindss_date)
   estimation_period_days <- seq(estimation_period[1], estimation_period[2], by = 'days')
   
-  n_bootstraps <- 50
+  n_bootstraps <- 5
   
   window_width <- morbidity_window_width
   
@@ -319,7 +319,7 @@ get_time_varying_morbidity_estimations <- function(
     )
     
     j <- 1
-    for(i_bootstrap in 1:50) {
+    for(i_bootstrap in 1:n_bootstraps) {
       for(i_age_group in 1:length(age_groups)) {
         all_results_ls[[j]] <- tibble(
           bootstrap = i_bootstrap,
@@ -339,7 +339,7 @@ get_time_varying_morbidity_estimations <- function(
   } else {
     
     j <- 1
-    for(i_bootstrap in 1:50) {
+    for(i_bootstrap in 1:n_bootstraps) {
       for(i_age_group in 1:length(age_groups)) {
         # Consider only pr_age_given_case for some states
         all_results_ls[[j]] <- tibble(
