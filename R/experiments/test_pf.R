@@ -65,7 +65,7 @@ results <- julia_call(
   "run_inference",
   case_trajectories$n_days,
   n_steps_per_day,
-  12000,
+  10000,
   
   case_curves,
   clinical_parameter_samples,
@@ -117,6 +117,10 @@ cowplot::plot_grid(
     geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
                 ward_quants, fill = ggokabeito::palette_okabe_ito(5),
                 alpha = 0.2) +
+    geom_line(aes(x = day, y = median),
+              ward_quants,
+              colour = ggokabeito::palette_okabe_ito(5),
+              alpha = 0.2) +
     geom_point(aes(x = t, y = ward_vec),
                occupancy_curve_match %>% filter(ward_vec > -0.5)) +
     
@@ -131,6 +135,10 @@ cowplot::plot_grid(
     geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
                 ward_only_quants, fill = ggokabeito::palette_okabe_ito(3),
                 alpha = 0.2) +
+    geom_line(aes(x = day, y = median),
+              ward_only_quants,
+              colour = ggokabeito::palette_okabe_ito(3),
+              alpha = 0.2) +
     geom_point(aes(x = t, y = ward_vec),
                occupancy_curve_match %>% filter(ward_vec > -0.5)) +
     
@@ -145,6 +153,10 @@ cowplot::plot_grid(
     geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
                 ward_outbreak_quants, fill = ggokabeito::palette_okabe_ito(2),
                 alpha = 0.2) +
+    geom_line(aes(x = day, y = median),
+              ward_outbreak_quants,
+              colour = ggokabeito::palette_okabe_ito(2),
+              alpha = 0.2) +
     geom_point(aes(x = t, y = ward_vec),
                occupancy_curve_match %>% filter(ward_vec > -0.5)) +
     
@@ -171,6 +183,10 @@ ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
               ICU_quants, fill = ggokabeito::palette_okabe_ito(2),
               alpha = 0.2) +
+  geom_line(aes(x = day, y = median),
+            ICU_quants,
+            colour = ggokabeito::palette_okabe_ito(2),
+            alpha = 0.5) +
   geom_point(aes(x = t, y = ICU_vec),
              occupancy_curve_match %>% filter(ward_vec > -0.5)) +
   
@@ -280,101 +296,5 @@ results %>%
   drop_na(weight) %>% 
   ungroup() %>% 
   plot_tiled("weight", y_res = 100)
-
-
-
-
-
-
-empirical_coverage <- results %>%
-  select(day, particle, value = sim_ward) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
-  
-  make_results_quants(seq(0, 1.0, by = 0.01)) %>%
-  left_join(occupancy_curve_match, by = c("day" = "t")) %>%
-  filter(ward_vec > -1) %>%
-  
-  mutate(quant = as.numeric(as.character(quant))) %>% 
-  group_by(quant) %>%
-  summarise(p_within = sum(ward_vec >= lower & ward_vec <= upper) / n())
-
-
-empirical_coverage_ICU <- results %>%
-  select(day, particle, value = sim_ICU) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
-  
-  make_results_quants(seq(0, 1.0, by = 0.01)) %>%
-  left_join(occupancy_curve_match, by = c("day" = "t")) %>%
-  filter(ICU_vec > -1) %>%
-  
-  mutate(quant = as.numeric(as.character(quant))) %>% 
-  group_by(quant) %>%
-  summarise(p_within = sum(ICU_vec >= lower & ICU_vec <= upper) / n())
-
-
-
-
-
-
-ggplot() +
-  
-  geom_line(aes(x = quant, y = p_within, colour = "ward"),
-            empirical_coverage) +
-  
-  geom_line(aes(x = quant, y = p_within, colour = "ICU"),
-            empirical_coverage_ICU)
-
-
-results %>%
-  select(day, particle, value = sim_ward) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
-  
-  make_results_quants(
-    approxfun(
-      empirical_coverage$p_within, empirical_coverage$quant, rule = 2
-    )(c(seq(0.2, 0.9, by = 0.1))) / 100
-  ) %>% 
-  
-  ggplot() +
-  geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
-              fill = ggokabeito::palette_okabe_ito(5),
-              alpha = 0.3) +
-  geom_point(aes(x = t, y = ward_vec),
-             occupancy_curve_match %>% filter(ward_vec > -0.5)) +
-  
-  coord_cartesian(ylim = c(0, y_lim)) +
-  
-  theme_minimal() +
-  xlab(NULL) + ylab(NULL) +
-  
-  ggtitle("Total ward occupancy")
-
-
-results %>%
-  select(day, particle, value = sim_ICU) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
-  
-  make_results_quants(
-    approxfun(
-      empirical_coverage_ICU$p_within, empirical_coverage_ICU$quant, rule = 2
-    )(c(seq(0.2, 0.9, by = 0.1))) / 100
-  ) %>% 
-  
-  ggplot() +
-  geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
-              fill = ggokabeito::palette_okabe_ito(5),
-              alpha = 0.3) +
-  geom_point(aes(x = t, y = ICU_vec),
-             occupancy_curve_match %>% filter(ICU_vec > -0.5)) +
-  
-  coord_cartesian(ylim = c(0, 50)) +
-  
-  theme_minimal() +
-  xlab(NULL) + ylab(NULL) +
-  
-  ggtitle("Total ICU occupancy")
-
-
-
 
 

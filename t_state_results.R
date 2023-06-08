@@ -48,27 +48,27 @@ state_results <- tar_map(
     }
   ),
   
-  # tar_target(
-  #   case_trajectories,
-  #   make_case_trajectories(
-  #     ensemble_state,
-  #     local_cases_state,
-  # 
-  #     forecast_dates,
-  #     state_forecast_start
-  #   )
-  # ),
-  
   tar_target(
     case_trajectories,
-    make_case_trajectories_oracle(
-      read_csv("data/local_cases_input_2023-06-01.csv", show_col_types = FALSE),
+    make_case_trajectories(
+      ensemble_state,
       local_cases_state,
 
       forecast_dates,
       state_forecast_start
     )
   ),
+  
+  # tar_target(
+  #   case_trajectories,
+  #   make_case_trajectories_oracle(
+  #     read_csv("data/local_cases_input_2023-06-01.csv", show_col_types = FALSE),
+  #     local_cases_state,
+  # 
+  #     forecast_dates,
+  #     state_forecast_start
+  #   )
+  # ),
   
   tar_target(
     morbidity_trajectories_state,
