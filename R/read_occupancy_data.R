@@ -26,8 +26,7 @@ read_occupancy_data <- function(occupancy_path) {
     
     mutate(
       count = if_else(state == "ACT" & date >= ymd("2022-11-13") & date <= ymd("2022-11-24"), NA_real_, count)
-    )
-  
+    ) 
   
   write_csv(full_occ, str_c("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
   

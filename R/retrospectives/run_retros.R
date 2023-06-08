@@ -4,38 +4,17 @@ library(targets)
 
 forecast_inputs <- tibble::tribble(
   ~date,
-  "2022-02-05",
-  "2022-02-11",
-  "2022-02-18",
-  "2022-02-25",
-  "2022-03-04",
-  "2022-03-11",
-  "2022-03-18",
-  "2022-03-24",
-  "2022-04-01",
-  "2022-04-08",
-  "2022-04-14",
-  "2022-04-22",
-  "2022-04-29",
-  "2022-05-04",
-  "2022-05-12",
-  "2022-05-19",
-  "2022-05-27",
-  "2022-06-03",
-  "2022-06-10",
-  "2022-06-17",
-  "2022-06-24",
-  "2022-07-01",
-  "2022-07-08",
-  "2022-07-15",
-  "2022-07-22",
-  "2022-07-28",
-  "2022-08-03",
-  "2022-08-11",
-  "2022-08-17"
+  "2022-11-18", "2022-11-25",
+  "2022-12-02", "2022-12-09", "2022-12-15",# "2023-01-06",
+  "2023-01-12",
+  "2023-01-19", "2023-01-27", "2023-02-02", "2023-02-09", "2023-02-16",
+  "2023-02-23", "2023-03-03", "2023-03-09", "2023-03-17", "2023-03-23",
+  "2023-03-31",
+  "2023-04-06", "2023-04-14", "2023-04-20", "2023-04-27", "2023-05-05",
+  "2023-05-12", "2023-05-19"
 )
 
-forecast_suffix <- "retro3_knowntv"
+forecast_suffix <- "test_pf4"
 
 
 all_retros <- forecast_inputs %>%
@@ -61,7 +40,7 @@ all_retros <- forecast_inputs %>%
 targets_template <- read_file("_targets.template.R")
 
 
-for(i in 1:nrow(all_retros)) {
+for(i in 5:nrow(all_retros)) {
   
   i_row <- all_retros[i, ]
   
@@ -76,7 +55,8 @@ for(i in 1:nrow(all_retros)) {
     write_file("_targets_auto_tmp.R")
   
   
-  tar_make_future(script = "_targets_auto_tmp.R", workers = 8)
+  #tar_make_future(script = "_targets_auto_tmp.R", workers = 8)
+  tar_make(c(backup_trajs, starts_with("state_archive")), script = "_targets_auto_tmp.R")
 }
 
 

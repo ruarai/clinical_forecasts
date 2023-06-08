@@ -29,11 +29,6 @@ state_results <- tar_map(
   ),
   
   tar_target(
-    known_occupancy_ts,
-    occupancy_data %>% filter(state == state_modelled)
-  ),
-  
-  tar_target(
     state_forecast_start,
     get_state_forecast_start(local_cases_state, state_modelled)
   ),
@@ -41,26 +36,39 @@ state_results <- tar_map(
   
   
   tar_target(
-    case_trajectories,
-    make_case_trajectories(
-      ensemble_state,
-      local_cases_state,
-
-      forecast_dates,
-      state_forecast_start
-    )
+    known_occupancy_ts,
+    {
+      if(is_retro) {
+        occupancy_data %>% 
+          filter(state == state_modelled) %>%
+          filter(date <= state_forecast_start + days(7))
+      } else{
+        occupancy_data %>% filter(state == state_modelled)
+      }
+    }
   ),
   
   # tar_target(
   #   case_trajectories,
-  #   make_case_trajectories_oracle(
-  #     read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2022-08-23.csv", show_col_types = FALSE),
+  #   make_case_trajectories(
+  #     ensemble_state,
   #     local_cases_state,
   # 
   #     forecast_dates,
   #     state_forecast_start
   #   )
   # ),
+  
+  tar_target(
+    case_trajectories,
+    make_case_trajectories_oracle(
+      read_csv("data/local_cases_input_2023-06-01.csv", show_col_types = FALSE),
+      local_cases_state,
+
+      forecast_dates,
+      state_forecast_start
+    )
+  ),
   
   tar_target(
     morbidity_trajectories_state,
@@ -226,21 +234,21 @@ state_results <- tar_map(
       mutate(state = state_modelled),
     
     format = "fst"
+  ),
+
+
+  tar_target(
+    state_archive,
+
+    archive_model_results(
+      sim_results,
+      morbidity_trajectories_state,
+      state_modelled,
+      forecast_name,
+      archive_dir
+    ),
+
+    format = "file",
+    deployment = "main"
   )
-  #,
-  
-  # tar_target(
-  #   state_archive,
-  #   
-  #   archive_model_results(
-  #     sim_results,
-  #     morbidity_trajectories_state,
-  #     state_modelled,
-  #     forecast_name,
-  #     archive_dir
-  #   ),
-  #   
-  #   format = "file",
-  #   deployment = "main"
-  # )
 )

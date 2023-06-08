@@ -12,15 +12,15 @@ state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT",
 is_retro <- TRUE
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("%fc_date%")),
+  tar_target(date_forecasting, ymd("2023-05-19")),
   
   
   tar_target(date_simulation_start, date_forecasting - days(180)),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_%fc_suffix%")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test_pf4")),
   
-  tar_target(raw_nindss, "%path_nindss%"),
-  tar_target(raw_local_cases, "%path_local_cases%"),
-  tar_target(raw_ensemble, "%path_ensemble%"),
+  tar_target(raw_nindss, "results/fc_2023-05-19_final/archive/nindss.fst"),
+  tar_target(raw_local_cases, "results/fc_2023-05-19_final/archive/local_cases.csv"),
+  tar_target(raw_ensemble, "results/fc_2023-05-19_final/archive/ensemble.csv"),
   
   tar_target(models_included, c("gar", "moss", "dst", "uoa")),
   

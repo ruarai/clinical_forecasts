@@ -42,6 +42,8 @@ get_time_varying_morbidity_estimations <- function(
   
   
   nindss_state <- nindss_state %>%
+    
+    filter(date_onset >= simulation_start_date) %>%
     select(date_onset, age_group, ever_in_hospital, ever_in_ICU) %>%
     
     mutate(ever_in_hospital = replace_na(ever_in_hospital, FALSE),

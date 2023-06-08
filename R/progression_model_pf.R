@@ -1,11 +1,5 @@
 
 
-Sys.setenv(
-  JULIA_PROJECT="/home/forecast/source/stochastic_progression/StochasticProgression/",
-  JULIA_NUM_THREADS = 32
-)
-
-require(JuliaCall)
 
 run_progression_model <- function(
     case_trajectories,
@@ -19,6 +13,14 @@ run_progression_model <- function(
     
     state_modelled
 ) {
+  
+  
+  Sys.setenv(
+    JULIA_PROJECT="/home/forecast/source/stochastic_progression/StochasticProgression/",
+    JULIA_NUM_THREADS = 32
+  )
+  
+  require(JuliaCall)
   
   case_curves <- case_trajectories$curve_set
   n_steps_per_day <- 4
