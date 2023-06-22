@@ -62,10 +62,10 @@ julia_source(
 
 
 results <- julia_call(
-  "run_inference",
+  "run_inference_exact",
   case_trajectories$n_days,
   n_steps_per_day,
-  10000,
+  12000,
   
   case_curves,
   clinical_parameter_samples,
@@ -74,13 +74,15 @@ results <- julia_call(
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
 
-# ggplot(results) +
-#   geom_line(aes(x = day, y = sim_ward, group = particle),
-#             size = 0.1, alpha = 0.1) +
-#   
-#   theme_minimal() +
-#   
-#   coord_cartesian(ylim = c(0, 30))
+ggplot(results %>% filter(particle < 400, day > 150)) +
+  geom_line(aes(x = day, y = sim_ward, group = particle),
+            size = 0.1, alpha = 0.5) +
+  geom_point(aes(x = t, y = ward_vec),
+             occupancy_curve_match %>% filter(ward_vec > -0.5, t > 150)) +
+
+  theme_minimal() +
+
+  coord_cartesian(ylim = c(0, 100))
 # 
 # ggplot(results) +
 #   geom_line(aes(x = day, y = sim_ward_outbreak, group = particle),
@@ -112,6 +114,23 @@ ward_only_quants <- results %>%
 
 y_lim <- 50
 
+ggplot() +
+  geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
+              ward_quants, fill = ggokabeito::palette_okabe_ito(5),
+              alpha = 0.2) +
+  geom_line(aes(x = day, y = median),
+            ward_quants,
+            colour = ggokabeito::palette_okabe_ito(5),
+            alpha = 0.2) +
+  geom_point(aes(x = t, y = ward_vec),
+             occupancy_curve_match %>% filter(ward_vec > -0.5)) +
+  
+  coord_cartesian(ylim = c(0, y_lim)) +
+  
+  theme_minimal() +
+  xlab(NULL) + ylab(NULL) +
+  
+  ggtitle("Total ward occupancy")
 cowplot::plot_grid(
   ggplot() +
     geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -190,7 +209,7 @@ ggplot() +
   geom_point(aes(x = t, y = ICU_vec),
              occupancy_curve_match %>% filter(ward_vec > -0.5)) +
   
-  coord_cartesian(ylim = c(0, 10)) +
+  coord_cartesian(ylim = c(0, 50)) +
   
   theme_minimal() +
   xlab(NULL) + ylab(NULL) +
@@ -264,37 +283,4 @@ results %>%
 
 
 results %>%
-  plot_tiled("obs_c", y_res = 100)
-
-
-cowplot::plot_grid(
-  ggplot() +
-    geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
-                ward_quants, fill = ggokabeito::palette_okabe_ito(5),
-                alpha = 0.2) +
-    geom_point(aes(x = t, y = ward_vec),
-               occupancy_curve_match %>% filter(ward_vec > -0.5)) +
-    
-    coord_cartesian(ylim = c(0, y_lim)) +
-    
-    theme_minimal() +
-    xlab(NULL) + ylab(NULL) +
-    
-    ggtitle("Total ward occupancy"),
-  results %>%
-    mutate(obs_c = exp(obs_c)) %>% 
-    filter(obs_c < 1) %>% 
-    plot_tiled("obs_c", y_res = 100),
-  
-  ncol = 1,
-  align = "v", axis = "lr"
-)
-
-results %>%
-  group_by(day) %>% 
-  mutate(weight = weight / sum(weight)) %>% 
-  drop_na(weight) %>% 
-  ungroup() %>% 
-  plot_tiled("weight", y_res = 100)
-
-
+  plot_tiled("adj_pr_hosp", y_res = 100)
