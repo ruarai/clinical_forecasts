@@ -40,6 +40,8 @@ public_occupancy_latest_data <- read_occupancy_data(occupancy_latest_path) %>%
 
 clinical_trajectories <- get_trajectories(results_dir)
 
+clinical_trajectories_wide <- get_trajectories(results_dir) %>%
+  get_clinical_trajectories_wide()
 
 local_cases <- read_csv(local_cases_path, show_col_types = FALSE) %>% 
   rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
@@ -62,9 +64,12 @@ plots <- list()
 ward_plots <- list()
 ICU_plots <- list()
 
+
+
 for(i_state in states) {
-  case_ensemble_state <- read_ensemble_state(ensemble_path, i_state, ensemble_models_included)
-  clinical_trajectories_wide_state <- get_state_clinical_trajectories_wide(clinical_trajectories, i_state)
+  case_ensemble_state <- read_ensemble_state(ensemble_path, i_state, ensemble_models_included)  
+  clinical_trajectories_wide_state <- clinical_trajectories_wide %>%
+    filter(state == i_state)
   
   local_cases_state <- local_cases %>%
     filter(state == i_state)

@@ -9,10 +9,10 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-06-09_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-06-08.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-06-02.csv"
-date_reporting_line <- ymd("2023-06-09")
+results_dir <- "results/fc_2023-06-23_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-06-22.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-06-16.csv"
+date_reporting_line <- ymd("2023-06-23")
 
 
 # When our plots go back to
@@ -81,6 +81,7 @@ for(i_state in states) {
     
     state_forecast_start_date = state_forecast_start_date,
     date_plot_start = date_plot_start,
+    date_plot_end = max_forecast_start_date + days(28),
     
     plots_common = plots_common_long,
     
@@ -107,6 +108,7 @@ for(i_state in states) {
     
     state_forecast_start_date = state_forecast_start_date,
     date_plot_start = max_forecast_start_date - days(7 * 8),
+    date_plot_end = max_forecast_start_date + days(28),
     
     plots_common = plots_common_short,
     

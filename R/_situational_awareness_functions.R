@@ -242,6 +242,7 @@ make_plots <- function(
   
   state_forecast_start_date,
   date_plot_start,
+  date_plot_end,
   
   plots_common,
   
@@ -314,7 +315,7 @@ make_plots <- function(
     ggtitle(str_c(i_state, " \u2013 Case incidence by onset date")) +
     
     plots_common +
-    coord_cartesian(xlim = c(date_plot_start, state_forecast_start_date + ddays(days_horizon) - ddays(2)), clip = "off")
+    coord_cartesian(xlim = c(date_plot_start, date_plot_end), clip = "off")
   
   p_ward <- ggplot() +
     
@@ -340,7 +341,7 @@ make_plots <- function(
     ggtitle(str_c(i_state, " \u2013 Ward bed occupancy")) +
     
     plots_common + 
-    coord_cartesian(xlim = c(date_plot_start, state_forecast_start_date + ddays(days_horizon) - ddays(2)), clip = "off")
+    coord_cartesian(xlim = c(date_plot_start, date_plot_end), clip = "off")
   
   p_ICU <- ggplot() +
     
@@ -367,7 +368,7 @@ make_plots <- function(
     ggtitle(str_c(i_state, " \u2013 ICU bed occupancy")) +
     
     plots_common + 
-    coord_cartesian(xlim = c(date_plot_start, state_forecast_start_date + ddays(days_horizon) - ddays(2)), clip = "off")
+    coord_cartesian(xlim = c(date_plot_start, date_plot_end), clip = "off")
   
   
   p <- cowplot::plot_grid(
