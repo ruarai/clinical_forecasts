@@ -3,16 +3,16 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NT)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NSW)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_NT)
+case_trajectories <- tar_read(case_trajectories_NSW)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_NT)
+known_occupancy_ts <- tar_read(known_occupancy_ts_NSW)
 
-state_forecast_start <- tar_read(state_forecast_start_NT)
+state_forecast_start <- tar_read(state_forecast_start_NSW)
 
 
 
@@ -55,6 +55,8 @@ occupancy_curve_match <- tibble(
 morbidity_trajectories_state_ix <- morbidity_trajectories_state %>%
   mutate(t = match(date, unique(date)))
 
+epsilons <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0)
+
 
 julia_source(
   "../stochastic_progression/inference_pf.jl"
@@ -65,11 +67,13 @@ results <- julia_call(
   "run_inference_exact",
   case_trajectories$n_days,
   n_steps_per_day,
-  12000,
+  1200,
   
   case_curves,
   clinical_parameter_samples,
   morbidity_trajectories_state_ix,
+  
+  epsilons,
   
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
@@ -112,7 +116,7 @@ ward_only_quants <- results %>%
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
-y_lim <- 50
+y_lim <- 2500
 
 ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
