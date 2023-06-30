@@ -9,14 +9,14 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-06-23_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-06-22.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-06-16.csv"
-date_reporting_line <- ymd("2023-06-23")
+results_dir <- "results/fc_2023-06-29_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-06-29.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-06-23.csv"
+date_reporting_line <- ymd("2023-06-29")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2023-01-01")
+date_plot_start <- ymd("2023-02-01")
 ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new", "dst_behave")
 
 
