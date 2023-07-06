@@ -53,7 +53,7 @@ get_time_varying_morbidity_estimations <- function(
   estimation_period <- c(min(nindss_state$date_onset), nindss_date)
   estimation_period_days <- seq(estimation_period[1], estimation_period[2], by = 'days')
   
-  n_bootstraps <- 5
+  n_bootstraps <- 50
   
   window_width <- morbidity_window_width
   

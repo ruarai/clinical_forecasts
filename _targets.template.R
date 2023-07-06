@@ -31,7 +31,7 @@ t_parameters <- list(
   
   tar_target(occupancy_path, "data/occupancy/NAT_2023-06-01_Data for Uni of Melbourne.xlsx"),
   
-  
+  tar_target(n_traj_out, 1000),
   tar_target(use_fitting, TRUE),
   tar_target(is_longterm, longterm)
 )
