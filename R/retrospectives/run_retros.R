@@ -14,7 +14,7 @@ forecast_inputs <- tibble::tribble(
   "2023-05-12", "2023-05-19"
 )
 
-forecast_suffix <- "test_pf4"
+forecast_suffix <- "test_pf_b_1"
 
 
 all_retros <- forecast_inputs %>%
@@ -40,7 +40,7 @@ all_retros <- forecast_inputs %>%
 targets_template <- read_file("_targets.template.R")
 
 
-for(i in 5:nrow(all_retros)) {
+for(i in 1:nrow(all_retros)) {
   
   i_row <- all_retros[i, ]
   

@@ -29,7 +29,7 @@ run_progression_model <- function(
   occupancy_curve_match <- tibble(
     date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
   )  %>%
-    mutate(do_match = date > state_forecast_start - days(120)) %>%
+    mutate(do_match = date > state_forecast_start - days(90)) %>%
     left_join(
       
       known_occupancy_ts %>%

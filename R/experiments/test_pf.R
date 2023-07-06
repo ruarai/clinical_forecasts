@@ -3,16 +3,19 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NSW)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_VIC)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_NSW)
+case_trajectories <- tar_read(case_trajectories_VIC)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_NSW)
+known_occupancy_ts <- tar_read(known_occupancy_ts_VIC)
 
-state_forecast_start <- tar_read(state_forecast_start_NSW)
+known_occupancy_ts <- read_csv("data/occupancy/compiled/occupancy_compiled_2023-06-30.csv") %>%
+  filter(state == "VIC")
+
+state_forecast_start <- tar_read(state_forecast_start_VIC)
 
 
 
@@ -29,7 +32,7 @@ n_steps_per_day <- 4
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
 )  %>%
-  mutate(do_match = date > state_forecast_start - days(120)) %>%
+  mutate(do_match = date > state_forecast_start - days(60)) %>%
   left_join(
     
     known_occupancy_ts %>%
@@ -64,29 +67,28 @@ julia_source(
 
 
 results <- julia_call(
-  "run_inference_exact",
+  "run_inference",
   case_trajectories$n_days,
   n_steps_per_day,
-  1200,
+  12000,
   
   case_curves,
   clinical_parameter_samples,
   morbidity_trajectories_state_ix,
   
-  epsilons,
-  
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
 
-ggplot(results %>% filter(particle < 400, day > 150)) +
+ggplot(results %>% filter(particle < 500, day > 150)) +
   geom_line(aes(x = day, y = sim_ward, group = particle),
             size = 0.1, alpha = 0.5) +
-  geom_point(aes(x = t, y = ward_vec),
-             occupancy_curve_match %>% filter(ward_vec > -0.5, t > 150)) +
+  geom_point(aes(x = t, y = ward),
+             colour = "red",
+             occupancy_curve_match %>% filter(t > 150)) +
 
   theme_minimal() +
 
-  coord_cartesian(ylim = c(0, 100))
+  coord_cartesian(ylim = c(0, 400))
 # 
 # ggplot(results) +
 #   geom_line(aes(x = day, y = sim_ward_outbreak, group = particle),
@@ -116,7 +118,9 @@ ward_only_quants <- results %>%
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
-y_lim <- 2500
+
+
+y_lim <- 400
 
 ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -288,3 +292,4 @@ results %>%
 
 results %>%
   plot_tiled("adj_pr_hosp", y_res = 100)
+

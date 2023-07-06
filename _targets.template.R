@@ -15,14 +15,15 @@ t_parameters <- list(
   tar_target(date_forecasting, ymd("%fc_date%")),
   
   
-  tar_target(date_simulation_start, date_forecasting - days(180)),
+  tar_target(date_simulation_start, date_forecasting - days(120)),
   tar_target(forecast_name, str_c("fc_", date_forecasting, "_%fc_suffix%")),
   
   tar_target(raw_nindss, "%path_nindss%"),
   tar_target(raw_local_cases, "%path_local_cases%"),
   tar_target(raw_ensemble, "%path_ensemble%"),
   
-  tar_target(models_included, c("gar", "moss", "dst", "uoa")),
+  tar_target(models_included, c("gar", "moss_varasc", "dst_new", "moss_varasc_unsmoothed", "dst_behave",
+                                "moss", "moss_unsmoothed")),
   
   tar_target(nindss_bad_states, c("NT", "SA", "QLD")),
   
