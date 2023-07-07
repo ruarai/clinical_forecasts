@@ -23,7 +23,9 @@ state_results <- tar_map(
   tar_target(
     nindss_state,
     nindss %>%
-      filter(state == state_modelled),
+      filter(state == state_modelled) %>%
+      filter(!(state == "VIC" & test_type == "RAT")) %>%
+      filter(!(state == "NSW" & test_type == "RAT")),
 
     format = "fst"
   ),

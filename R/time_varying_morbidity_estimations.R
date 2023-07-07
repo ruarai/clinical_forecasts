@@ -16,6 +16,29 @@ get_time_varying_morbidity_estimations <- function(
   
   do_estimate_morbidity <- TRUE
   
+  age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
+  n_bootstraps <- 50
+  
+  if(state_modelled == "NSW") {
+    res <- qs::qread("results/fc_2023-06-29_final/archive/NSW_archive.qs")$morbidity_trajectories_state %>%
+      
+      filter(date >= forecast_dates$simulation_start, date <= forecast_dates$forecast_horizon) %>% 
+      
+      complete(
+        bootstrap = 1:n_bootstraps,
+        age_group = age_groups,
+        date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = "days")
+      ) %>%
+      
+      group_by(bootstrap, age_group) %>%
+      arrange(date) %>%
+      
+      fill(pr_age_given_case, pr_hosp, pr_ICU, .direction = "updown") %>%
+      ungroup()
+    
+    return(res)
+  }
+  
   if(state_modelled %in% nindss_bad_states) {
     do_estimate_morbidity <- FALSE
     
@@ -27,8 +50,6 @@ get_time_varying_morbidity_estimations <- function(
   
   nindss_date <- forecast_dates$NNDSS
   simulation_start_date <- forecast_dates$simulation_start
-  
-  age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
   
   clinical_parameter_lookup <- clinical_parameters %>%
 
@@ -51,7 +72,6 @@ get_time_varying_morbidity_estimations <- function(
   estimation_period <- c(min(nindss_state$date_onset), nindss_date)
   estimation_period_days <- seq(estimation_period[1], estimation_period[2], by = 'days')
   
-  n_bootstraps <- 50
   
   window_width <- morbidity_window_width
   

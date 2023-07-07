@@ -33,6 +33,7 @@ process_NINDSS_linelist <- function(
            NOTIFICATION_RECEIVE_DATE = parse_csv_date(NOTIFICATION_RECEIVE_DATE),
            
            CV_ICU = as.numeric(CV_ICU),
+           
            HOSPITALISED = as.numeric(HOSPITALISED),
            AGE_AT_ONSET = as.numeric(AGE_AT_ONSET)) %>%
     
@@ -60,6 +61,8 @@ process_NINDSS_linelist <- function(
            
            age_group = assign_10yr_age_group(AGE_AT_ONSET),
            
+           test_type = if_else(CONFIRMATION_STATUS == "CONFIRMED", "PCR", "RAT"),
+           
            ever_in_hospital = status_hospital == 1,
            ever_in_ICU = status_ICU == 1) %>%
     
@@ -74,5 +77,6 @@ process_NINDSS_linelist <- function(
            status_ICU,
            status_DIED = DIED,
            ever_in_hospital,
+           test_type,
            ever_in_ICU)
 }
