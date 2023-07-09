@@ -126,12 +126,12 @@ state_results <- tar_map(
       forecast_dates,
       state_forecast_start,
       
-      state_modelled,
+      state_modelled#,
       
-      n_traj_out,
-
-      thresholds = sim_thresholds,
-      do_ABC = use_fitting
+      # n_traj_out,
+      # 
+      # thresholds = sim_thresholds,
+      # do_ABC = use_fitting
     ),
     format = "qs",
     resources = tar_resources(

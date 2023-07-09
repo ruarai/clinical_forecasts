@@ -11,8 +11,8 @@ source("R/read_occupancy_data.R")
 source("R/make_case_trajectories.R")
 source("R/make_case_trajectories_oracle.R")
 
-#source("R/progression_model_pf.R")
-source("R/progression_model.R")
+source("R/progression_model_pf.R")
+#source("R/progression_model.R")
 
 source("R/plotting/state_results_capacity.R")
 

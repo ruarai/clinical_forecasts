@@ -3,19 +3,16 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_VIC)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NT)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_VIC)
+case_trajectories <- tar_read(case_trajectories_NT)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_VIC)
+known_occupancy_ts <- tar_read(known_occupancy_ts_NT)
 
-known_occupancy_ts <- read_csv("data/occupancy/compiled/occupancy_compiled_2023-06-30.csv") %>%
-  filter(state == "VIC")
-
-state_forecast_start <- tar_read(state_forecast_start_VIC)
+state_forecast_start <- tar_read(state_forecast_start_NT)
 
 
 
@@ -32,7 +29,7 @@ n_steps_per_day <- 4
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
 )  %>%
-  mutate(do_match = date > state_forecast_start - days(60)) %>%
+  mutate(do_match = date > state_forecast_start - days(120)) %>%
   left_join(
     
     known_occupancy_ts %>%
@@ -58,8 +55,6 @@ occupancy_curve_match <- tibble(
 morbidity_trajectories_state_ix <- morbidity_trajectories_state %>%
   mutate(t = match(date, unique(date)))
 
-epsilons <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0)
-
 
 julia_source(
   "../stochastic_progression/inference_pf.jl"
@@ -79,25 +74,40 @@ results <- julia_call(
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
 
-ggplot(results %>% filter(particle < 500, day > 150)) +
+ggplot(results %>% filter(particle < 500)) +
   geom_line(aes(x = day, y = sim_ward, group = particle),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ward),
              colour = "red",
-             occupancy_curve_match %>% filter(t > 150)) +
+             occupancy_curve_match %>% filter(t > 0)) +
 
   theme_minimal() +
+  
+  scale_y_log10() +
+  
+  #geom_vline(xintercept = 188) +
 
-  coord_cartesian(ylim = c(0, 400))
-# 
-# ggplot(results) +
-#   geom_line(aes(x = day, y = sim_ward_outbreak, group = particle),
-#             size = 0.1, alpha = 0.1) +
-#   
-#   theme_minimal() +
-#   
-#   coord_cartesian(ylim = c(0, 30))
-# 
+  coord_cartesian(ylim = c(150, 800))
+
+
+ggplot(results %>% filter(particle < 1000, day > 150)) +
+  geom_line(aes(x = day, y = adj_pr_hosp, group = particle),
+            size = 0.1, alpha = 0.3) +
+  
+  theme_minimal() +
+  
+  coord_cartesian(ylim = c(-2, 2))
+
+ggplot(results %>% filter(particle < 500, day > 150)) +
+  geom_line(aes(x = day, y = sim_ICU, group = particle),
+            size = 0.1, alpha = 0.5) +
+  geom_point(aes(x = t, y = ICU),
+             colour = "red",
+             occupancy_curve_match %>% filter(t > 150)) +
+  
+  theme_minimal() +
+  
+  coord_cartesian(ylim = c(0, 50))
 
 source("R/make_result_quants.R")
 
@@ -120,7 +130,7 @@ ward_only_quants <- results %>%
 
 
 
-y_lim <- 400
+y_lim <- 50
 
 ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -265,12 +275,12 @@ cowplot::plot_grid(
   
   results %>%
     plot_tiled("adj_los", y_res = 100),
-  results %>%
-    mutate(importation_rate = 1 / exp(log_importation_rate)) %>%
-    plot_tiled("log_importation_rate", y_res = 100),
-  results %>%
-    mutate(clearance_mean = 1 / exp(log_importation_rate)) %>%
-    plot_tiled("log_importation_rate", y_res = 100),
+  # results %>%
+  #   mutate(importation_rate = 1 / exp(log_importation_rate)) %>%
+  #   plot_tiled("log_importation_rate", y_res = 100),
+  # results %>%
+  #   mutate(clearance_mean = 1 / exp(log_importation_rate)) %>%
+  #   plot_tiled("log_importation_rate", y_res = 100),
   
   ncol = 1, align = "v"
 )
