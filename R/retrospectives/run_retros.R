@@ -14,7 +14,7 @@ forecast_inputs <- tibble::tribble(
   "2023-05-12", "2023-05-19"
 )
 
-forecast_suffix <- "test_pf_b_2"
+forecast_suffix <- "test_pf_b_3"
 
 
 all_retros <- forecast_inputs %>%

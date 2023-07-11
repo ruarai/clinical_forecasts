@@ -16,7 +16,7 @@ t_parameters <- list(
   
   
   tar_target(date_simulation_start, date_forecasting - days(120)),
-  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test_pf_b_2")),
+  tar_target(forecast_name, str_c("fc_", date_forecasting, "_test_pf_b_3")),
   
   tar_target(raw_nindss, "results/fc_2022-11-18_final/archive/nindss.fst"),
   tar_target(raw_local_cases, "results/fc_2022-11-18_final/archive/local_cases.csv"),
