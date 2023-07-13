@@ -3,16 +3,16 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_VIC)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_SA)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_VIC)
+case_trajectories <- tar_read(case_trajectories_SA)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_VIC)
+known_occupancy_ts <- tar_read(known_occupancy_ts_SA)
 
-state_forecast_start <- tar_read(state_forecast_start_VIC)
+state_forecast_start <- tar_read(state_forecast_start_SA)
 
 
 
@@ -23,7 +23,6 @@ library(JuliaCall)
 
 
 case_curves <- case_trajectories$curve_set
-n_steps_per_day <- 4
 
 
 occupancy_curve_match <- tibble(
@@ -61,10 +60,12 @@ julia_source(
 )
 
 
+a <- Sys.time()
 results <- julia_call(
   "run_inference",
   case_trajectories$n_days,
-  n_steps_per_day,
+  4,
+  
   100,
   c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
   1 / 4000,
@@ -75,9 +76,10 @@ results <- julia_call(
   
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
+print(Sys.time() - a)
 
 ggplot(results$simulations %>% filter(sample < 500)) +
-  geom_line(aes(x = day, y = sim_ward_outbreak, group = sample),
+  geom_line(aes(x = day, y = sim_ward, group = sample),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ward),
              colour = "red",
@@ -86,7 +88,7 @@ ggplot(results$simulations %>% filter(sample < 500)) +
   theme_minimal() +
   
   
-  coord_cartesian(ylim = c(0, 500))
+  coord_cartesian(ylim = c(0, 50))
 
 results$parameters %>%
   ggplot() +
@@ -129,7 +131,7 @@ ward_only_quants <- results$simulations %>%
 
 
 
-y_lim <- 500
+y_lim <- 50
 
 ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -256,7 +258,7 @@ plot_tiled <- function(results, col, y_res = 100) {
     theme_minimal()
 }
 
-results %>%
+results$simulations %>%
   plot_tiled("sim_ward", y_res = 100) +
   geom_point(aes(x = t, y = ward_vec),
              colour = "red", size = 0.5,
@@ -286,7 +288,7 @@ cowplot::plot_grid(
 
 
 
-results %>%
+results$simulations %>%
   plot_tiled("sim_ICU", y_res = 100) +
   geom_point(aes(x = t, y = ICU_vec),
              colour = "red", size = 0.5,
@@ -295,7 +297,7 @@ results %>%
 
 
 
-results %>%
+results$parameters %>%
   plot_tiled("adj_los", y_res = 100)
 
 

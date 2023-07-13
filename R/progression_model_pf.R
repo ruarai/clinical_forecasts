@@ -29,7 +29,7 @@ run_progression_model <- function(
   occupancy_curve_match <- tibble(
     date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
   )  %>%
-    mutate(do_match = date > state_forecast_start - days(90)) %>%
+    mutate(do_match = date > state_forecast_start & date <= state_forecast_start + days(7)) %>%
     left_join(
       
       known_occupancy_ts %>%
@@ -57,7 +57,7 @@ run_progression_model <- function(
   
   
   julia_source(
-    "../stochastic_progression/inference_pf.jl"
+    "../stochastic_progression/inference_abc.jl"
   )
   
   
@@ -65,7 +65,10 @@ run_progression_model <- function(
     "run_inference",
     case_trajectories$n_days,
     n_steps_per_day,
-    12000,
+    1000,
+    
+    c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
+    1 / 4000,
     
     case_curves,
     clinical_parameter_samples,
@@ -77,8 +80,8 @@ run_progression_model <- function(
   
   
   
-  trajectories <- results %>%
-    select(sample = particle, day, sim_ward, sim_ward_outbreak, sim_ICU) %>%
+  trajectories <- results$simulations %>%
+    select(sample, day, sim_ward, sim_ward_outbreak, sim_ICU) %>%
     pivot_longer(c(sim_ward, sim_ward_outbreak, sim_ICU),
                  names_to = "group",
                  values_to = "count",
@@ -96,7 +99,7 @@ run_progression_model <- function(
   
   
   sim_results <- list(
-    results_tbl = results,
+    results = results,
     quants_count = results_count_quants,
     trajectories = trajectories
   )
