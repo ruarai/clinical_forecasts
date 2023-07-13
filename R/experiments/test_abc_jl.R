@@ -65,9 +65,9 @@ results <- julia_call(
   "run_inference",
   case_trajectories$n_days,
   n_steps_per_day,
-  1000,
-  c(2, 1.5, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
   100,
+  c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
+  1 / 4000,
   
   case_curves,
   clinical_parameter_samples,
@@ -76,8 +76,8 @@ results <- julia_call(
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
 
-ggplot(results$simulations %>% filter(particle < 500)) +
-  geom_line(aes(x = day, y = sim_ward, group = particle),
+ggplot(results$simulations %>% filter(sample < 500)) +
+  geom_line(aes(x = day, y = sim_ward_outbreak, group = sample),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ward),
              colour = "red",
@@ -96,8 +96,8 @@ results$parameters %>%
   geom_histogram(aes(x = log_importation_rate), binwidth = 0.1)
 
 
-ggplot(results$simulations %>% filter(particle < 500, day > 150)) +
-  geom_line(aes(x = day, y = sim_ICU, group = particle),
+ggplot(results$simulations %>% filter(sample < 500, day > 150)) +
+  geom_line(aes(x = day, y = sim_ICU, group = sample),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ICU),
              colour = "red",
@@ -110,20 +110,20 @@ ggplot(results$simulations %>% filter(particle < 500, day > 150)) +
 source("R/make_result_quants.R")
 
 ward_quants <- results$simulations %>%
-  select(day, particle, value = sim_ward) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
+  select(day, sample, value = sim_ward) %>% 
+  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
 ward_outbreak_quants <- results$simulations %>%
-  select(day, particle, value = sim_ward_outbreak) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
+  select(day, sample, value = sim_ward_outbreak) %>% 
+  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
 ward_only_quants <- results$simulations %>%
-  select(day, particle, value = sim_ward_progression) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
+  select(day, sample, value = sim_ward_progression) %>% 
+  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
@@ -210,8 +210,8 @@ cowplot::plot_grid(
 
 
 ICU_quants <- results$simulations %>%
-  select(day, particle, value = sim_ICU) %>% 
-  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
+  select(day, sample, value = sim_ICU) %>% 
+  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
