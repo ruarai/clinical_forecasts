@@ -19,7 +19,7 @@ t_parameters <- list(
   
   # Update these to the latest file path
   # ~/mfluxshared and ~/mfluxunimelb should point to the (respective) mediaflux server
-  tar_target(raw_nindss, "~/mfluxunimelb/NINDSS_and_state_data/nindss/COVID-19 UoM 6months-06July2023.zip"),
+  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 6months-13July2023.zip"),
   tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2023-07-06.csv"),
   
   ## NOTE - Moss ensemble models are being downweighted - so message "Dropping 1000 columns for being entirely NA" will appear repeatedly
