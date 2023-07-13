@@ -3,16 +3,16 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NT)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_VIC)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_NT)
+case_trajectories <- tar_read(case_trajectories_VIC)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_NT)
+known_occupancy_ts <- tar_read(known_occupancy_ts_VIC)
 
-state_forecast_start <- tar_read(state_forecast_start_NT)
+state_forecast_start <- tar_read(state_forecast_start_VIC)
 
 
 
@@ -28,8 +28,8 @@ n_steps_per_day <- 4
 
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
-)  %>%
-  mutate(do_match = date > state_forecast_start - days(120)) %>%
+) %>%
+  mutate(do_match = date > state_forecast_start) %>%
   left_join(
     
     known_occupancy_ts %>%
@@ -57,57 +57,46 @@ morbidity_trajectories_state_ix <- morbidity_trajectories_state %>%
 
 
 julia_source(
-  "../stochastic_progression/inference_pf_exact.jl"
+  "../stochastic_progression/inference_abc.jl"
 )
 
 
 results <- julia_call(
-  "run_inference_exact",
+  "run_inference",
   case_trajectories$n_days,
   n_steps_per_day,
-  10000,
+  1000,
+  c(2, 1.5, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
+  100,
   
   case_curves,
   clinical_parameter_samples,
   morbidity_trajectories_state_ix,
   
-  c(0.5, 0.75, 1.0, 10.0),
-  
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
 
-ggplot(results %>% filter(particle < 500)) +
+ggplot(results$simulations %>% filter(particle < 500)) +
   geom_line(aes(x = day, y = sim_ward, group = particle),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ward),
              colour = "red",
-             occupancy_curve_match %>% filter(t > 0, ward_vec > -0.5)) +
-
+             occupancy_curve_match %>% filter(ward_vec > 0)) +
+  
   theme_minimal() +
   
-  #scale_y_log10() +
   
-  #geom_vline(xintercept = 188) +
+  coord_cartesian(ylim = c(0, 500))
 
-  coord_cartesian(ylim = c(0, 150))
+results$parameters %>%
+  ggplot() +
+  geom_histogram(aes(x = adj_pr_hosp), binwidth = 0.1)
+results$parameters %>%
+  ggplot() +
+  geom_histogram(aes(x = log_importation_rate), binwidth = 0.1)
 
 
-ggplot(results %>% filter(particle < 500)) +
-  geom_line(aes(x = day, y = adj_los + adj_pr_hosp, group = particle),
-            size = 0.1, alpha = 0.3) +
-  
-  theme_minimal()
-ggplot(results %>% filter(particle < 500)) +
-  geom_line(aes(x = day, y = log_importation_rate, group = particle),
-            size = 0.1, alpha = 0.3) +
-  
-  theme_minimal()
-ggplot(results %>% filter(day == max(day)) %>% mutate(log_importation_rate = rnorm(n(), -8, 1))) +
-  geom_histogram(aes(x = log_importation_rate)) +
-  
-  theme_minimal()
-
-ggplot(results %>% filter(particle < 500, day > 150)) +
+ggplot(results$simulations %>% filter(particle < 500, day > 150)) +
   geom_line(aes(x = day, y = sim_ICU, group = particle),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ICU),
@@ -116,22 +105,23 @@ ggplot(results %>% filter(particle < 500, day > 150)) +
   
   theme_minimal() +
   
-  coord_cartesian(ylim = c(0, 50))
+  coord_cartesian(ylim = c(0, 10))
 
 source("R/make_result_quants.R")
 
-ward_quants <- results %>%
+ward_quants <- results$simulations %>%
   select(day, particle, value = sim_ward) %>% 
   pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
-ward_outbreak_quants <- results %>%
+
+ward_outbreak_quants <- results$simulations %>%
   select(day, particle, value = sim_ward_outbreak) %>% 
   pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
-ward_only_quants <- results %>%
+ward_only_quants <- results$simulations %>%
   select(day, particle, value = sim_ward_progression) %>% 
   pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
@@ -139,7 +129,7 @@ ward_only_quants <- results %>%
 
 
 
-y_lim <- 50
+y_lim <- 500
 
 ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -149,8 +139,8 @@ ggplot() +
             ward_quants,
             colour = ggokabeito::palette_okabe_ito(5),
             alpha = 0.2) +
-  geom_point(aes(x = t, y = ward_vec),
-             occupancy_curve_match %>% filter(ward_vec > -0.5)) +
+  geom_point(aes(x = t, y = ward),
+             occupancy_curve_match) +
   
   coord_cartesian(ylim = c(0, y_lim)) +
   
@@ -158,7 +148,6 @@ ggplot() +
   xlab(NULL) + ylab(NULL) +
   
   ggtitle("Total ward occupancy")
-
 cowplot::plot_grid(
   ggplot() +
     geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -213,14 +202,14 @@ cowplot::plot_grid(
     xlab(NULL) + ylab(NULL) +
     
     ggtitle("Outbreak ward occupancy"),
-
+  
   ncol = 1,
   align = "v"
 )
 
 
 
-ICU_quants <- results %>%
+ICU_quants <- results$simulations %>%
   select(day, particle, value = sim_ICU) %>% 
   pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
@@ -258,7 +247,7 @@ plot_tiled <- function(results, col, y_res = 100) {
     #group_by(day) %>%
     #mutate(day_weight_sum = sum(weight)) %>% 
     count(day, val)# %>%
-    #summarise(n = sum(weight) / day_weight_sum)
+  #summarise(n = sum(weight) / day_weight_sum)
   
   ggplot() +
     geom_tile(aes(x = day, y = val, fill = log(n)),
