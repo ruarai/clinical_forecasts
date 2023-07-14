@@ -60,49 +60,76 @@ run_progression_model <- function(
     "../stochastic_progression/inference_abc.jl"
   )
   
+  rates <- seq(-10, -6, by = 0.5)
   
-  results <- julia_call(
-    "run_inference",
-    case_trajectories$n_days,
-    n_steps_per_day,
-    1000,
-    
-    c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
-    1 / 4000,
-    
-    case_curves,
-    clinical_parameter_samples,
-    morbidity_trajectories_state_ix,
-    
-    cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
+  # results <- julia_call(
+  #   "run_inference",
+  #   case_trajectories$n_days,
+  #   n_steps_per_day,
+  #   1000,
+  #   
+  #   c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
+  #   1 / 4000,
+  #   
+  #   case_curves,
+  #   clinical_parameter_samples,
+  #   morbidity_trajectories_state_ix,
+  #   
+  #   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
+  # )
+  
+  results_all <- map(
+    rates,
+    function(mean_rate) {
+      results <- julia_call(
+        "run_inference",
+        case_trajectories$n_days,
+        4,
+        
+        1000,
+        c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
+        1 / 4000,
+        
+        case_curves,
+        clinical_parameter_samples,
+        morbidity_trajectories_state_ix,
+        
+        mean_rate,
+        
+        cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
+      )
+      
+      return(results)
+    }
   )
   
   
   
+  # trajectories <- results$simulations %>%
+  #   select(sample, day, sim_ward, sim_ward_outbreak, sim_ICU) %>%
+  #   pivot_longer(c(sim_ward, sim_ward_outbreak, sim_ICU),
+  #                names_to = "group",
+  #                values_to = "count",
+  #                names_prefix = "sim_") %>%
+  #   mutate(date = forecast_dates$simulation_start + days(day - 1), .before = 1)
+  # 
+  # source("R/make_result_quants.R")
+  # 
+  # 
+  # results_count_quants <- trajectories %>%
+  #   pivot_wider(names_from = "sample",
+  #               names_prefix = "sim_",
+  #               values_from = "count") %>%
+  #   make_results_quants()
   
-  trajectories <- results$simulations %>%
-    select(sample, day, sim_ward, sim_ward_outbreak, sim_ICU) %>%
-    pivot_longer(c(sim_ward, sim_ward_outbreak, sim_ICU),
-                 names_to = "group",
-                 values_to = "count",
-                 names_prefix = "sim_") %>%
-    mutate(date = forecast_dates$simulation_start + days(day - 1), .before = 1)
   
-  source("R/make_result_quants.R")
+  # sim_results <- list(
+  #   results = results,
+  #   quants_count = results_count_quants,
+  #   trajectories = trajectories
+  # )
   
-  
-  results_count_quants <- trajectories %>%
-    pivot_wider(names_from = "sample",
-                names_prefix = "sim_",
-                values_from = "count") %>%
-    make_results_quants()
-  
-  
-  sim_results <- list(
-    results = results,
-    quants_count = results_count_quants,
-    trajectories = trajectories
-  )
+  return(results_all)
 }
 
 

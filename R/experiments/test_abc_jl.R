@@ -3,16 +3,16 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_SA)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NT)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_SA)
+case_trajectories <- tar_read(case_trajectories_NT)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_SA)
+known_occupancy_ts <- tar_read(known_occupancy_ts_NT)
 
-state_forecast_start <- tar_read(state_forecast_start_SA)
+state_forecast_start <- tar_read(state_forecast_start_NT)
 
 
 
@@ -28,7 +28,7 @@ case_curves <- case_trajectories$curve_set
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
 ) %>%
-  mutate(do_match = date > state_forecast_start) %>%
+  mutate(do_match = date > state_forecast_start & date <= state_forecast_start + days(7)) %>%
   left_join(
     
     known_occupancy_ts %>%
@@ -73,6 +73,8 @@ results <- julia_call(
   case_curves,
   clinical_parameter_samples,
   morbidity_trajectories_state_ix,
+  
+  -8,
   
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
