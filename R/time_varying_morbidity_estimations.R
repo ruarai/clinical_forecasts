@@ -1,5 +1,6 @@
 get_time_varying_morbidity_estimations <- function(
   nindss_state,
+  nindss,
   forecast_dates,
   clinical_parameters,
   
@@ -20,31 +21,20 @@ get_time_varying_morbidity_estimations <- function(
   n_bootstraps <- 50
   
   if(state_modelled == "NSW") {
-    res <- qs::qread("results/fc_2023-06-29_final/archive/NSW_archive.qs")$morbidity_trajectories_state %>%
-      
-      filter(date >= forecast_dates$simulation_start, date <= forecast_dates$forecast_horizon) %>% 
-      
-      complete(
-        bootstrap = 1:n_bootstraps,
-        age_group = age_groups,
-        date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = "days")
-      ) %>%
-      
-      group_by(bootstrap, age_group) %>%
-      arrange(date) %>%
-      
-      fill(pr_age_given_case, pr_hosp, pr_ICU, .direction = "updown") %>%
-      ungroup()
     
-    return(res)
-  }
-  
-  if(state_modelled %in% nindss_bad_states) {
+    nindss_state <- nindss %>%
+      filter(state == "VIC", test_type == "PCR")
+    
+  } else if(state_modelled %in% nindss_bad_states) {
+    
     do_estimate_morbidity <- FALSE
     
   } else if(state_modelled == "national") {
+    
     nindss_state <- nindss_state %>%
-      filter(!(state %in% nindss_bad_states))
+      filter(!(state %in% nindss_bad_states)) %>%
+      filter(!(state == "VIC"))
+    
   }
   
   
@@ -392,6 +382,11 @@ get_time_varying_morbidity_estimations <- function(
         
         by = c("bootstrap", "age_group", "date")
       )
+  }
+  
+  if(state_modelled == "VIC" | state_modelled == "NSW") {
+    all_results <- all_results %>%
+      mutate(pr_hosp = if_else(date >= ymd("2023-06-29"), NA_real_, pr_hosp))
   }
   
   morbidity_trajectories <- all_results %>%

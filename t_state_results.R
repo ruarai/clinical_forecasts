@@ -69,6 +69,7 @@ state_results <- tar_map(
 
     get_time_varying_morbidity_estimations(
       nindss_state,
+      nindss,
 
       forecast_dates,
 

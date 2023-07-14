@@ -91,7 +91,7 @@ pre_forecasting <- c(
       morbidity_trajectories_national,
 
       get_time_varying_morbidity_estimations(
-        nindss,
+        nindss, nindss,
 
         forecast_dates,
 
