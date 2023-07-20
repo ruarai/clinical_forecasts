@@ -29,7 +29,7 @@ n_steps_per_day <- 4
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
 )  %>%
-  mutate(do_match = date > state_forecast_start - days(120)) %>%
+  mutate(do_match = date > state_forecast_start - days(120) & date < state_forecast_start) %>%
   left_join(
     
     known_occupancy_ts %>%
@@ -60,18 +60,18 @@ julia_source(
   "../stochastic_progression/inference_pf_exact.jl"
 )
 
-
 results <- julia_call(
   "run_inference_exact",
   case_trajectories$n_days,
   n_steps_per_day,
-  10000,
+  1000,
   
   case_curves,
   clinical_parameter_samples,
   morbidity_trajectories_state_ix,
   
-  c(0.5, 0.75, 1.0, 10.0),
+  c(0.2, 0.5, 1.0, 10.0),
+  #c(0.1, 0.2, 0.5, 1.0, 10.0),
   
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
@@ -93,7 +93,7 @@ ggplot(results %>% filter(particle < 500)) +
 
 
 ggplot(results %>% filter(particle < 500)) +
-  geom_line(aes(x = day, y = adj_los + adj_pr_hosp, group = particle),
+  geom_line(aes(x = day, y = adj_pr_hosp + adj_los, group = particle),
             size = 0.1, alpha = 0.3) +
   
   theme_minimal()
@@ -102,21 +102,15 @@ ggplot(results %>% filter(particle < 500)) +
             size = 0.1, alpha = 0.3) +
   
   theme_minimal()
-ggplot(results %>% filter(day == max(day)) %>% mutate(log_importation_rate = rnorm(n(), -8, 1))) +
-  geom_histogram(aes(x = log_importation_rate)) +
-  
-  theme_minimal()
 
-ggplot(results %>% filter(particle < 500, day > 150)) +
-  geom_line(aes(x = day, y = sim_ICU, group = particle),
-            size = 0.1, alpha = 0.5) +
-  geom_point(aes(x = t, y = ICU),
-             colour = "red",
-             occupancy_curve_match %>% filter(t > 150)) +
-  
-  theme_minimal() +
-  
-  coord_cartesian(ylim = c(0, 50))
+
+results %>%
+  filter(day == max(day)) %>%
+  mutate(prior_rate = rnorm(n(), -8, 1)) %>% 
+  ggplot() +
+  geom_histogram(aes(x = log_importation_rate)) +
+  geom_histogram(aes(x = prior_rate), alpha = 0.5, fill = "red")
+
 
 source("R/make_result_quants.R")
 
