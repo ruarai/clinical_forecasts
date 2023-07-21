@@ -384,6 +384,180 @@ make_plots <- function(
   )
 }
 
+make_plots_retro <- function(
+    i_state,  
+    
+    case_ensemble_wide_state,
+    clinical_trajectories_wide_state,
+    local_cases,
+    local_cases_latest,
+    occupancy_data,
+    occupancy_latest_data,
+    
+    
+    state_forecast_start_date,
+    date_plot_start,
+    date_plot_end,
+    
+    plots_common,
+    
+    days_before_fit,
+    days_horizon,
+    plot_quant_widths
+) {
+  
+  ensemble_quants <- case_ensemble_wide_state %>%
+    rename_with(~ if_else(str_starts(., "sim"), str_c("sim_", .), .)) %>%
+    make_results_quants(plot_quant_widths) %>%
+    drop_na(lower) %>%
+    
+    filter(date <= state_forecast_start_date + ddays(days_horizon))
+  
+  clinical_quants_state <- clinical_trajectories_wide_state %>%
+    make_results_quants(plot_quant_widths) %>%
+    filter(date > state_forecast_start_date - ddays(days_before_fit), date <= state_forecast_start_date + ddays(days_horizon))
+  
+  cases_known <- local_cases %>%
+    filter(state == i_state) %>%
+    process_local_cases() %>%
+    filter(date >= date_plot_start)
+  
+  cases_known_latest <- local_cases_latest %>%
+    filter(state == i_state) %>%
+    process_local_cases() %>%
+    filter(date >= date_plot_start)
+  
+  ward_quants <- clinical_quants_state %>%
+    filter(group == "ward")
+  ward_known <- occupancy_data %>%
+    filter(group == "ward", state == i_state) %>%
+    filter(date >= date_plot_start)
+  ward_known_latest <- occupancy_latest_data %>%
+    filter(group == "ward", state == i_state) %>%
+    filter(date >= date_plot_start)
+  
+  ICU_quants <- clinical_quants_state %>%
+    filter(group == "ICU")
+  ICU_known <- occupancy_data %>%
+    filter(group == "ICU", state == i_state) %>%
+    filter(date >= date_plot_start)
+  ICU_known_latest <- occupancy_latest_data %>%
+    filter(group == "ICU", state == i_state) %>%
+    filter(date >= date_plot_start)
+  
+  p_cases <- ggplot() +
+    
+    geom_vline(xintercept = date_reporting_line, colour = plot_params$reporting_line_colour) +
+    
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
+                
+                data = ensemble_quants) +
+    
+    geom_hline(yintercept = 0, colour = "grey40", size = 0.5) +
+    
+    geom_point(aes(x = date, y = count / detection_probability),
+               cases_known_latest %>% filter(detection_probability >= 0.95),
+               color = 'black',
+               
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
+    
+    
+    
+    geom_point(aes(x = date, y = count / detection_probability),
+               cases_known %>% filter(detection_probability >= 0.95),
+               color = 'grey60',
+               
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
+    
+    scale_fill_manual(values = plot_cols$case_or_inf) +
+    
+    
+    geom_vline(xintercept = state_forecast_start_date + ddays(1),
+               colour = "grey60", linetype = "dashed") +
+    
+    ggtitle(str_c(i_state, " \u2013 Case incidence by onset date")) +
+    
+    plots_common +
+    coord_cartesian(xlim = c(date_plot_start, date_plot_end), clip = "off")
+  
+  p_ward <- ggplot() +
+    
+    geom_vline(xintercept = date_reporting_line, colour = "grey60")  +
+    
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
+                
+                data = ward_quants) +
+    
+    geom_hline(yintercept = 0, colour = "grey40", size = 0.5) +
+    
+    geom_point(aes(x = date, y = count),
+               color = plot_params$point_colour,
+               ward_known_latest,
+               
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
+    
+    geom_point(aes(x = date, y = count),
+               color = "grey60",
+               ward_known,
+               
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
+    
+    scale_fill_manual(values = plot_cols$ward) +
+    
+    geom_vline(xintercept = state_forecast_start_date + ddays(7),
+               colour = "grey40", linetype = "dashed") +
+    
+    ggtitle(str_c(i_state, " \u2013 Ward bed occupancy")) +
+    
+    plots_common + 
+    coord_cartesian(xlim = c(date_plot_start, date_plot_end), clip = "off")
+  
+  p_ICU <- ggplot() +
+    
+    geom_vline(xintercept = date_reporting_line, colour = "grey60")  +
+    
+    geom_ribbon(aes(x = date, ymin = lower, ymax = upper, group = quant, fill = quant),
+                
+                data = ICU_quants) +
+    
+    geom_hline(yintercept = 0, colour = "grey40", size = 0.5) +
+    
+    geom_point(aes(x = date, y = count),
+               color = plot_params$point_colour,
+               ICU_known_latest,
+               
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
+    
+    geom_point(aes(x = date, y = count),
+               color = "grey60",
+               ICU_known,
+               
+               size = plot_params$point_size, stroke = plot_params$point_stroke) +
+    
+    scale_fill_manual(values = plot_cols$ICU) +
+    
+    geom_vline(xintercept = state_forecast_start_date + ddays(7),
+               colour = "grey40", linetype = "dashed") +
+    
+    ggtitle(str_c(i_state, " \u2013 ICU bed occupancy")) +
+    
+    plots_common + 
+    coord_cartesian(xlim = c(date_plot_start, date_plot_end), clip = "off")
+  
+  
+  p <- cowplot::plot_grid(
+    p_cases, p_ward, p_ICU,
+    ncol = 1, align = "v", axis = "lr"
+  )
+  
+  list(
+    "p" = p,
+    "p_cases" = p_cases,
+    "p_ward" = p_ward,
+    "p_ICU" = p_ICU
+  )
+}
+
 make_short_plot_grid <- function(short_results, plot_name) {
   cowplot::plot_grid(
     plotlist = imap(

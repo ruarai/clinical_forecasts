@@ -20,12 +20,7 @@ get_time_varying_morbidity_estimations <- function(
   age_groups <- c("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80+")
   n_bootstraps <- 50
   
-  if(state_modelled == "NSW") {
-    
-    nindss_state <- nindss %>%
-      filter(state == "VIC", test_type == "PCR")
-    
-  } else if(state_modelled %in% nindss_bad_states) {
+  if(state_modelled %in% nindss_bad_states) {
     
     do_estimate_morbidity <- FALSE
     
@@ -33,7 +28,7 @@ get_time_varying_morbidity_estimations <- function(
     
     nindss_state <- nindss_state %>%
       filter(!(state %in% nindss_bad_states)) %>%
-      filter(!(state == "VIC"))
+      filter(state != "VIC")
     
   }
   
@@ -382,11 +377,6 @@ get_time_varying_morbidity_estimations <- function(
         
         by = c("bootstrap", "age_group", "date")
       )
-  }
-  
-  if(state_modelled == "VIC" | state_modelled == "NSW") {
-    all_results <- all_results %>%
-      mutate(pr_hosp = if_else(date >= ymd("2023-06-29"), NA_real_, pr_hosp))
   }
   
   morbidity_trajectories <- all_results %>%
