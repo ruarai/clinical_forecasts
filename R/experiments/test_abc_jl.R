@@ -28,7 +28,7 @@ case_curves <- case_trajectories$curve_set
 occupancy_curve_match <- tibble(
   date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = 'days')
 ) %>%
-  mutate(do_match = date > state_forecast_start & date <= state_forecast_start + days(7)) %>%
+  mutate(do_match = date > state_forecast_start - days(120) & date <= state_forecast_start + days(7)) %>%
   left_join(
     
     known_occupancy_ts %>%
@@ -50,6 +50,9 @@ occupancy_curve_match <- tibble(
          ICU_vec = replace_na(ICU_vec, -1)) %>%
   mutate(t = row_number())
 
+ggplot(occupancy_curve_match) +
+  geom_point(aes(x  = date, y = ward_vec))
+
 
 morbidity_trajectories_state_ix <- morbidity_trajectories_state %>%
   mutate(t = match(date, unique(date)))
@@ -60,25 +63,21 @@ julia_source(
 )
 
 
-a <- Sys.time()
 results <- julia_call(
   "run_inference",
   case_trajectories$n_days,
   4,
   
-  100,
-  c(0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 10.0, 100.0),
+  10,
+  c(300, 400, 500, 600, 700, 1e6),
   1 / 4000,
   
   case_curves,
   clinical_parameter_samples,
   morbidity_trajectories_state_ix,
   
-  -8,
-  
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
-print(Sys.time() - a)
 
 ggplot(results$simulations %>% filter(sample < 500)) +
   geom_line(aes(x = day, y = sim_ward, group = sample),
@@ -86,6 +85,8 @@ ggplot(results$simulations %>% filter(sample < 500)) +
   geom_point(aes(x = t, y = ward),
              colour = "red",
              occupancy_curve_match %>% filter(ward_vec > 0)) +
+  
+  geom_vline(xintercept = 80) +
   
   theme_minimal() +
   
@@ -95,9 +96,12 @@ ggplot(results$simulations %>% filter(sample < 500)) +
 results$parameters %>%
   ggplot() +
   geom_histogram(aes(x = adj_pr_hosp), binwidth = 0.1)
+
 results$parameters %>%
+  mutate(rate_prior = rnorm(n(), -8, 1)) %>% 
   ggplot() +
-  geom_histogram(aes(x = log_importation_rate), binwidth = 0.1)
+  geom_histogram(aes(x = log_importation_rate), binwidth = 0.1) +
+  geom_histogram(aes(x = rate_prior), alpha = 0.1, fill = "red", binwidth = 0.1)
 
 
 ggplot(results$simulations %>% filter(sample < 500, day > 150)) +
@@ -299,7 +303,7 @@ results$simulations %>%
 
 
 
-results$parameters %>%
+results$simulations %>%
   plot_tiled("adj_los", y_res = 100)
 
 
