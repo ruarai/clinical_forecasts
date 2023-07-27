@@ -83,9 +83,38 @@ test_results <- map(
 )
 
 
+# 
+# write_rds(test_set, "data/exps/test_set.rds")
+# write_rds(test_results, "data/exps/test_results.rds")
 
-write_rds(test_set, "data/exps/test_set.rds")
-write_rds(test_results, "data/exps/test_results.rds")
 
 
+
+test_set
+
+
+test_results %>%
+  bind_rows(.id = "id") %>%
+  mutate(id = as.numeric(id)) %>% 
+  left_join(
+    test_set %>% mutate(id = row_number()) %>%
+      rename(true_adj_pr_hosp = adj_pr_hosp,
+             true_adj_los = adj_los,
+             true_log_rate = log_importation_rate)
+  ) %>%
+  filter(threshold == max(threshold)) %>%
+  
+  ggplot() +
+  
+  # geom_histogram(aes(x = log_importation_rate)) +
+  # geom_vline(aes(xintercept = true_log_rate), colour = "red") +
+  # facet_wrap(~id)
+  
+  geom_point(aes(x = adj_los + adj_pr_hosp, y = log_importation_rate),
+             size = 0.3, stroke = 0.3, alpha = 0.3) +
+  
+  geom_point(aes(x = true_adj_los + true_adj_pr_hosp, y = true_log_rate),
+             colour = "red") +
+  
+  facet_wrap(~id)
 
