@@ -3,16 +3,16 @@ library(targets)
 library(tidyverse)
 library(lubridate)
 
-morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_NT)
+morbidity_trajectories_state <- tar_read(morbidity_trajectories_state_ACT)
 forecast_dates <- tar_read(forecast_dates)
 
 clinical_parameters <- tar_read(clinical_parameters)
-case_trajectories <- tar_read(case_trajectories_NT)
+case_trajectories <- tar_read(case_trajectories_ACT)
 
 clinical_parameter_samples <- tar_read(clinical_parameter_samples)
-known_occupancy_ts <- tar_read(known_occupancy_ts_NT)
+known_occupancy_ts <- tar_read(known_occupancy_ts_ACT)
 
-state_forecast_start <- tar_read(state_forecast_start_NT)
+state_forecast_start <- tar_read(state_forecast_start_ACT)
 
 
 
@@ -59,18 +59,15 @@ morbidity_trajectories_state_ix <- morbidity_trajectories_state %>%
 
 
 julia_source(
-  "../stochastic_progression/inference_abc.jl"
+  "../stochastic_progression/inference_abc_decimation.jl"
 )
 
 
 results <- julia_call(
   "run_inference",
+  
   case_trajectories$n_days,
   4,
-  
-  10,
-  c(300, 400, 500, 600, 700, 1e6),
-  1 / 4000,
   
   case_curves,
   clinical_parameter_samples,
@@ -79,37 +76,48 @@ results <- julia_call(
   cbind(occupancy_curve_match$ward_vec, occupancy_curve_match$ICU_vec)
 )
 
-ggplot(results$simulations %>% filter(sample < 500)) +
-  geom_line(aes(x = day, y = sim_ward, group = sample),
+ggplot(results$simulations %>% filter(particle < 500)) +
+  geom_line(aes(x = day, y = sim_ward, group = particle),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ward),
              colour = "red",
              occupancy_curve_match %>% filter(ward_vec > 0)) +
   
-  geom_vline(xintercept = 80) +
+  theme_minimal() +
+  
+  
+  coord_cartesian(ylim = c(0, 150))
+
+ggplot(results$simulations %>% filter(particle < 500)) +
+  geom_line(aes(x = day, y = sim_ward_outbreak, group = particle),
+            size = 0.1, alpha = 0.5) +
+  geom_point(aes(x = t, y = ward),
+             colour = "red",
+             occupancy_curve_match %>% filter(ward_vec > 0)) +
   
   theme_minimal() +
   
   
-  coord_cartesian(ylim = c(0, 50))
+  coord_cartesian(ylim = c(0, 150))
 
 results$parameters %>%
   ggplot() +
-  geom_histogram(aes(x = adj_pr_hosp), binwidth = 0.1)
+  geom_point(aes(x = adj_pr_hosp, adj_los))
 
 results$parameters %>%
-  mutate(rate_prior = rnorm(n(), -8, 1)) %>% 
+  filter(threshold == max(threshold)) %>%
+  mutate(rate_prior = rnorm(n(), -8, 2)) %>% 
   ggplot() +
   geom_histogram(aes(x = log_importation_rate), binwidth = 0.1) +
   geom_histogram(aes(x = rate_prior), alpha = 0.1, fill = "red", binwidth = 0.1)
 
 
-ggplot(results$simulations %>% filter(sample < 500, day > 150)) +
-  geom_line(aes(x = day, y = sim_ICU, group = sample),
+ggplot(results$simulations %>% filter(particle < 500)) +
+  geom_line(aes(x = day, y = sim_ICU, group = particle),
             size = 0.1, alpha = 0.5) +
   geom_point(aes(x = t, y = ICU),
              colour = "red",
-             occupancy_curve_match %>% filter(t > 150)) +
+             occupancy_curve_match) +
   
   theme_minimal() +
   
@@ -118,26 +126,27 @@ ggplot(results$simulations %>% filter(sample < 500, day > 150)) +
 source("R/make_result_quants.R")
 
 ward_quants <- results$simulations %>%
-  select(day, sample, value = sim_ward) %>% 
-  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
+  select(day, particle, value = sim_ward) %>% 
+  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
 ward_outbreak_quants <- results$simulations %>%
-  select(day, sample, value = sim_ward_outbreak) %>% 
-  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
+  select(day, particle, value = sim_ward_outbreak) %>% 
+  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
 ward_only_quants <- results$simulations %>%
-  select(day, sample, value = sim_ward_progression) %>% 
-  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
+  mutate(sim_ward_progression = sim_ward - sim_ward_outbreak) %>% 
+  select(day, particle, value = sim_ward_progression) %>% 
+  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
 
 
-y_lim <- 50
+y_lim <- 150
 
 ggplot() +
   geom_ribbon(aes(x = day, ymin = lower, ymax = upper, group = quant),
@@ -218,8 +227,8 @@ cowplot::plot_grid(
 
 
 ICU_quants <- results$simulations %>%
-  select(day, sample, value = sim_ICU) %>% 
-  pivot_wider(names_from = sample, names_prefix = "sim_", values_from = value) %>% 
+  select(day, particle, value = sim_ICU) %>% 
+  pivot_wider(names_from = particle, names_prefix = "sim_", values_from = value) %>% 
   
   make_results_quants(c(0.5, 0.9, 0.95))
 
@@ -265,48 +274,7 @@ plot_tiled <- function(results, col, y_res = 100) {
 }
 
 results$simulations %>%
-  plot_tiled("sim_ward", y_res = 100) +
+  plot_tiled("sim_ward", y_res = 120) +
   geom_point(aes(x = t, y = ward_vec),
              colour = "red", size = 0.5,
              occupancy_curve_match %>% filter(ward_vec > -0.5))
-
-cowplot::plot_grid(
-  results %>%
-    plot_tiled("sim_ward", y_res = 50) +
-    geom_point(aes(x = t, y = ward_vec),
-               colour = "red", size = 0.5,
-               occupancy_curve_match %>% filter(ward_vec > -0.5)),
-  
-  results %>%
-    plot_tiled("adj_pr_hosp", y_res = 100),
-  
-  results %>%
-    plot_tiled("adj_los", y_res = 100),
-  # results %>%
-  #   mutate(importation_rate = 1 / exp(log_importation_rate)) %>%
-  #   plot_tiled("log_importation_rate", y_res = 100),
-  # results %>%
-  #   mutate(clearance_mean = 1 / exp(log_importation_rate)) %>%
-  #   plot_tiled("log_importation_rate", y_res = 100),
-  
-  ncol = 1, align = "v"
-)
-
-
-
-results$simulations %>%
-  plot_tiled("sim_ICU", y_res = 100) +
-  geom_point(aes(x = t, y = ICU_vec),
-             colour = "red", size = 0.5,
-             occupancy_curve_match %>% filter(ward_vec > -0.5))
-
-
-
-
-results$simulations %>%
-  plot_tiled("adj_los", y_res = 100)
-
-
-results %>%
-  plot_tiled("adj_pr_hosp", y_res = 100)
-
