@@ -9,10 +9,10 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-07-20_final/"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-07-20.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-07-14.csv"
-date_reporting_line <- ymd("2023-07-21")
+results_dir <- "results/fc_2023-07-28_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-07-27.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-07-21.csv"
+date_reporting_line <- ymd("2023-07-28")
 
 
 # When our plots go back to

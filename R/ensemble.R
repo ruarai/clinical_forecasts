@@ -16,7 +16,7 @@ read_ensemble_state <- function(raw_ensemble,
            .model %in% models_included) %>%
     
     mutate(
-      across(num_range("sim", 1001:2000), ~ if_else(.model == "moss_varasc_unsmoothed" | .model == "moss_varasc_unsmoothed", NA_real_, .))
+      across(num_range("sim", 1001:2000), ~ if_else(str_starts(.model, "moss_varasc"), NA_real_, .))
     ) %>%
     
     mutate(
@@ -35,12 +35,12 @@ read_ensemble_all_states <- function(raw_ensemble, models_included) {
   
   vroom::vroom(raw_ensemble,
                col_types = ensemble_spec) %>%
-    filter(.model %in% models_included) %>%
+    filter(.model %in% models_included)  %>%
     
     mutate(
-      across(num_range("sim", 1001:2000), ~ if_else(.model == "moss_varasc_unsmoothed" | .model == "moss_varasc_unsmoothed", NA_real_, .))
+      across(num_range("sim", 1001:2000), ~ if_else(str_starts(.model, "moss_varasc"), NA_real_, .))
     ) %>%
-  
+    
     mutate(
       across(num_range("sim", 1001:2000), ~ if_else(str_starts(.model, "dst"), NA_real_, .))
     )
