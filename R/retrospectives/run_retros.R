@@ -14,7 +14,7 @@ forecast_inputs <- tibble::tribble(
   "2023-05-12", "2023-05-19"
 )
 
-forecast_suffix <- "test_abc_1"
+forecast_suffix <- "test_abc_2"
 
 
 all_retros <- forecast_inputs %>%
@@ -57,7 +57,8 @@ for(i in 1:nrow(all_retros)) {
   
   #tar_make_future(script = "_targets_auto_tmp.R", workers = 8)
   #tar_make(c(backup_trajs, starts_with("state_archive")), script = "_targets_auto_tmp.R")
-  tar_make(starts_with("state_archive"), script = "_targets_auto_tmp.R")
+  #tar_make(starts_with("state_archive"), script = "_targets_auto_tmp.R")
+  tar_make(script = "_targets_auto_tmp.R")
 }
 
 

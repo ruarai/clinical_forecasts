@@ -53,105 +53,83 @@ get_time_varying_morbidity_estimations <- function(
   estimation_period <- c(min(nindss_state$date_onset), nindss_date)
   estimation_period_days <- seq(estimation_period[1], estimation_period[2], by = 'days')
   
-  n_bootstraps <- 2
-  
   window_width <- morbidity_window_width
   
   window_starts <- 1:(length(estimation_period_days) - window_width)
   window_ends <- window_starts + window_width
   
-  
-  
-  age_tables <- map(
-    1:n_bootstraps,
-    function(i_bootstrap) {
-      nindss_state %>%
-        sample_n(n(), replace = TRUE) %>%
-        count(date_onset, age_group) %>%
-        complete(
-          date_onset = estimation_period_days,
-          age_group = age_groups,
-          
-          fill = list(n = 0)
-        ) %>%
-        group_by(date_onset) %>%
-        mutate(n_all_ages = sum(n)) %>%
-        ungroup() %>%
-        arrange(age_group) %>%
-        
-        mutate(days_since_onset = as.numeric(nindss_date - date_onset),
-               .before = 1) %>%
-        select(-date_onset) %>%
-        
-        arrange(desc(days_since_onset))
-    }
-  )
+  age_table <- nindss_state %>%
+    count(date_onset, age_group) %>%
+    complete(
+      date_onset = estimation_period_days,
+      age_group = age_groups,
+      
+      fill = list(n = 0)
+    ) %>%
+    group_by(date_onset) %>%
+    mutate(n_all_ages = sum(n)) %>%
+    ungroup() %>%
+    arrange(age_group) %>%
+    
+    mutate(days_since_onset = as.numeric(nindss_date - date_onset),
+           .before = 1) %>%
+    select(-date_onset) %>%
+    
+    arrange(desc(days_since_onset))
   
   
   age_results <- map(
-    age_tables,
-    function(i_bootstraped_age_table) {
-      map(
-        age_groups,
-        function(i_age_group) {
-          i_age_table <- i_bootstraped_age_table %>%
-            filter(age_group == i_age_group)
+    age_groups,
+    function(i_age_group) {
+      i_age_table <- age_table %>%
+        filter(age_group == i_age_group)
+      
+      map_dbl(
+        1:length(window_starts),
+        function(i_window) {
+          window_start <- window_starts[i_window]
+          window_end <- window_ends[i_window]
           
-          map_dbl(
-            1:length(window_starts),
-            function(i_window) {
-              window_start <- window_starts[i_window]
-              window_end <- window_ends[i_window]
-              
-              n_cases_age_group <- i_age_table$n[window_start:window_end]
-              n_cases_all_ages <- i_age_table$n_all_ages[window_start:window_end]
-                
-              if(sum(n_cases_all_ages) == 0)
-                return(0)
-              
-              return(sum(n_cases_age_group) / sum(n_cases_all_ages))
-            }
-          )
+          n_cases_age_group <- i_age_table$n[window_start:window_end]
+          n_cases_all_ages <- i_age_table$n_all_ages[window_start:window_end]
+            
+          if(sum(n_cases_all_ages) == 0)
+            return(0)
           
-          
+          return(sum(n_cases_age_group) / sum(n_cases_all_ages))
         }
       )
     }
   )
   
-  all_results_ls <- vector(mode = "list", length = n_bootstraps * length(age_groups))
+  all_results_ls <- vector(mode = "list", length = length(age_groups))
   
   if(do_estimate_morbidity) {
     
-    hosp_tables <- map(
-      1:n_bootstraps,
-      function(i_bootstrap) {
-        nindss_state %>%
-          sample_n(n(), replace = TRUE) %>%
-          count(date_onset, age_group, ever_in_hospital) %>%
-          complete(
-            date_onset = estimation_period_days,
-            age_group = age_groups,
-            ever_in_hospital = c(TRUE, FALSE),
-            
-            fill = list(n = 0)
-          ) %>%
-          
-          arrange(age_group, date_onset, ever_in_hospital) %>%
-          mutate(ever_in_hospital = if_else(ever_in_hospital, "n_hosp", "n_not_hosp")) %>%
-          
-          pivot_wider(names_from = ever_in_hospital,
-                      values_from = n) %>%
-          
-          mutate(n_cases = n_not_hosp + n_hosp,
-                 .before = "n_not_hosp") %>%
-          
-          mutate(days_since_onset = as.numeric(nindss_date - date_onset),
-                 .before = 1) %>%
-          select(-date_onset) %>%
-          arrange(desc(days_since_onset))
-      }
-    ) 
+    hosp_table <- nindss_state %>%
+      sample_n(n(), replace = TRUE) %>%
+      count(date_onset, age_group, ever_in_hospital) %>%
+      complete(
+        date_onset = estimation_period_days,
+        age_group = age_groups,
+        ever_in_hospital = c(TRUE, FALSE),
+        
+        fill = list(n = 0)
+      ) %>%
+      
+      arrange(age_group, date_onset, ever_in_hospital) %>%
+      mutate(ever_in_hospital = if_else(ever_in_hospital, "n_hosp", "n_not_hosp")) %>%
+      
+      pivot_wider(names_from = ever_in_hospital,
+                  values_from = n) %>%
+      
+      mutate(n_cases = n_not_hosp + n_hosp,
+             .before = "n_not_hosp") %>%
+      
+      mutate(days_since_onset = as.numeric(nindss_date - date_onset),
+             .before = 1) %>%
+      select(-date_onset) %>%
+      arrange(desc(days_since_onset))
     
     
     fn_score_hosp <- function(x, n_hosp, not_hosp_days_since_onset, n_not_hosp, delay_shape, delay_scale) {
@@ -166,50 +144,45 @@ get_time_varying_morbidity_estimations <- function(
     }
     
     hosp_results <- map(
-      hosp_tables,
-      function(i_bootstrapped_hosp_table) {
-        map(
-          age_groups,
-          function(i_age_group) {
-            i_hosp_table <- i_bootstrapped_hosp_table %>%
-              filter(age_group == i_age_group)
+      age_groups,
+      function(i_age_group) {
+        i_hosp_table <- hosp_table %>%
+          filter(age_group == i_age_group)
+        
+        
+        delay_hosp_shape <- clinical_parameter_lookup[i_age_group, "shape_onset_to_ward"]
+        delay_hosp_scale <- clinical_parameter_lookup[i_age_group, "scale_onset_to_ward"]
+        
+        map_dbl(
+          1:length(window_starts),
+          function(i_window) {
+            window_start <- window_starts[i_window]
+            window_end <- window_ends[i_window]
             
+            days_since_onset <- i_hosp_table$days_since_onset[window_start:window_end]
+            n_hosp <- i_hosp_table$n_hosp[window_start:window_end]
+            n_not_hosp <- i_hosp_table$n_not_hosp[window_start:window_end]
             
-            delay_hosp_shape <- clinical_parameter_lookup[i_age_group, "shape_onset_to_ward"]
-            delay_hosp_scale <- clinical_parameter_lookup[i_age_group, "scale_onset_to_ward"]
+            if(sum(n_hosp) == 0)
+              return(0)
+            if(sum(n_not_hosp) == 0)
+              return(1)
             
-            map_dbl(
-              1:length(window_starts),
-              function(i_window) {
-                window_start <- window_starts[i_window]
-                window_end <- window_ends[i_window]
-                
-                days_since_onset <- i_hosp_table$days_since_onset[window_start:window_end]
-                n_hosp <- i_hosp_table$n_hosp[window_start:window_end]
-                n_not_hosp <- i_hosp_table$n_not_hosp[window_start:window_end]
-                
-                if(sum(n_hosp) == 0)
-                  return(0)
-                if(sum(n_not_hosp) == 0)
-                  return(1)
-                
-                if(max(days_since_onset) > 45)
-                  return(sum(n_hosp) / sum(n_hosp + n_not_hosp))
-                
-                tryCatch(pracma::fzero(
-                  function(x) {
-                    fn_score_hosp(x, n_hosp, days_since_onset, n_not_hosp, delay_shape = delay_hosp_shape, delay_scale = delay_hosp_scale)
-                  },
-                  
-                  x = c(0 + .Machine$double.eps, 1 - .Machine$double.eps),
-                  tol = 0.0001
-                )$x, error = function(e) return(NA))
-              }
-            )
+            if(max(days_since_onset) > 45)
+              return(sum(n_hosp) / sum(n_hosp + n_not_hosp))
             
-            
+            tryCatch(pracma::fzero(
+              function(x) {
+                fn_score_hosp(x, n_hosp, days_since_onset, n_not_hosp, delay_shape = delay_hosp_shape, delay_scale = delay_hosp_scale)
+              },
+              
+              x = c(0 + .Machine$double.eps, 1 - .Machine$double.eps),
+              tol = 0.0001
+            )$x, error = function(e) return(NA))
           }
         )
+        
+        
       }
     )
     
@@ -234,130 +207,95 @@ get_time_varying_morbidity_estimations <- function(
     nindss_state_hospitalsed <- nindss_state %>%
       filter(ever_in_hospital)
     
-    ICU_tables <- map(
-      1:n_bootstraps,
-      function(i_bootstrap) {
-        nindss_state_hospitalsed %>%
-          sample_n(n(), replace = TRUE) %>%
-          count(date_onset, age_group, ever_in_ICU) %>%
-          complete(
-            date_onset = estimation_period_days,
-            age_group = age_groups,
-            ever_in_ICU = c(TRUE, FALSE),
-            
-            fill = list(n = 0)
-          ) %>%
-          
-          arrange(age_group, date_onset, ever_in_ICU) %>%
-          mutate(ever_in_ICU = if_else(ever_in_ICU, "n_ICU", "n_not_ICU")) %>%
-          
-          pivot_wider(names_from = ever_in_ICU,
-                      values_from = n) %>%
-          
-          mutate(n_hosp = n_not_ICU + n_ICU,
-                 .before = "n_not_ICU") %>%
-          
-          mutate(days_since_onset = as.numeric(nindss_date - date_onset),
-                 .before = 1) %>%
-          select(-date_onset) %>%
-          arrange(desc(days_since_onset))
-      }
-    ) 
-    
-    
-    
-    
-    
-    
+    ICU_table <- nindss_state_hospitalsed %>%
+      sample_n(n(), replace = TRUE) %>%
+      count(date_onset, age_group, ever_in_ICU) %>%
+      complete(
+        date_onset = estimation_period_days,
+        age_group = age_groups,
+        ever_in_ICU = c(TRUE, FALSE),
+        
+        fill = list(n = 0)
+      ) %>%
+      
+      arrange(age_group, date_onset, ever_in_ICU) %>%
+      mutate(ever_in_ICU = if_else(ever_in_ICU, "n_ICU", "n_not_ICU")) %>%
+      
+      pivot_wider(names_from = ever_in_ICU,
+                  values_from = n) %>%
+      
+      mutate(n_hosp = n_not_ICU + n_ICU,
+             .before = "n_not_ICU") %>%
+      
+      mutate(days_since_onset = as.numeric(nindss_date - date_onset),
+             .before = 1) %>%
+      select(-date_onset) %>%
+      arrange(desc(days_since_onset))
     
     
     ICU_results <- map(
-      ICU_tables,
-      function(i_bootstrapped_ICU_table) {
-        map(
-          age_groups,
-          function(i_age_group) {
-            i_ICU_table <- i_bootstrapped_ICU_table %>%
-              filter(age_group == i_age_group)
+      age_groups,
+      function(i_age_group) {
+        i_ICU_table <- ICU_table %>%
+          filter(age_group == i_age_group)
+        
+        map_dbl(
+          1:length(window_starts),
+          function(i_window) {
+            window_start <- window_starts[i_window]
+            window_end <- window_ends[i_window]
             
-            map_dbl(
-              1:length(window_starts),
-              function(i_window) {
-                window_start <- window_starts[i_window]
-                window_end <- window_ends[i_window]
-                
-                days_since_onset <- i_ICU_table$days_since_onset[window_start:window_end]
-                n_ICU <- i_ICU_table$n_ICU[window_start:window_end]
-                n_not_ICU <- i_ICU_table$n_not_ICU[window_start:window_end]
-                
-                if(sum(n_ICU) == 0)
-                  return(0)
-                if(sum(n_not_ICU) == 0)
-                  return(1)
-                
-                if(max(days_since_onset) > 30)
-                  return(sum(n_ICU) / sum(n_ICU + n_not_ICU))
-                
-                tryCatch(pracma::fzero(
-                  function(x) {
-                    fn_score_ICU(
-                      x,
-                      n_ICU,
-                      n_not_ICU,
-                      days_since_onset,
-                      i_age_group
-                    )
-                  },
-                  
-                  x = c(0+.Machine$double.eps,1-.Machine$double.eps),
-                )$x, error = function(e) return(NA))
-              }
-            )
+            days_since_onset <- i_ICU_table$days_since_onset[window_start:window_end]
+            n_ICU <- i_ICU_table$n_ICU[window_start:window_end]
+            n_not_ICU <- i_ICU_table$n_not_ICU[window_start:window_end]
             
+            if(sum(n_ICU) == 0)
+              return(0)
+            if(sum(n_not_ICU) == 0)
+              return(1)
             
+            if(max(days_since_onset) > 30)
+              return(sum(n_ICU) / sum(n_ICU + n_not_ICU))
+            
+            tryCatch(pracma::fzero(
+              function(x) {
+                fn_score_ICU(
+                  x,
+                  n_ICU,
+                  n_not_ICU,
+                  days_since_onset,
+                  i_age_group
+                )
+              },
+              
+              x = c(0+.Machine$double.eps,1-.Machine$double.eps),
+            )$x, error = function(e) return(NA))
           }
         )
       }
     )
     
-    j <- 1
-    for(i_bootstrap in 1:n_bootstraps) {
-      for(i_age_group in 1:length(age_groups)) {
-        all_results_ls[[j]] <- tibble(
-          bootstrap = i_bootstrap,
-          age_group = age_groups[i_age_group],
-          window_start = window_starts,
-          
-          pr_age_given_case = age_results[[i_bootstrap]][[i_age_group]],
-          pr_hosp = hosp_results[[i_bootstrap]][[i_age_group]],
-          pr_ICU = ICU_results[[i_bootstrap]][[i_age_group]]
-        )
+    for(i_age_group in 1:length(age_groups)) {
+      all_results_ls[[i_age_group]] <- tibble(
+        age_group = age_groups[i_age_group],
+        window_start = window_starts,
         
-        j <- j + 1
-        
-        
-      }
+        pr_age_given_case = age_results[[i_age_group]],
+        pr_hosp = hosp_results[[i_age_group]],
+        pr_ICU = ICU_results[[i_age_group]]
+      )
     }
   } else {
     
-    j <- 1
-    for(i_bootstrap in 1:n_bootstraps) {
-      for(i_age_group in 1:length(age_groups)) {
-        # Consider only pr_age_given_case for some states
-        all_results_ls[[j]] <- tibble(
-          bootstrap = i_bootstrap,
-          age_group = age_groups[i_age_group],
-          window_start = window_starts,
-          
-          pr_age_given_case = age_results[[i_bootstrap]][[i_age_group]]
-        )
+   for(i_age_group in 1:length(age_groups)) {
+      # Consider only pr_age_given_case for some states
+      all_results_ls[[i_age_group]] <- tibble(
+        age_group = age_groups[i_age_group],
+        window_start = window_starts,
         
-        j <- j + 1
-        
-        
-      }
+        pr_age_given_case = age_results[[i_age_group]]
+      )
     }
-    
   }
   
   
@@ -370,21 +308,20 @@ get_time_varying_morbidity_estimations <- function(
     all_results <- all_results %>%
       left_join(
         morbidity_trajectories_national %>% 
-          select(bootstrap, age_group, date, pr_hosp, pr_ICU),
+          select(age_group, date, pr_hosp, pr_ICU),
         
-        by = c("bootstrap", "age_group", "date")
+        by = c("age_group", "date")
       )
   }
   
   morbidity_trajectories <- all_results %>%
     
     complete(
-      bootstrap = 1:n_bootstraps,
       age_group = age_groups,
       date = seq(forecast_dates$simulation_start, forecast_dates$forecast_horizon, by = "days")
     ) %>%
     
-    group_by(bootstrap, age_group) %>%
+    group_by(age_group) %>%
     arrange(date) %>%
     
     fill(pr_age_given_case, pr_hosp, pr_ICU, .direction = "updown") %>%
@@ -403,8 +340,8 @@ get_time_varying_morbidity_estimations <- function(
     
     morbidity_trajectories <- morbidity_trajectories %>%
       left_join(
-        morbidity_trajectories_national %>% select(age_group, date, bootstrap, pr_ICU_nat = pr_ICU),
-        by = c("bootstrap", "age_group", "date")
+        morbidity_trajectories_national %>% select(age_group, date, pr_ICU_nat = pr_ICU),
+        by = c("age_group", "date")
       ) %>% 
       left_join(forecast_ICU_adj_factors, by = "age_group") %>% 
       mutate(pr_ICU = if_else(date >= forecast_dates$NNDSS, pr_ICU * prop_local + pr_ICU_nat * (1 - prop_local), pr_ICU)) %>% 
@@ -413,9 +350,6 @@ get_time_varying_morbidity_estimations <- function(
   
   return(morbidity_trajectories)
 }
-
-
-
 
 
 get_ICU_lookup <- function(age_groups, clinical_parameter_lookup) {

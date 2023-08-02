@@ -5,8 +5,8 @@ library(future.callr)
 options(tidyverse.quiet = TRUE)
 tar_option_set(packages = c("tidyverse", "lubridate", "curvemush"), garbage_collection = TRUE, backoff = 60)
 
-#state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
-state_tbl <- tibble::tibble(state_modelled = c("ACT", "NT", "TAS"))
+state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT", "WA", "SA", "TAS"))
+#state_tbl <- tibble::tibble(state_modelled = c("ACT", "NT", "TAS"))
 
 
 # Do not change these values
@@ -33,8 +33,7 @@ t_parameters <- list(
   tar_target(occupancy_path, "data/occupancy/NAT_2023-06-01_Data for Uni of Melbourne.xlsx"),
   
   tar_target(n_traj_out, 1000),
-  tar_target(use_fitting, TRUE),
-  tar_target(is_longterm, longterm)
+  tar_target(use_fitting, TRUE)
 )
 
 source("t_dependencies.R")
