@@ -1,5 +1,5 @@
 
-read_occupancy_data <- function(occupancy_path) {
+read_occupancy_data <- function(occupancy_path, save_full = FALSE) {
   
   
   national_data <- readxl::read_excel(
@@ -13,7 +13,7 @@ read_occupancy_data <- function(occupancy_path) {
     select(date, state, ward, ICU)  %>%
     pivot_longer(c(ward, ICU), values_to = "count", names_to = "group")
   
-  old_ts <- read_csv("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/compiled_2022-10-20.csv")
+  old_ts <- read_csv("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/compiled_2022-10-20.csv", show_col_types = FALSE)
   
   
   full_occ <- bind_rows(
@@ -28,8 +28,10 @@ read_occupancy_data <- function(occupancy_path) {
       count = if_else(state == "ACT" & date >= ymd("2022-11-13") & date <= ymd("2022-11-24"), NA_real_, count)
     )
   
+  if(save_full) {
+    write_csv(full_occ, str_c("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
+  }
   
-  write_csv(full_occ, str_c("/home/forecast/source/clinical_forecasting/data/occupancy/compiled/occupancy_compiled_", today(), ".csv"))
   
   full_occ
 }
