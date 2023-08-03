@@ -1,4 +1,8 @@
 
+library(targets)
+library(tidyverse)
+library(lubridate)
+
 
 sim_results <- tar_read(sim_results_ACT)
 state_modelled <- "ACT"
@@ -11,8 +15,7 @@ plot_dir <- tar_read(plot_dir)
 
 
 
-trajs <- sim_results$trajectories %>%
-  filter(sample < 500)
+trajs <- sim_results$trajectories
 
 occ_data <- occupancy_data %>% 
   filter(state == state_modelled) %>%
