@@ -88,15 +88,6 @@ state_results <- tar_map(
     )
   ),
   
-  
-  # tar_target(
-  #   morbidity_trajectories_state,
-  #   
-  #   #get_time_varying_as_known(date_forecasting, forecast_dates),
-  #   get_time_varying_with_future(date_forecasting, forecast_dates),
-  #   format = "fst_tbl"
-  # ),
-  
   # tar_target(
   #   morbidity_trajectories_plot,
   #   plot_morbidity_trajectories(
@@ -107,11 +98,6 @@ state_results <- tar_map(
   #     plot_dir
   #   )
   # ),
-  
-  
-  tar_target(
-    sim_thresholds, c(0.1, 0.2, 0.3, 0.5, 1, 10, 1000)
-  ),
   
   tar_target(
     sim_results,
@@ -126,12 +112,7 @@ state_results <- tar_map(
       forecast_dates,
       state_forecast_start,
       
-      state_modelled#,
-      
-      # n_traj_out,
-      # 
-      # thresholds = sim_thresholds,
-      # do_ABC = use_fitting
+      state_modelled
     ),
     format = "qs",
     resources = tar_resources(
@@ -142,50 +123,6 @@ state_results <- tar_map(
     garbage_collection = TRUE
   ),
   
-  
-  # tar_target(
-  #   sim_results_prior,
-  #   
-  #   run_progression_model(
-  #     case_trajectories,
-  #     known_occupancy_ts,
-  #     
-  #     morbidity_trajectories_state,
-  #     clinical_parameter_samples,
-  #     
-  #     forecast_dates,
-  #     state_forecast_start,
-  #     
-  #     state_modelled,
-  #     n_traj_out,
-  #     
-  #     do_ABC = FALSE
-  #   ),
-  #   format = "qs",
-  #   resources = tar_resources(
-  #     qs = tar_resources_qs(preset = "fast")
-  #   ),
-  #   
-  #   memory = "transient",
-  #   garbage_collection = TRUE
-  # ),
-  
-  # tar_target(
-  #   prior_posterior_plots,
-  #   make_prior_posterior_plot(
-  #     sim_results_prior, sim_results,
-  #     
-  #     forecast_dates, state_forecast_start,
-  #     known_occupancy_ts,
-  #     plot_dir, state_modelled
-  #   ),
-  #   format = "file",
-  #   deployment = "main"
-  # ),
-  # 
-  # tar_target(state_ABC_parameters, sim_results$ABC_parameters %>% mutate(state = state_modelled)),
-  # tar_target(state_ABC_diagnostics, sim_results$ABC_fit_diagnostics %>% mutate(state = state_modelled)),
-  # 
   # tar_target(
   #   state_plots,
   #   
