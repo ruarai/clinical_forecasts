@@ -10,8 +10,8 @@ source("R/make_result_quants.R")
 
 
 
-latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-08-03_Data for Uni of Melbourne.xlsx")
-latest_case_data <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2023-08-03.csv") %>% 
+latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-08-10_Data for Uni of Melbourne.xlsx")
+latest_case_data <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2023-08-10.csv") %>% 
   rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
 
 
@@ -187,7 +187,7 @@ plots <- expand_grid(
 
 
 
-cairo_pdf(str_c("results_retrospective/", "retrospective_evaluation_", max(recent_forecasts$forecast_run_date), ".pdf"),
+cairo_pdf(str_c("results_retrospective/", "clinical_forecasts_evaluation_", max(recent_forecasts$forecast_run_date), ".pdf"),
           width = 13, height = 8, onefile = TRUE)
 for (i in seq(1, length(plots), by = 3)) {
   plot(cowplot::plot_grid(plots[[i]], plots[[i + 1]], plots[[i + 2]], ncol = 3, align = "h", axis = "tb"))
