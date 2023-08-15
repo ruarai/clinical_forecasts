@@ -28,7 +28,7 @@ make_case_trajectories <- function(
   
   na_cols <- map_lgl(1:ncol(ensemble_curves_df), ~ all(is.na(ensemble_curves_df[,.])))
   
-  print(paste0("Dropping ", sum(na_cols), " columns for being entirely NA"))
+  print(paste0("Dropping ", sum(na_cols), " columns for being entirely NA. This is okay :)"))
   
   
   ensemble_curves <- as.matrix(ensemble_curves_df[, !na_cols])
