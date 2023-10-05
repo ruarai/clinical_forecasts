@@ -1,5 +1,5 @@
 
-make_results_quants <- function(tbl, probs = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)) {
+make_results_quants <- function(tbl, probs = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9), na.rm = FALSE) {
   data_matrix <- tbl %>%
     select(starts_with("sim_")) %>%
     as.matrix()
@@ -15,7 +15,7 @@ make_results_quants <- function(tbl, probs = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8
   quant_names <- c(str_c("lower_", rev(probs) * 100), str_c("upper_", probs * 100))
   
   quants <- data_matrix %>%
-    matrixStats::rowQuantiles(probs = quant_probs) %>%
+    matrixStats::rowQuantiles(probs = quant_probs, na.rm = na.rm) %>%
     `colnames<-`(quant_names) %>%
     as_tibble() %>%
     bind_cols(id_tbl, medians, .) %>%

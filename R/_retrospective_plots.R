@@ -10,8 +10,8 @@ source("R/make_result_quants.R")
 
 
 
-latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-09-28_Data for Uni of Melbourne.xlsx")
-latest_case_data <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2023-09-28.csv") %>% 
+latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-10-05_Data for Uni of Melbourne.xlsx")
+latest_case_data <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-05.csv") %>% 
   rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
 
 
@@ -99,7 +99,7 @@ recent_ensemble_quants <- recent_forecast_case_forecasts %>%
   select(-forecast_origin) %>% 
   pivot_wider(names_from = ".model", values_from = starts_with("sim")) %>% 
   rename_with(function(x) str_replace(x, "sim", "sim_")) %>%
-  make_results_quants() %>%
+  make_results_quants(na.rm = TRUE) %>%
   select(forecast_name, forecast_run_date, forecast_ix, state, date, median, quant, lower, upper) %>%
   mutate(group = "case")
 
