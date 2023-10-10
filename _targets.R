@@ -29,6 +29,7 @@ t_parameters <- list(
   tar_target(models_included, c("gar", "moss_varasc", "dst_new", "moss_varasc_unsmoothed", "dst_behave")),
   
   tar_target(nindss_bad_states, c("NT", "SA", "QLD")),
+  tar_target(pcr_only_states, c("VIC", "QLD", "NSW")),
   
   tar_target(do_upload_trajectories, FALSE),
   
