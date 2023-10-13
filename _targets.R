@@ -11,7 +11,7 @@ state_tbl <- tibble::tibble(state_modelled = c("VIC", "ACT", "QLD", "NSW", "NT",
 is_retro <- FALSE
 
 t_parameters <- list(
-  tar_target(date_forecasting, ymd("2023-10-06")),
+  tar_target(date_forecasting, ymd("2023-10-13")),
   
   
   tar_target(date_simulation_start, date_forecasting - days(28 * 6)),
@@ -19,14 +19,11 @@ t_parameters <- list(
   
   # Update these to the latest file path
   # ~/mfluxshared and ~/mfluxunimelb should point to the (respective) mediaflux server
-  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 6months-05Oct2023.zip"),
-  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-05.csv"),
+  tar_target(raw_nindss, "~/mfluxshared/Health Uploads/COVID-19 UoM 6months-12Oct2023.zip"),
+  tar_target(raw_local_cases, "~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-12.csv"),
   
-  ## NOTE - Moss ensemble models are being downweighted - so message "Dropping ... columns for being entirely NA" will appear repeatedly
-  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-09-29.csv"),
-  tar_target(occupancy_path, "data/occupancy/NAT_2023-10-05_Data for Uni of Melbourne.xlsx"),
-  
-  tar_target(models_included, c("gar", "moss_varasc", "dst_new", "moss_varasc_unsmoothed", "dst_behave")),
+  tar_target(raw_ensemble, "~/mfluxshared/forecast-outputs/hyndman_ensemble_paths_2023-10-06.parquet"),
+  tar_target(occupancy_path, "data/occupancy/NAT_2023-10-12_Data for Uni of Melbourne.xlsx"),
   
   tar_target(nindss_bad_states, c("NT", "SA", "QLD")),
   tar_target(pcr_only_states, c("VIC", "QLD", "NSW")),

@@ -10,8 +10,8 @@ source("R/make_result_quants.R")
 
 
 
-latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-10-05_Data for Uni of Melbourne.xlsx")
-latest_case_data <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-05.csv") %>% 
+latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-10-12_Data for Uni of Melbourne.xlsx")
+latest_case_data <- read_csv("data/local_cases_input_2023-10-12.csv") %>% 
   rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
 
 
