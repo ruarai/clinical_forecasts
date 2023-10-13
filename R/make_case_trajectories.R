@@ -17,9 +17,6 @@ make_case_trajectories <- function(
     
     select(-c(state, forecast_origin)) %>%
     
-    pivot_wider(names_from = ".model",
-                values_from = starts_with("sim")) %>%
-    
     mutate(across(starts_with("sim"), ~ round(.))) %>%
     
     arrange(date) %>%

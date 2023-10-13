@@ -14,7 +14,7 @@ state_results <- tar_map(
   
   tar_target(
     ensemble_state,
-    read_ensemble_state(raw_ensemble, state_modelled, models_included),
+    read_ensemble_state(raw_ensemble, state_modelled),
     
     format = "fst",
     deployment = "main"
