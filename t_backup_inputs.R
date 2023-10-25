@@ -34,7 +34,7 @@ t_backup_inputs <- list(
   tar_target(
     backup_ensemble,
     {
-      file_path <- paste0(archive_dir, "/ensemble.csv")
+      file_path <- paste0(archive_dir, "/ensemble.parquet")
       if(file.exists(file_path))
         return(file_path)
 

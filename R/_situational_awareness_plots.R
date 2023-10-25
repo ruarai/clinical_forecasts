@@ -9,14 +9,14 @@ source("R/_situational_awareness_functions.R")
 # These may be different from what is defined in _targets.R
 
 # Paths of data and results to plot
-results_dir <- "results/fc_2023-10-13_final//"
-local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-12.csv"
-ensemble_path <- "~/mfluxshared/forecast-outputs/combined_samples_varasc2023-10-06.csv"
-date_reporting_line <- ymd("2023-10-13")
+results_dir <- "results/fc_2023-10-20_final/"
+local_cases_path <- "~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-19.csv"
+ensemble_path <- "~/mfluxshared/forecast-outputs/hyndman_ensemble_paths_2023-10-13.parquet"
+date_reporting_line <- ymd("2023-10-20")
 
 
 # When our plots go back to
-date_plot_start <- ymd("2023-02-01")
+date_plot_start <- ymd("2023-05-01")
 ensemble_models_included <- c("gar", "moss_varasc_unsmoothed", "moss_varasc", "dst_new", "dst_behave")
 
 
@@ -31,8 +31,7 @@ occupancy_data <- tar_read(occupancy_data) %>%
 clinical_trajectories_wide <- get_trajectories(results_dir) %>%
   get_clinical_trajectories_wide()
 
-case_ensemble_wide <- read_ensemble_all_states(ensemble_path, ensemble_models_included) %>%
-  get_ensemble_wide()
+case_ensemble_wide <- read_ensemble_all_states(ensemble_path, ensemble_models_included)
 
 
 local_cases <- read_csv(local_cases_path, show_col_types = FALSE) %>% 

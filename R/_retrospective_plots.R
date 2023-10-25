@@ -10,13 +10,13 @@ source("R/make_result_quants.R")
 
 
 
-latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-10-12_Data for Uni of Melbourne.xlsx")
-latest_case_data <- read_csv("data/local_cases_input_2023-10-12.csv") %>% 
+latest_occupancy_data <- read_occupancy_data("data/occupancy/NAT_2023-10-19_Data for Uni of Melbourne.xlsx")
+latest_case_data <- read_csv("~/mfluxunimelb/local_cases_input/local_cases_input_2023-10-19.csv") %>% 
   rename_with(function(x) if_else(x == "completion_probability", "detection_probability", x))
 
 
 
-date_plot_start <- ymd("2023-06-01")
+date_plot_start <- today() - days(80)
 
 weeks_back <- 3
 
@@ -32,7 +32,11 @@ all_forecasts <- tibble(
          local_cases_file = str_c(forecast_dir, "archive/local_cases.csv"),
          ensemble_file = str_c(forecast_dir, "archive/ensemble.csv"),
          
-         forecast_run_date = ymd(str_extract(forecast_name, "\\d{4}-\\d{2}-\\d{2}")))
+         forecast_run_date = ymd(str_extract(forecast_name, "\\d{4}-\\d{2}-\\d{2}"))) %>%
+  
+  mutate(
+    ensemble_file = if_else(file.exists(ensemble_file), ensemble_file, str_c(forecast_dir, "archive/ensemble.parquet"))
+  )
 
 recent_forecasts <- all_forecasts %>%
   slice_max(forecast_run_date, n = weeks_back) %>%
@@ -61,7 +65,8 @@ recent_forecast_start_dates <-recent_forecast_local_cases  %>%
 recent_forecast_case_forecasts <- recent_forecasts %>%
   select(forecast_name, forecast_run_date, forecast_ix, ensemble_file) %>%
   rowwise() %>%
-  mutate(ensemble = list(vroom::vroom(ensemble_file, show_col_types = FALSE))) %>%
+  
+  mutate(ensemble = list(read_ensemble_all_states(ensemble_file))) %>%
   unnest(ensemble)
   
 

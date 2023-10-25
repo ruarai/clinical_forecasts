@@ -203,14 +203,6 @@ get_clinical_trajectories_wide <- function(trajectories) {
     pivot_wider(names_from = sample, values_from = count, names_prefix = "sim_")
 }
 
-get_ensemble_wide <- function(case_ensemble) {
-  case_ensemble %>%
-    select(state, date, .model, starts_with("sim")) %>%
-    
-    pivot_wider(names_from = ".model",
-                values_from = starts_with("sim"))
-}
-
 
 process_local_cases <- function(local_cases_state, ascertainment_ts) {
   local_cases_state %>%
